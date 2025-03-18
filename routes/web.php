@@ -1,7 +1,7 @@
 <?php
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\IndexController;
-use App\Http\Controllers\Admin\IndexController as AdminIndexController;
+use App\Http\Controllers\Admin\StoreController as AdminIndexController;
 use App\Http\Controllers\Admin\Post\IndexController as PostIndexController;
 use App\Http\Controllers\Admin\Post\DeleteController as PostDeleteController;
 use App\Http\Controllers\Admin\Post\CreateController as PostCreateController;
