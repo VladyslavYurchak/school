@@ -18,8 +18,15 @@ class LessonTestOption extends Model
     /**
      * Відношення до моделі LessonTest
      */
+
+
+    public function test()
+    {
+        return $this->lessonTest();
+    }
+
     public function lessonTest()
     {
-        return $this->belongsTo(LessonTest::class);
+        return $this->belongsTo(LessonTest::class, 'lesson_test_id');
     }
 }

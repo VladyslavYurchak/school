@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('lesson_tests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('lesson_id')->constrained()->onDelete('cascade'); // Прив’язка до уроку
+            $table->unsignedInteger('position')->default(1);
             $table->text('question'); // Текст запитання
             $table->boolean('is_multiple_choice')->default(false); // Чи є багатовибірний тест
             $table->string('correct_answer')->nullable(); // Правильна відповідь (якщо текст)

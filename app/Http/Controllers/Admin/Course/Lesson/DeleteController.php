@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Lesson;
+namespace App\Http\Controllers\Admin\Course\Lesson;
 
 use App\Http\Controllers\Controller;
-use App\Models\Course;
 use App\Models\Lesson;
 
 class DeleteController extends Controller

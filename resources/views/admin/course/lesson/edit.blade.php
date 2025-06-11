@@ -19,7 +19,7 @@
                     </div>
                 @endif
 
-                <form id="lessonForm" action="{{ route('admin.course.lesson.store', ['course' => $course->id]) }}" method="POST" enctype="multipart/form-data">
+                <form id="lessonForm" action="{{ route('admin.lesson.store', ['course' => $course->id]) }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
                     <!-- Урок: Вибір типу, назва, опис -->

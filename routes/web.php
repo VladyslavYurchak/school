@@ -1,24 +1,30 @@
 <?php
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\IndexController;
-use App\Http\Controllers\Admin\StoreController as AdminIndexController;
-use App\Http\Controllers\Admin\Post\IndexController as PostIndexController;
-use App\Http\Controllers\Admin\Post\DeleteController as PostDeleteController;
-use App\Http\Controllers\Admin\Post\CreateController as PostCreateController;
-use App\Http\Controllers\Admin\Post\StoreController as PostStoreController;
-use App\Http\Controllers\Admin\Post\EditController as PostEditController;
-use App\Http\Controllers\Admin\Post\UpdateController as PostUpdateController;
-use App\Http\Controllers\Admin\Post\ShowController as PostShowController;
-use App\Http\Controllers\Admin\Event\IndexController as EventIndexController;
+
+use App\Http\Controllers\AboutController;
+use App\Http\Controllers\Admin\Course\Lesson\Test\CreateController;
+use App\Http\Controllers\Admin\Course\Lesson\Test\DestroyController;
+use App\Http\Controllers\Admin\Course\Lesson\Test\EditController;
+use App\Http\Controllers\Admin\Course\Lesson\Test\TestOptionController;
+use App\Http\Controllers\Admin\Course\Lesson\Test\UpdateController;
 use App\Http\Controllers\Admin\Event\CreateController as EventCreateController;
-use App\Http\Controllers\Admin\Event\StoreController as EventStoreController;
 use App\Http\Controllers\Admin\Event\DeleteController as EventDeleteController;
+use App\Http\Controllers\Admin\Event\IndexController as EventIndexController;
+use App\Http\Controllers\Admin\Event\StoreController as EventStoreController;
+use App\Http\Controllers\Admin\Photo\DeleteController;
 use App\Http\Controllers\Admin\Photo\IndexController as PhotoIndexController;
 use App\Http\Controllers\Admin\Photo\UploadController;
-use App\Http\Controllers\Admin\Photo\DeleteController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\AboutController;
+use App\Http\Controllers\Admin\Post\CreateController as PostCreateController;
+use App\Http\Controllers\Admin\Post\DeleteController as PostDeleteController;
+use App\Http\Controllers\Admin\Post\EditController as PostEditController;
+use App\Http\Controllers\Admin\Post\IndexController as PostIndexController;
+use App\Http\Controllers\Admin\Post\ShowController as PostShowController;
+use App\Http\Controllers\Admin\Post\StoreController as PostStoreController;
+use App\Http\Controllers\Admin\Post\UpdateController as PostUpdateController;
+use App\Http\Controllers\Admin\StoreController as AdminIndexController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\IndexController;
+use App\Http\Controllers\PaymentController;
+use Illuminate\Support\Facades\Route;
 
 // Головна сторінка
 Route::get('/', IndexController::class)->name('index');
@@ -31,7 +37,6 @@ Route::group(['namespace' => 'App\Http\Controllers\Post'], function () {
 // Авторизація
 Auth::routes();
 
-// Панель адміністратора
 Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
     Route::get('/', AdminIndexController::class)->name('admin.index');
 
@@ -59,14 +64,29 @@ Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
     Route::put('/courses/{course}', \App\Http\Controllers\Admin\Course\UpdateController::class)->name('admin.course.update');
     Route::delete('/courses/{course}', \App\Http\Controllers\Admin\Course\DeleteController::class)->name('admin.course.delete');
     Route::get('/courses/filter/{language}', \App\Http\Controllers\Admin\Course\FilterByLanguageController::class)->name('admin.course.filter');
-    Route::get('courses/{course}', \App\Http\Controllers\Admin\Course\ShowController::class)->name('admin.course.show');
+    Route::get('/courses/{course}', \App\Http\Controllers\Admin\Course\ShowController::class)->name('admin.course.show');
     Route::post('/courses/{course}/publish', \App\Http\Controllers\Admin\Course\TogglePublishController::class)->name('admin.courses.publish');
 
-    Route::get('courses/{course}/lessons/create', \App\Http\Controllers\Admin\Lesson\CreateController::class)->name('admin.lesson.create');
-    Route::post('courses/{course}/lessons', \App\Http\Controllers\Admin\Lesson\StoreController::class)->name('admin.lesson.store');
-    Route::get('/admin/lesson/{lesson}', \App\Http\Controllers\Admin\Lesson\ShowController::class)->name('admin.lesson.show');
-    Route::delete('lessons/{lesson}', \App\Http\Controllers\Admin\Lesson\DeleteController::class)->name('admin.lesson.delete');
-    Route::post('lessons/update-order', \App\Http\Controllers\Admin\Lesson\UpdateLessonOrderController::class)->name('admin.lesson.updateOrder');
+    // створення уроку та редагування
+    Route::get('courses/{course}/lessons/create', \App\Http\Controllers\Admin\Course\Lesson\CreateController::class)->name('admin.course.lesson.create');
+    Route::post('courses/{course}/lessons', \App\Http\Controllers\Admin\Course\Lesson\StoreController::class)->name('admin.course.lesson.store');
+    Route::get('/lesson/{lesson}', \App\Http\Controllers\Admin\Course\Lesson\ShowController::class)->name('admin.course.lesson.show');
+    Route::delete('lessons/{lesson}', \App\Http\Controllers\Admin\Course\Lesson\DeleteController::class)->name('admin.course.lesson.delete');
+    Route::post('lessons/update-order', \App\Http\Controllers\Admin\Course\Lesson\UpdateLessonOrderController::class)->name('admin.course.lesson.updateOrder');
+
+    // створення тестового блоку та редагування
+    Route::get('lessons/{lesson}/test-block/create', CreateController::class)->name('admin.course.lesson.test.create');
+    Route::post('lessons/{lesson}/test-block', \App\Http\Controllers\Admin\Course\Lesson\Test\StoreController::class)->name('admin.course.lesson.test.store');
+    Route::patch('lessons/{lesson}/test-block/{test}', UpdateController::class)->name('admin.course.lesson.test.update');
+    Route::get('lessons/{lesson}/test-block/{test}/edit', EditController::class)->name('admin.course.lesson.test.edit');
+    Route::delete('lessons/{lesson}/test-block/{test}', DestroyController::class)->name('admin.course.lesson.test.destroy');
+    Route::delete('/course/lesson/test/option/{option}', \App\Http\Controllers\Admin\Course\Lesson\Test\TestOptionController::class)
+        ->name('admin.course.lesson.test.option.destroy');
+    Route::post('/courses/lesson/test/updateOrder', \App\Http\Controllers\Admin\Course\Lesson\Test\UpdateOrderController::class)
+        ->name('admin.course.lesson.test.updateOrder');
+
+
+
 
 
     // Фотографії

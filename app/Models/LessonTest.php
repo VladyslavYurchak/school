@@ -12,6 +12,7 @@ class LessonTest extends Model
     protected $fillable = [
         'lesson_id',
         'question',
+        'position',
         'is_multiple_choice',
         'correct_answer',
     ];

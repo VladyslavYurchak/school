@@ -16,6 +16,8 @@
         name="keywords"
         content="bootstrap 5, bootstrap, bootstrap 5 admin dashboard, bootstrap 5 dashboard, bootstrap 5 charts, bootstrap 5 calendar, bootstrap 5 datepicker, bootstrap 5 tables, bootstrap 5 datatable, vanilla js datatable, colorlibhq, colorlibhq dashboard, colorlibhq admin dashboard"
     />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <!--end::Primary Meta Tags-->
     <!--begin::Fonts-->
     <link
@@ -42,15 +44,13 @@
     />
     <!--end::Third Party Plugin(Bootstrap Icons)-->
     <!--begin::Required Plugin(AdminLTE)-->
+
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <link rel="stylesheet" href="{{ asset('dist/css/adminlte.css') }}">
+    <livewire:styles />
     <!--end::Required Plugin(AdminLTE)-->
-    <!-- apexcharts -->
-    <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.css"
-        integrity="sha256-4MX+61mt9NVvvuPjUWdUdyfZfxSB1/Rf9WtqRHgG5S0="
-        crossorigin="anonymous"
-    />
+
     <!-- jsvectormap -->
     <link
         rel="stylesheet"
@@ -58,6 +58,80 @@
         integrity="sha256-+uGLJmmTKOqBr+2E6KDYs/NRsHxSkONXFHUL0fy2O/4="
         crossorigin="anonymous"
     />
+    <style>
+        :root {
+            --primary-color: #5abbd5;      /* Пастельний голубий */
+            --secondary-color: #a3c9e2;    /* Світліший варіант */
+            --background-color: #f7f9fa;   /* Світлий фон */
+            --text-color: #333333;         /* Темний текст */
+            --button-text-color: #ffffff;  /* Білий текст на кнопках */
+        }
+
+        body {
+            background-color: var(--background-color);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            color: var(--text-color);
+        }
+
+        .card {
+            background: #ffffff;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            background-color: var(--primary-color);
+            color: var(--button-text-color);
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            padding: 12px 16px;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: var(--button-text-color);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .btn-custom:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .list-group {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .list-group-item {
+            border: none;
+            background: var(--background-color);
+            border-bottom: 1px solid #e0e0e0;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sortable-chosen {
+            background-color: var(--secondary-color) !important;
+        }
+
+        .btn-group a, .btn-group button {
+            margin-right: 5px;
+        }
+    </style>
 </head>
 <!--end::Head-->
 <!--begin::Body-->
@@ -96,6 +170,7 @@
     integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
     crossorigin="anonymous"
 ></script>
+
 <!--end::Required Plugin(Bootstrap 5)--><!--begin::Required Plugin(AdminLTE)-->
 <script src="{{ asset('dist/js/adminlte.js') }}"></script>
 <!--end::Required Plugin(AdminLTE)--><!--begin::OverlayScrollbars Configure-->
@@ -142,12 +217,6 @@
         cardHeader.style.cursor = 'move';
     });
 </script>
-<!-- apexcharts -->
-<script
-    src="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.min.js"
-    integrity="sha256-+vh8GkaU7C9/wbSLIcwq82tQ2wTf44aOHA8HlBMwRI8="
-    crossorigin="anonymous"
-></script>
 <!-- ChartJS -->
 <script>
     // NOTICE!! DO NOT USE ANY OF THIS JAVASCRIPT
@@ -201,11 +270,7 @@
         },
     };
 
-    const sales_chart = new ApexCharts(
-        document.querySelector('#revenue-chart'),
-        sales_chart_options,
-    );
-    sales_chart.render();
+
 </script>
 <!-- jsvectormap -->
 <script
@@ -235,96 +300,19 @@
     };
 
     // World map by jsVectorMap
-    const map = new jsVectorMap({
-        selector: '#world-map',
-        map: 'world',
+    document.addEventListener('DOMContentLoaded', function () {
+        const mapContainer = document.querySelector('#world-map');
+
+        if (mapContainer) {
+            const map = new jsVectorMap({
+                selector: '#world-map',
+                map: 'world',
+            });
+        }
     });
 
-    // Sparkline charts
-    const option_sparkline1 = {
-        series: [
-            {
-                data: [1000, 1200, 920, 927, 931, 1027, 819, 930, 1021],
-            },
-        ],
-        chart: {
-            type: 'area',
-            height: 50,
-            sparkline: {
-                enabled: true,
-            },
-        },
-        stroke: {
-            curve: 'straight',
-        },
-        fill: {
-            opacity: 0.3,
-        },
-        yaxis: {
-            min: 0,
-        },
-        colors: ['#DCE6EC'],
-    };
-
-    const sparkline1 = new ApexCharts(document.querySelector('#sparkline-1'), option_sparkline1);
-    sparkline1.render();
-
-    const option_sparkline2 = {
-        series: [
-            {
-                data: [515, 519, 520, 522, 652, 810, 370, 627, 319, 630, 921],
-            },
-        ],
-        chart: {
-            type: 'area',
-            height: 50,
-            sparkline: {
-                enabled: true,
-            },
-        },
-        stroke: {
-            curve: 'straight',
-        },
-        fill: {
-            opacity: 0.3,
-        },
-        yaxis: {
-            min: 0,
-        },
-        colors: ['#DCE6EC'],
-    };
-
-    const sparkline2 = new ApexCharts(document.querySelector('#sparkline-2'), option_sparkline2);
-    sparkline2.render();
-
-    const option_sparkline3 = {
-        series: [
-            {
-                data: [15, 19, 20, 22, 33, 27, 31, 27, 19, 30, 21],
-            },
-        ],
-        chart: {
-            type: 'area',
-            height: 50,
-            sparkline: {
-                enabled: true,
-            },
-        },
-        stroke: {
-            curve: 'straight',
-        },
-        fill: {
-            opacity: 0.3,
-        },
-        yaxis: {
-            min: 0,
-        },
-        colors: ['#DCE6EC'],
-    };
-
-    const sparkline3 = new ApexCharts(document.querySelector('#sparkline-3'), option_sparkline3);
-    sparkline3.render();
 </script>
+<livewire:scripts />
 <!--end::Script-->
 </body>
 <!--end::Body-->
