@@ -3,7 +3,7 @@
 @section('content')
     <div class="container mt-4">
         <div class="card shadow">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header bg-black text-white">
                 <h4 class="form-title">
                     <i class="fas fa-book-open"></i> Створення уроку до курсу "{{ $course->name }}"
                 </h4>
@@ -24,7 +24,7 @@
 
                     <!-- Урок: Вибір типу, назва, опис -->
                     <div class="card mb-4">
-                        <div class="card-header bg-light">
+                        <div class="card-header bg-black">
                             <strong>Основна інформація про урок</strong>
                         </div>
                         <div class="card-body">
@@ -55,7 +55,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success bg-black">
                         <i class="fas fa-check-circle"></i> Створити урок
                     </button>
                 </form>

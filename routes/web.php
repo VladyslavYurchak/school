@@ -38,8 +38,6 @@ Route::group(['namespace' => 'App\Http\Controllers\Post'], function () {
 Auth::routes();
 
 Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
-    Route::get('/', AdminIndexController::class)->name('admin.index');
-
     // Пост
     Route::get('/post', PostIndexController::class)->name('admin.post.index');
     Route::delete('/post/{post}', PostDeleteController::class)->name('admin.post.delete');
@@ -74,6 +72,7 @@ Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
     Route::delete('lessons/{lesson}', \App\Http\Controllers\Admin\Course\Lesson\DeleteController::class)->name('admin.course.lesson.delete');
     Route::post('lessons/update-order', \App\Http\Controllers\Admin\Course\Lesson\UpdateLessonOrderController::class)->name('admin.course.lesson.updateOrder');
 
+
     // створення тестового блоку та редагування
     Route::get('lessons/{lesson}/test-block/create', CreateController::class)->name('admin.course.lesson.test.create');
     Route::post('lessons/{lesson}/test-block', \App\Http\Controllers\Admin\Course\Lesson\Test\StoreController::class)->name('admin.course.lesson.test.store');
@@ -86,8 +85,62 @@ Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
         ->name('admin.course.lesson.test.updateOrder');
 
 
+    // Main block
+    Route::get('lessons/{lesson}/main-block/create', \App\Http\Controllers\Admin\Course\Lesson\Main\CreateController::class)->name('admin.course.lesson.main.create');
+    Route::post('lessons/{lesson}/main-block', \App\Http\Controllers\Admin\Course\Lesson\Main\StoreController::class)->name('admin.course.lesson.main.store');
+    Route::get('lessons/{lesson}/main-block/edit', \App\Http\Controllers\Admin\Course\Lesson\Main\EditController::class)->name('admin.course.lesson.main.edit');
+    Route::put('lessons/{lesson}/main-block/', \App\Http\Controllers\Admin\Course\Lesson\Main\UpdateController::class)->name('admin.course.lesson.main.update');
+    Route::delete('lessons/{lesson}/main-block/audio', \App\Http\Controllers\Admin\Course\Lesson\Main\DeleteAudioController::class)
+        ->name('admin.course.lesson.main.audio.delete');
+    Route::delete('lessons/{lesson}/main-block/{filename}', \App\Http\Controllers\Admin\Course\Lesson\Main\DeleteFileController::class)
+        ->name('admin.course.lesson.main.file.delete')
+        ->where('filename', '.*');
+    Route::delete('lesson/{lesson}/main', \App\Http\Controllers\Admin\Course\Lesson\Main\DestroyController::class)
+        ->name('admin.course.lesson.main.destroy');
 
 
+// Homework block
+    Route::get('lessons/{lesson}/homework-block/create', \App\Http\Controllers\Admin\Course\Lesson\Homework\CreateController::class)->name('admin.course.lesson.homework.create');
+    Route::post('lessons/{lesson}/homework-block', \App\Http\Controllers\Admin\Course\Lesson\Homework\StoreController::class)->name('admin.course.lesson.homework.store');
+    Route::post('admin/lessons/{lesson}/homework-block', \App\Http\Controllers\Admin\Course\Lesson\Homework\StoreController::class)
+        ->name('admin.course.lesson.homework.store');
+    Route::put('lessons/{lesson}/homework-block', \App\Http\Controllers\Admin\Course\Lesson\Homework\UpdateController::class)
+        ->name('admin.course.lesson.homework.update');
+    Route::get('lessons/{lesson}/homework-block/edit', \App\Http\Controllers\Admin\Course\Lesson\Homework\EditController::class)
+        ->name('admin.course.lesson.homework.edit');
+    Route::delete('lessons/{lesson}/homework-block', \App\Http\Controllers\Admin\Course\Lesson\Homework\DestroyController::class)
+        ->name('admin.course.lesson.homework.destroy');
+    Route::delete('lessons/{lesson}/homework-file/{filename}', \App\Http\Controllers\Admin\Course\Lesson\Homework\DeleteFileController::class)
+        ->name('admin.course.lesson.homework.file.delete');
+
+
+    //адміністрація школою
+    Route::prefix('students')->name('admin.students.')->group(function () {
+        Route::get('/main', \App\Http\Controllers\Admin\Students\IndexController::class)->name('index');
+        Route::get('/create', \App\Http\Controllers\Admin\Students\CreateController::class)->name('create');
+        Route::post('/store', \App\Http\Controllers\Admin\Students\StoreController::class)->name('store');
+
+        // Потрібно, щоб маршрути з параметрами були після конкретних
+        Route::get('/{student}/edit', \App\Http\Controllers\Admin\Students\EditController::class)->name('edit');
+        Route::put('/{student}', \App\Http\Controllers\Admin\Students\UpdateController::class)->name('update');
+        Route::delete('/{student}', \App\Http\Controllers\Admin\Students\DestroyController::class)->name('destroy');
+        Route::get('/{student}', \App\Http\Controllers\Admin\Students\ShowController::class)->name('show');
+
+        Route::post('/{student}/subscription', \App\Http\Controllers\Admin\Students\Subscription\StoreController::class)
+            ->name('subscriptions.store');
+        Route::delete('/{student}/subscriptions/{month}', \App\Http\Controllers\Admin\Students\Subscription\DestroyController::class)
+            ->name('subscriptions.destroyMonth');
+    });
+
+
+    Route::prefix('teachers')->name('admin.teachers.')->group(function () {
+        Route::get('/', \App\Http\Controllers\Admin\Teachers\IndexController::class)->name('index');
+        Route::get('/create', \App\Http\Controllers\Admin\Teachers\CreateController::class)->name('create');
+        Route::post('/', \App\Http\Controllers\Admin\Teachers\StoreController::class)->name('store');
+        Route::get('/{teacher}/edit', \App\Http\Controllers\Admin\Teachers\EditController::class)->name('edit');
+        Route::put('/{teacher}', \App\Http\Controllers\Admin\Teachers\UpdateController::class)->name('update');
+        Route::delete('/{teacher}', \App\Http\Controllers\Admin\Teachers\DestroyController::class)->name('destroy');
+    });
 
     // Фотографії
     Route::group(['prefix' => 'photos'], function () {
@@ -95,10 +148,85 @@ Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
         Route::post('/upload', UploadController::class)->name('admin.photos.upload');
         Route::delete('/delete/{photo}', DeleteController::class)->name('admin.photos.delete');
     });
+
+    Route::prefix('groups')->name('admin.groups.')->group(function () {
+        Route::get('/', \App\Http\Controllers\Admin\Groups\IndexController::class)->name('index');
+        Route::get('/create', \App\Http\Controllers\Admin\Groups\CreateController::class)->name('create');
+        Route::post('/', \App\Http\Controllers\Admin\Groups\StoreController::class)->name('store');
+        Route::get('/{group}/edit', \App\Http\Controllers\Admin\Groups\EditController::class)->name('edit');
+        Route::put('/{group}', \App\Http\Controllers\Admin\Groups\UpdateController::class)->name('update');
+        Route::delete('/{group}', \App\Http\Controllers\Admin\Groups\DestroyController::class)->name('destroy');
+        Route::post('/{group}/add-student', \App\Http\Controllers\Admin\Groups\AddStudentToGroupController::class)
+            ->name('add-student');
+        Route::delete('/{group}/remove-student/{student}', \App\Http\Controllers\Admin\Groups\RemoveStudentFromGroupController::class)
+            ->name('remove-student');
+    });
+
+    Route::get('/information', \App\Http\Controllers\Admin\Information\IndexController::class)
+        ->name('admin.information.index');
 });
+
+Route::group(['middleware' => ['teacher']], function () {
+    Route::get('/main', AdminIndexController::class)->name('admin.index');
+    Route::get('admin/teacher_income', App\Http\Controllers\Admin\Teacher_income\IndexController::class)->name('admin.teacher_income.index');
+    Route::get('admin/my-groups', \App\Http\Controllers\Admin\Teacher_groups\MyGroupsController::class)->name('admin.teacher.my_groups');
+    Route::get('admin/my-students', \App\Http\Controllers\Admin\Teacher_students\MyStudentsController::class)->name('admin.teacher.my_students');
+
+
+    Route::get('admin/calendar', \App\Http\Controllers\Admin\Calendar\IndexController::class)->name('admin.calendar.index');
+    Route::get('admin/calendar-events', \App\Http\Controllers\Admin\Calendar\EventController::class)->name('admin.calendar.events');
+    Route::post('admin/calendar-events', \App\Http\Controllers\Admin\Calendar\StoreEventController::class)->name('admin.calendar.store');
+    Route::post('admin/calendar/group-attendance', \App\Http\Controllers\Admin\Calendar\MarkGroupAttendanceController::class)
+        ->name('admin.calendar.group-attendance');
+    Route::post('admin/calendar/group-lessons/{id}/reschedule', \App\Http\Controllers\Admin\Calendar\MarkGroupRescheduledController::class)
+        ->name('admin.calendar.group-lessons.reschedule');
+    Route::post('admin/calendar/group-lessons/{id}/cancel', \App\Http\Controllers\Admin\Calendar\MarkGroupCancelledController::class)
+        ->name('admin.calendar.group-lessons.cancel');
+
+
+    Route::prefix('admin/calendar-events')->group(function () {
+        Route::get('/{group}/members', \App\Http\Controllers\Admin\Calendar\GetGroupMembers::class) ->name('groups.members');
+        Route::post('{id}/complete', \App\Http\Controllers\Admin\Calendar\MarkAsCompletedController::class);
+        Route::post('{id}/cancel', \App\Http\Controllers\Admin\Calendar\MarkAsCancelledController::class);
+        Route::post('{id}/reschedule', \App\Http\Controllers\Admin\Calendar\MarkAsRescheduledController::class);
+        Route::put('{id}', \App\Http\Controllers\Admin\Calendar\UpdateEventController::class);
+    });
+
+    // додавання студентам абонементів
+
+    // додавання абонементів
+    Route::prefix('/subscription-templates')->name('admin.subscription-templates.')->group(function () {
+        Route::get('/create', \App\Http\Controllers\Admin\SubscriptionTemplate\CreateController::class)->name('create');
+        Route::post('/', \App\Http\Controllers\Admin\SubscriptionTemplate\StoreController::class)->name('store');
+        Route::get('/', \App\Http\Controllers\Admin\SubscriptionTemplate\IndexController::class)->name('index');
+
+        Route::get('/{subscriptionTemplate}/edit', \App\Http\Controllers\Admin\SubscriptionTemplate\EditController::class)->name('edit');
+        Route::put('/{subscriptionTemplate}', \App\Http\Controllers\Admin\SubscriptionTemplate\UpdateController::class)->name('update');
+        Route::delete('/{subscriptionTemplate}', \App\Http\Controllers\Admin\SubscriptionTemplate\DestroyController::class)->name('destroy');
+    });
+
+    Route::get('data', \App\Http\Controllers\Admin\Data\IndexController::class)
+        ->name('admin.data.index');
+    Route::get('admin/data/student-attendance/{student}', \App\Http\Controllers\Admin\Data\AttendanceController::class);
+});
+
+
+
 
 // Інші сторінки
 Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
 Route::get('/about', [AboutController::class, 'index'])->name('about.index');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::redirect('/home', '/');
+
+// routes/web.php
+Route::get('/debug/time', function () {
+    return response()->json([
+        'laravel_now'   => now()->toDateTimeString(),
+        'laravel_tz'    => now()->getTimezone()->getName(),
+        'php_date'      => date('c'),
+        'ini_timezone'  => ini_get('date.timezone'),
+        'app_timezone'  => config('app.timezone'),
+        'system_date'   => trim(@shell_exec('date +"%F %T %Z"') ?: 'N/A'),
+    ]);
+});

@@ -17,6 +17,7 @@
         content="bootstrap 5, bootstrap, bootstrap 5 admin dashboard, bootstrap 5 dashboard, bootstrap 5 charts, bootstrap 5 calendar, bootstrap 5 datepicker, bootstrap 5 tables, bootstrap 5 datatable, vanilla js datatable, colorlibhq, colorlibhq dashboard, colorlibhq admin dashboard"
     />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+    @yield('styles')
 
     <!--end::Primary Meta Tags-->
     <!--begin::Fonts-->
@@ -94,19 +95,19 @@
         }
 
         .btn-custom {
-            background-color: var(--primary-color);
-            color: var(--button-text-color);
+            background-color: #6699cc;
+            color: #fff;
             border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            transition: background-color 0.3s ease;
-            text-decoration: none;
-            cursor: pointer;
+            padding: 0.5rem 1.25rem;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); /* тінь */
         }
 
         .btn-custom:hover {
-            background-color: var(--secondary-color);
+            background-color: #5577aa;
         }
+
 
         .list-group {
             list-style: none;
@@ -312,8 +313,12 @@
     });
 
 </script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
 <livewire:scripts />
 <!--end::Script-->
+@yield('scripts')
+@stack('scripts')
 </body>
 <!--end::Body-->
 </html>

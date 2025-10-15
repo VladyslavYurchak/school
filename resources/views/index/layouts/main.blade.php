@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Школа іноземних мов</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
     <style>
@@ -190,6 +191,9 @@
                             <li><a class="dropdown-item" href="#">Профіль</a></li>
                             @if(Auth::user()->role === 'admin') <!-- Перевірка на роль admin -->
                             <li><a class="dropdown-item" href="{{ route('admin.index') }}">Кабінет адміністратора</a></li>
+                            @endif
+                            @if(Auth::user()->role === 'teacher') <!-- Перевірка на роль admin -->
+                            <li><a class="dropdown-item" href="{{ route('admin.index') }}">Кабінет вчителя</a></li>
                             @endif
                             <li>
                                 <a class="dropdown-item" href="{{ route('logout') }}"

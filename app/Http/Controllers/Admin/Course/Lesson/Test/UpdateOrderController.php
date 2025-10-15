@@ -10,9 +10,20 @@ class UpdateOrderController extends Controller
 {
     public function __invoke(Request $request)
     {
-        foreach ($request->input('order') as $item) {
-            LessonTest::where('id', $item['id'])->update(['position' => $item['position']]);
+        $data = $request->validate([
+            'order' => 'required|array',
+            'order.*.id' => 'required|integer|exists:lesson_tests,id',
+            'order.*.position' => 'required|integer',
+        ]);
+
+        foreach ($data['order'] as $item) {
+            $test = LessonTest::find($item['id']);
+            if ($test) {
+                $test->position = $item['position'];
+                $test->save();
+            }
         }
+
         return response()->json(['success' => true]);
     }
 }

@@ -13,7 +13,32 @@
     <div class="sidebar-wrapper">
         <nav class="mt-2">
             <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
-
+                <li class="nav-header">Кабінет вчителя</li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.teacher.my_students') }}" class="nav-link">
+                        <i class="nav-icon bi bi-calendar-check"></i>
+                        <p>Мої студенти</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.teacher.my_groups') }}" class="nav-link">
+                        <i class="nav-icon bi bi-calendar-check"></i>
+                        <p>Мої групи</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.calendar.index') }}" class="nav-link">
+                        <i class="nav-icon bi bi-calendar-check"></i>
+                        <p>Розклад занять</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.teacher_income.index') }}" class="nav-link">
+                        <i class="nav-icon bi bi-calendar-check"></i>
+                        <p>Мої розрахунки</p>
+                    </a>
+                </li>
+            @if (auth()->user()->role === 'admin')
                 <li class="nav-header">Управління заняттями</li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
@@ -34,19 +59,44 @@
                     </a>
                 </li>
 
-                <li class="nav-header">Управління студентами</li>
+                <li class="nav-header">Інформація про уроки</li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon bi bi-people"></i>
-                        <p>Студенти</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{{route('admin.information.index')}}" class="nav-link">
                         <i class="nav-icon bi bi-person-lines-fill"></i>
-                        <p>Учні сайту</p>
+                        <p>Проведені уроки</p>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.teachers.index') }}" class="nav-link">
+                        <i class="nav-icon bi bi-people"></i>
+                        <p>Викладачі</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{route('admin.students.index')}}" class="nav-link">
+                        <i class="nav-icon bi bi-person-lines-fill"></i>
+                        <p>Учні</p>
+                    </a>
+                </li>
+                    <li class="nav-item">
+                        <a href="{{route('admin.groups.index')}}" class="nav-link">
+                            <i class="nav-icon bi bi-person-lines-fill"></i>
+                            <p>Групи</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{route('admin.subscription-templates.index')}}" class="nav-link">
+                            <i class="nav-icon bi bi-person-lines-fill"></i>
+                            <p>Абонементи</p>
+                        </a>
+                    </li>
+                <li class="nav-item">
+                    <a href="{{route('admin.data.index')}}" class="nav-link">
+                        <i class="nav-icon bi bi-person-lines-fill"></i>
+                        <p>Дані</p>
+                    </a>
+                </li>
+
 
                 <li class="nav-header">Управління сторінкою</li>
                 <li class="nav-item">
@@ -79,20 +129,8 @@
                         <p>Контактні дані</p>
                     </a>
                 </li>
+                @endif
 
-                <li class="nav-header">Управління викладачами</li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon bi bi-calendar-week"></i>
-                        <p>Графік викладачів</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon bi bi-person-badge"></i>
-                        <p>Список викладачів</p>
-                    </a>
-                </li>
 
             </ul>
         </nav>

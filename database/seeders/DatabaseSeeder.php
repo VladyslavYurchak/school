@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\Category;
-use App\Models\Post;
-use App\Models\Tag;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Student;
+use App\Models\Teacher;
+use App\Models\SubscriptionTemplate;
+use App\Models\StudentSubscription;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -14,11 +14,12 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      */
-    public function run()
+    public function run(): void
     {
 
-        $posts = Post::factory(100)->create();
-        $users = User::factory(10)->create();
+
+        // Створюємо студентів
+        $students = Student::factory(15)->create();
 
     }
 }

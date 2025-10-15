@@ -2,32 +2,27 @@
 
 @section('content')
     <main class="app-main">
-        <div class="card">
-            <div class="card-header">
-                <h3>Курси</h3>
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-white d-flex align-items-center">
+                <h3 class="fw-bold text-dark mb-0">Курси</h3>
+                <div class="ms-auto d-flex gap-2">
+                    <a href="{{ route('admin.course.create') }}" class="btn btn-primary shadow-sm">+ Курс</a>
+                    <button class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#addLanguageModal">+ Мова</button>
+                </div>
             </div>
-            <div class="card-body">
 
+
+
+            <div class="card-body">
                 <!-- Повідомлення про успіх -->
                 @if(session('success'))
-                    <div class="alert alert-success">
-                        {{ session('success') }}
-                    </div>
+                    <div class="alert alert-success">{{ session('success') }}</div>
                 @endif
 
-                <!-- Форма для додавання нової мови -->
-                <form action="{{ route('admin.language.store') }}" method="POST" class="mb-3">
-                    @csrf
-                    <div class="input-group">
-                        <input type="text" name="name" class="form-control" placeholder="Введіть мову" required>
-                        <button type="submit" class="btn btn-success">Додати</button>
-                    </div>
-                </form>
-
-                <!-- Вибір мови -->
+                <!-- Фільтр по мові -->
                 <form action="{{ route('admin.course.index') }}" method="GET" class="mb-3">
                     <div class="input-group">
-                        <label class="me-2">Оберіть мову курсу:</label>
+                        <label class="input-group-text">Оберіть мову:</label>
                         <select name="language" class="form-select" onchange="this.form.submit()">
                             <option value="">Всі мови</option>
                             @foreach($languages as $language)
@@ -41,95 +36,119 @@
 
                 <!-- Опції для показу/сховування колонок -->
                 <div class="mb-3">
-                    <label>Виберіть стовпці для відображення:</label>
-                    <div class="d-flex flex-wrap">
-                        <div class="form-check me-3">
-                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-id" data-column="id" checked>
-                            <label class="form-check-label" for="toggle-id">ID</label>
-                        </div>
-                        <div class="form-check me-3">
-                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-name" data-column="name" checked>
-                            <label class="form-check-label" for="toggle-name">Назва курсу</label>
-                        </div>
-                        <div class="form-check me-3">
-                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-language" data-column="language" checked>
-                            <label class="form-check-label" for="toggle-language">Мова</label>
-                        </div>
-                        <div class="form-check me-3">
-                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-price" data-column="price" checked>
-                            <label class="form-check-label" for="toggle-price">Ціна</label>
-                        </div>
-                        <div class="form-check me-3">
-                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-lessons" data-column="lessons" checked>
-                            <label class="form-check-label" for="toggle-lessons">Уроків</label>
-                        </div>
-                        <div class="form-check me-3">
-                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-status" data-column="status" checked>
-                            <label class="form-check-label" for="toggle-status">Статус</label>
-                        </div>
-                        <div class="form-check me-3">
-                            <input class="form-check-input toggle-column" type="checkbox" id="toggle-actions" data-column="actions" checked>
-                            <label class="form-check-label" for="toggle-actions">Дія</label>
-                        </div>
+                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#columnsCollapse" aria-expanded="false" aria-controls="columnsCollapse">
+                        Виберіть стовпці
+                    </button>
+
+                    <div class="collapse mt-2" id="columnsCollapse">
+                        <ul class="list-group">
+                            @php
+                                $columns = [
+                                    'id' => 'ID',
+                                    'name' => 'Назва курсу',
+                                    'language' => 'Мова',
+                                    'price' => 'Ціна',
+                                    'lessons' => 'Уроків',
+                                    'status' => 'Статус',
+                                    'actions' => 'Дія'
+                                ];
+                            @endphp
+                            @foreach($columns as $key => $label)
+                                <li class="list-group-item d-flex align-items-center">
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input toggle-column" type="checkbox" id="toggle-{{ $key }}" data-column="{{ $key }}" checked>
+                                        <label class="form-check-label ms-2" for="toggle-{{ $key }}">{{ $label }}</label>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
                     </div>
                 </div>
 
-                <!-- Кнопка створення курсу -->
-                <a href="{{ route('admin.course.create') }}" class="btn btn-primary mb-3">Створити новий курс</a>
+
 
                 <!-- Таблиця курсів -->
-                <table class="table table-bordered" id="courses-table">
-                    <thead>
-                    <tr>
-                        <th class="column-id">#</th>
-                        <th class="column-name">Назва курсу</th>
-                        <th class="column-language">Мова</th>
-                        <th class="column-price">Ціна</th>
-                        <th class="column-lessons">Уроків</th>
-                        <th class="column-status">Статус</th>
-                        <th class="column-actions">Дія</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach($courses as $course)
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle" id="courses-table">
+                        <thead class="table-light">
                         <tr>
-                            <td class="column-id">{{ $course->id }}</td>
-                            <td class="column-name"><a href="{{ route('admin.course.show', $course->id) }}">{{ $course->title }}</a></td>
-                            <td class="column-language">{{ $course->language->name }}</td>
-                            <td class="column-price">{{ $course->price > 0 ? $course->price . ' грн' : 'Безкоштовний' }}</td>
-                            <td class="column-lessons">{{ $course->lessons_count }}</td>
-                            <td class="column-status">
-                                <div class="form-check form-switch">
-                                    <input
-                                        class="form-check-input toggle-status"
-                                        type="checkbox"
-                                        data-id="{{ $course->id }}"
-                                        {{ $course->is_published ? 'checked' : '' }}
-                                    >
-                                    <label class="form-check-label">{{ $course->is_published ? 'Опублікований' : 'Неопублікований' }}</label>
-                                </div>
-                            </td>                            <td class="column-actions">
-                                <a href="{{ route('admin.course.edit', $course->id) }}" class="btn btn-warning btn-sm">Редагувати</a>
-                                <form action="{{ route('admin.course.delete', $course->id) }}" method="POST" style="display:inline-block;">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Ви впевнені, що хочете видалити цей курс?');">Видалити</button>
-                                </form>
-                            </td>
+                            <th class="column-id">#</th>
+                            <th class="column-name">Назва курсу</th>
+                            <th class="column-language">Мова</th>
+                            <th class="column-price">Ціна</th>
+                            <th class="column-lessons">Уроків</th>
+                            <th class="column-status">Статус</th>
+                            <th class="column-actions">Дія</th>
                         </tr>
-                    @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                        @foreach($courses as $course)
+                            <tr>
+                                <td class="column-id">{{ $course->id }}</td>
+                                <td class="column-name">
+                                    <a href="{{ route('admin.course.show', $course->id) }}" class="text-decoration-none">
+                                        {{ $course->title }}
+                                    </a>
+                                </td>
+                                <td class="column-language">{{ $course->language->name }}</td>
+                                <td class="column-price">
+                                    {{ $course->price > 0 ? $course->price . ' грн' : 'Безкоштовний' }}
+                                </td>
+                                <td class="column-lessons">{{ $course->lessons_count }}</td>
+                                <td class="column-status">
+                                    <div class="form-check form-switch">
+                                        <input
+                                            class="form-check-input toggle-status"
+                                            type="checkbox"
+                                            data-id="{{ $course->id }}"
+                                            {{ $course->is_published ? 'checked' : '' }}
+                                        >
+                                        <label class="form-check-label">
+                                            {{ $course->is_published ? 'Опублікований' : 'Неопублікований' }}
+                                        </label>
+                                    </div>
+                                </td>
+                                <td class="column-actions">
+                                    <a href="{{ route('admin.course.edit', $course->id) }}" class="btn btn-warning btn-sm">Редагувати</a>
+                                    <form action="{{ route('admin.course.delete', $course->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Ви впевнені?')">Видалити</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
 
                 <!-- Пагінація -->
                 <div class="d-flex justify-content-between">
-                    <div>
-                        {{ $courses->onEachSide(2)->links('admin.pagination.pagination') }}
-                    </div>
+                    <div>{{ $courses->onEachSide(2)->links('admin.pagination.pagination') }}</div>
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Modal для додавання мови -->
+    <div class="modal fade" id="addLanguageModal" tabindex="-1" aria-labelledby="addLanguageModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <form action="{{ route('admin.language.store') }}" method="POST" class="modal-content">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Додати мову</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" name="name" class="form-control" placeholder="Введіть мову" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" class="btn btn-success">Додати</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -139,15 +158,14 @@
             // Відновлення стану з LocalStorage
             checkboxes.forEach(checkbox => {
                 const column = checkbox.dataset.column;
-                const isVisible = localStorage.getItem(`column_${column}`) === 'true';
-
-                if (isVisible === false || isVisible === 'false') {
+                const isVisible = localStorage.getItem(`column_${column}`);
+                if (isVisible === 'false') {
                     checkbox.checked = false;
                     toggleColumnVisibility(column, false);
                 }
             });
 
-            // Слухач подій для чекбоксів
+            // Подія зміни видимості
             checkboxes.forEach(checkbox => {
                 checkbox.addEventListener('change', function () {
                     const column = this.dataset.column;
@@ -157,57 +175,39 @@
                 });
             });
 
-            // Функція для переключення видимості стовпців
             function toggleColumnVisibility(column, isVisible) {
                 const columnElements = table.querySelectorAll(`.column-${column}`);
                 columnElements.forEach(el => {
-                    el.classList.toggle('hidden-column', !isVisible);
+                    el.style.display = isVisible ? '' : 'none';
                 });
             }
-        });
-    </script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const toggleSwitches = document.querySelectorAll('.toggle-status');
-
-            toggleSwitches.forEach(toggle => {
+            // Перемикач статусу
+            document.querySelectorAll('.toggle-status').forEach(toggle => {
                 toggle.addEventListener('change', function () {
                     const courseId = this.dataset.id;
                     const isPublished = this.checked;
-
-                    // Динамічне оновлення тексту "Опублікований/Неопублікований"
                     const label = this.nextElementSibling;
-                    label.textContent = isPublished ? 'Опублікований' : 'Неопублікований';
 
-                    // Відправка запиту на сервер
                     fetch(`/admin/courses/${courseId}/publish`, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ is_published: isPublished }),
+                        body: JSON.stringify({ is_published: isPublished ? 1 : 0 }),
                     })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Не вдалося оновити статус');
-                            }
+                        .then(res => res.json())
+                        .then(data => {
+                            label.textContent = isPublished ? 'Опублікований' : 'Неопублікований';
                         })
-                        .catch(error => {
-                            console.error(error);
-                            alert('Сталася помилка під час оновлення статусу.');
-                            this.checked = !isPublished; // Повернення бігунка у попереднє положення при помилці
+                        .catch(() => {
+                            alert('Сталася помилка при оновленні статусу.');
+                            this.checked = !isPublished;
                             label.textContent = !isPublished ? 'Опублікований' : 'Неопублікований';
                         });
                 });
             });
         });
     </script>
-
-    <style>
-        .hidden-column {
-            display: none;
-        }
-    </style>
 @endsection

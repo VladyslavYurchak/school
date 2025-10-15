@@ -65,4 +65,10 @@ class User extends Authenticatable
             ->withPivot('status', 'paid_amount')
             ->withTimestamps();
     }
+
+    public function teacher()
+    {
+        return $this->hasOne(Teacher::class);
+    }
+
 }

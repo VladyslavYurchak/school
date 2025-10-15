@@ -3,10 +3,17 @@
 
 @section('content')
     <main class="app-main">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="text-center fw-bold">{{ $lesson->title }} – тестовий блок</h3>
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-header bg-white d-flex align-items-center">
+                <h3 class="fw-bold text-dark mb-0">{{ $lesson->title }} – тестовий блок</h3>
+                <a href="{{ route('admin.course.show', $lesson->course_id) }}" class="btn btn-outline-secondary btn-sm ms-auto">
+                    ← Назад
+                </a>
             </div>
+
+
+
+
             <div class="card-body">
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -22,12 +29,13 @@
                 @endif
 
                     <div class="mb-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">Форма додавання тестового питання</h5>
+                        <div class="card shadow-lg border-0">
+                            <div class="card-header bg-white">
+                                <h5 class="fw-bold text-dark mb-0">Форма додавання тестового питання</h5>
                             </div>
                             <div class="card-body">
-                                <form method="POST" action="{{ route('admin.course.lesson.test.store', $lesson->id) }}">
+
+                            <form method="POST" action="{{ route('admin.course.lesson.test.store', $lesson->id) }}">
                                     @csrf
                                     <!-- Текст питання -->
                                     <div class="mb-3">
@@ -72,23 +80,32 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <button type="button" class="btn-custom" id="add-option">Додати варіант</button>
+                                    <button type="button" class="btn btn-success shadow-sm" id="add-option">
+                                        + Додати варіант
+                                    </button>
                                 </div>
+
                                 <!-- Зберегти зміни -->
                                 <div class="mb-3">
-                                    <button type="submit" class="btn-custom">Зберегти зміни</button>
+                                    <button type="submit" class="btn btn-primary shadow-sm">
+                                        💾 Зберегти зміни
+                                    </button>
                                 </div>
+
                             </form>
                         </div>
                     </div>
                 </div>
             </div>
         @include('admin.course.lesson.test.list', compact('tests'))
+        @include('admin.course.lesson.test.list-test', ['tests' => $tests, 'lesson' => $lesson])
+
     </main>
     <script>
         const updateOrderUrl = "{{ route('admin.course.lesson.test.updateOrder') }}";
     </script>
     <script src="{{ asset('admin/course/lesson/test/sortable-tests.js') }}"></script>
+    <script src="{{ asset('admin/course/lesson/test/test-options.js') }}"></script>
     <link href="{{ asset('admin/course/lesson/test/test-options.css') }}" rel="stylesheet">
     <script src="{{ asset('admin/course/lesson/test/sortable-tests.js') }}"></script>
 @endsection

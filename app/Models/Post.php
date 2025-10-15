@@ -11,4 +11,6 @@ class Post extends Model
     use HasFactory;
     use  Filterable;
     protected $fillable = ['title', 'content', 'image'];
+
+
 }
