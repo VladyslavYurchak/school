@@ -13,7 +13,7 @@ class StoreController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'type' => 'required|in:individual,group',
+            'type' => 'required|in:individual,group,pair',
             'lessons_per_week' => 'required|integer|min:1|max:7',
             'price' => 'required|numeric|min:0',
         ]);
@@ -22,6 +22,8 @@ class StoreController extends Controller
 
         $individualTemplates = SubscriptionTemplate::where('type', 'individual')->orderBy('title')->get();
         $groupTemplates = SubscriptionTemplate::where('type', 'group')->orderBy('title')->get();
+        $pairTemplates = SubscriptionTemplate::where('type', 'pair')->orderBy('title')->get();
+
 
         return redirect()
             ->route('admin.subscription-templates.index')

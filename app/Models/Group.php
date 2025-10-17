@@ -11,6 +11,7 @@ class Group extends Model
         'name',
         'teacher_id',
         'notes',
+        'type'
     ];
 
     public function teacher(): BelongsTo

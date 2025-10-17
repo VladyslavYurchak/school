@@ -13,7 +13,7 @@ class UpdateController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255', // ← замість name
-            'type' => 'required|in:individual,group',
+            'type' => 'required|in:individual,group,pair',
             'lessons_per_week' => 'required|integer|min:1|max:7',
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string',

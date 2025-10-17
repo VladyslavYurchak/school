@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('groups', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->enum('type', ['group', 'pair'])->default('group');
             $table->unsignedBigInteger('teacher_id')->nullable();
             $table->text('notes')->nullable(); // Нотатки
             $table->timestamps();
-
             $table->foreign('teacher_id')->references('id')->on('teachers')->nullOnDelete();
         });
     }

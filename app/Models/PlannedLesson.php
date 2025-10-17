@@ -51,4 +51,10 @@ class PlannedLesson extends Model
         return $this->belongsTo(Group::class);
     }
 
+    public function logs()
+    {
+        return $this->hasMany(\App\Models\LessonLog::class, 'lesson_id');
+    }
+
+
 }

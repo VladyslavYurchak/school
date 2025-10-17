@@ -1,54 +1,54 @@
-<form id="salaryFilterForm" method="GET" class="mb-3 d-flex align-items-center gap-2">
+@php
+    $sumCntInd=0; $sumCntTrial=0; $sumCntGrp=0; $sumCntPair=0;
+    $sumCostTrial=0.0; $sumSalary=0.0;
+@endphp
 
-    <label for="month" class="form-label mb-0">Місяць:</label>
-    <select name="month" id="month" class="form-select" style="max-width: 150px;">
-
-    @for ($m = 1; $m <= 12; $m++)
-            <option value="{{ $m }}" {{ $m == $selectedMonth ? 'selected' : '' }}>
-                {{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}
-            </option>
-        @endfor
-    </select>
-
-    <label for="year" class="form-label mb-0">Рік:</label>
-    <select name="year" id="year" class="form-select" style="max-width: 100px;">
-        @for ($y = now()->year; $y >= 2022; $y--)
-            <option value="{{ $y }}" {{ $y == $selectedYear ? 'selected' : '' }}>{{ $y }}</option>
-        @endfor
-    </select>
-</form>
-
-
-<table class="table table-striped table-bordered">
+<table class="table table-striped table-bordered align-middle">
     <thead>
     <tr>
-        <th>Прізвище</th>
-        <th>Ім'я</th>
-        <th>Індивідуальні заняття</th>
-        <th>Групові заняття</th>
+        <th>Викладач</th>
+        <th>Індивідуальні</th>
+        <th>Пробні</th>
+        <th>Групові</th>
+        <th>Парні</th>
         <th>Зарплата, грн</th>
     </tr>
     </thead>
     <tbody>
-    @forelse ($teachers as $teacher)
+    @forelse ($reports as $row)
+        @php
+            $t = $row['teacher'];
+
+            // для підсумків
+            $sumCntInd   += $row['cnt_individual'];
+            $sumCntTrial += $row['cnt_trial'];
+            $sumCntGrp   += $row['cnt_group'];
+            $sumCntPair  += $row['cnt_pair'];
+            $sumSalary   += $row['salary_total'];
+        @endphp
         <tr>
-            <td>{{ $teacher->last_name }}</td>
-            <td>{{ $teacher->first_name }}</td>
-            <td>{{ $teacher->individualCount ?? 0 }}</td>
-            <td>{{ $teacher->groupCount ?? 0 }}</td>
-            <td>{{ number_format($teacher->salary ?? 0, 2, ',', ' ') }}</td>
+            <td>{{ $t->full_name }}</td>
+            <td>{{ $row['cnt_individual'] }}</td>
+            <td>{{ $row['cnt_trial'] }}</td>
+            <td>{{ $row['cnt_group'] }}</td>
+            <td>{{ $row['cnt_pair'] }}</td>
+            <td>{{ number_format($row['salary_total'], 2, ',', ' ') }}</td>
         </tr>
     @empty
-        <tr><td colspan="5">Дані відсутні.</td></tr>
+        <tr><td colspan="7">Дані відсутні.</td></tr>
     @endforelse
     </tbody>
-</table>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('salaryFilterForm');
-        form.querySelectorAll('select').forEach(select => {
-            select.addEventListener('change', () => form.submit());
-        });
-    });
-</script>
+    @if(count($reports))
+        <tfoot>
+        <tr class="fw-semibold">
+            <td>Разом</td>
+            <td>{{ $sumCntInd }}</td>
+            <td>{{ $sumCntTrial }}</td>
+            <td>{{ $sumCntGrp }}</td>
+            <td>{{ $sumCntPair }}</td>
+            <td>{{ number_format($sumSalary, 2, ',', ' ') }}</td>
+        </tr>
+        </tfoot>
+    @endif
+</table>

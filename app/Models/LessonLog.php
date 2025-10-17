@@ -10,8 +10,9 @@ class LessonLog extends Model
     use HasFactory;
 
     protected $fillable = [
+        'lesson_id',   // ← зв'язок із planned_lessons
         'student_id',
-        'group_id',      // додано
+        'group_id',
         'teacher_id',
         'lesson_type',
         'date',
@@ -19,7 +20,21 @@ class LessonLog extends Model
         'duration',
         'status',
         'notes',
-        'initiator'
+        'initiator',
+
+        // snapshot оплати
+        'teacher_rate_amount_at_charge',
+        'teacher_payout_basis',
+        'teacher_payout_amount',
+        'charged_at',
+    ];
+
+    protected $casts = [
+        'date'   => 'date',       // Y-m-d
+        'charged_at' => 'datetime',
+        'teacher_payout_amount' => 'decimal:2',
+        'teacher_rate_amount_at_charge' => 'decimal:2',
+        'duration' => 'integer',
     ];
 
     /**
@@ -46,6 +61,13 @@ class LessonLog extends Model
         return $this->belongsTo(Teacher::class, 'teacher_id');
     }
 
+    /**
+     * Зв'язок із запланованим уроком.
+     */
+    public function lesson()
+    {
+        return $this->belongsTo(\App\Models\PlannedLesson::class, 'lesson_id');
+    }
 
     /**
      * Отримати статус у вигляді читабельного тексту.

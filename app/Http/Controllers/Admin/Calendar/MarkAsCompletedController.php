@@ -16,13 +16,13 @@ class MarkAsCompletedController extends Controller
     public function __invoke($id)
     {
         try {
-            $lesson = PlannedLesson::findOrFail($id);
+            $lesson = PlannedLesson::with('teacher')->findOrFail($id);
 
-            // якщо це група — користуйся груповим ендпойнтом
+            // індивідуальні/пробні тільки тут (group -> інший контролер)
             if (!is_null($lesson->group_id)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Цей ендпойнт призначений для індивідуальних/пробних занять. Для груп — використай груповий контролер відвідуваності.'
+                    'message' => 'Цей ендпойнт для індивідуальних/пробних занять. Для груп і пар — використай груповий контролер.'
                 ], 422);
             }
 
@@ -37,25 +37,47 @@ class MarkAsCompletedController extends Controller
                 $lesson->status = LessonStatus::Completed->value;
                 $lesson->save();
 
-                $start = Carbon::parse($lesson->start_date);
-                $date  = $start->toDateString();
-                $time  = $start->format('H:i:s');
+                $start    = Carbon::parse($lesson->start_date);
+                $date     = $start->toDateString();
+                $time     = $start->format('H:i:s');
                 $duration = $lesson->duration ?? max(15, $start->diffInMinutes(Carbon::parse($lesson->end_date)) ?: 60);
 
-                // Уникаємо дублікатів: one-log-per-student-teacher-datetime
+                $teacher = $lesson->teacher;
+                $type    = $lesson->lesson_type ?: 'individual';
+
+                // Вибір ставки згідно типу
+                $basis    = 'per_lesson';
+                $baseRate = 0.0;
+                if ($type === 'trial' && !is_null($teacher->trial_lesson_price)) {
+                    $baseRate = (float) $teacher->trial_lesson_price;
+                } else {
+                    // individual за замовчуванням
+                    $baseRate = (float) ($teacher->lesson_price ?? 0);
+                }
+
+                // Фактична виплата за урок (індивідуальний/пробний — вся сума)
+                $amount = round($baseRate, 2);
+
                 LessonLog::updateOrCreate(
                     [
-                        'student_id' => $lesson->student_id,     // може бути null для trial
-                        'teacher_id' => $lesson->teacher_id,
-                        'group_id'   => $lesson->group_id,       // зазвичай null
-                        'date'       => $date,
-                        'time'       => $time,
+                        'lesson_id' => $lesson->id, // 1:1 з планом
                     ],
                     [
-                        'lesson_type' => $lesson->lesson_type,   // напр. 'trial'
+                        'student_id'  => $lesson->student_id,   // може бути null для trial
+                        'teacher_id'  => $lesson->teacher_id,
+                        'group_id'    => $lesson->group_id,     // має бути null
+                        'lesson_type' => $type,
+                        'date'        => $date,
+                        'time'        => $time,
                         'duration'    => $duration,
-                        'status'      => LessonLogStatus::Completed->value, // ✅ правильний enum
+                        'status'      => LessonLogStatus::Completed->value,
                         'notes'       => $lesson->notes,
+
+                        // snapshot оплати
+                        'teacher_rate_amount_at_charge' => $baseRate, // ставка за заняття
+                        'teacher_payout_basis'          => $basis,    // per_lesson
+                        'teacher_payout_amount'         => $amount,   // вся сума
+                        'charged_at'                    => now(),
                     ]
                 );
             });
@@ -66,7 +88,7 @@ class MarkAsCompletedController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('MarkAsCompletedController error: ' . $e->getMessage());
+            Log::error('MarkAsCompletedController error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Помилка при оновленні статусу.'

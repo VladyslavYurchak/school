@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\LessonLogStatus;
+use App\Enums\LessonType;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +13,7 @@ class Teacher extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',      // додай це поле сюди
+        'user_id',
         'first_name',
         'last_name',
         'phone',
@@ -24,177 +26,242 @@ class Teacher extends Model
         'is_active'
     ];
 
-    /**
-     * Один викладач має багато студентів.
-     */
+    /** Один викладач має багато студентів. */
     public function students()
     {
         return $this->hasMany(User::class, 'teacher_id');
     }
 
-    /**
-     * Один викладач має багато записів занять.
-     */
+    /** Один викладач має багато записів занять. */
     public function lessonLogs()
     {
         return $this->hasMany(LessonLog::class);
     }
 
-    /**
-     * Отримати повне імʼя викладача.
-     */
+    /** Отримати повне імʼя викладача. */
     public function getFullNameAttribute()
     {
         return "{$this->last_name} {$this->first_name}";
     }
 
-    public function getMonthLessonCounts($year, $month)
+    /**
+     * Повертає кількість індивідуальних і групових занять за місяць.
+     * Індивідуальні: логи типів ['individual','trial'] (1 лог = 1 урок)
+     * Групові: рахуємо КІЛЬКІСТЬ УРОКІВ, а не логів -> distinct за lesson_id (fallback на group/date/time, якщо lesson_id відсутній)
+     */
+    public function getMonthLessonCounts(int $year, int $month): array
     {
-        $logs = $this->lessonLogs
-            ->filter(function ($log) use ($year, $month) {
-                $date = \Carbon\Carbon::parse($log->date);
-                return $date->year == $year && $date->month == $month && in_array($log->status, ['completed', 'charged']);
-            });
+        $base = $this->lessonLogs()
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->whereIn('status', ['completed', 'charged']);
 
-        // Порахувати індивідуальні
-        $individualCount = $logs->whereNull('group_id')->count();
+        $individualCount = (clone $base)
+            ->whereIn('lesson_type', ['individual', 'trial'])
+            ->count();
 
-        // Порахувати унікальні групові уроки
-        $groupUniqueLessons = $logs->whereNotNull('group_id')
-            ->groupBy(function ($log) {
-                return $log->group_id . '|' . $log->date . '|' . \Carbon\Carbon::parse($log->time)->format('H:i');
-            });
+        // Групові уроки: distinct по lesson_id (може бути кілька логів на один урок)
+        $groupDistinctByLessonId = (clone $base)
+            ->whereIn('lesson_type', ['group', 'pair'])
+            ->whereNotNull('lesson_id')
+            ->distinct()
+            ->count('lesson_id');
 
-        $groupCount = $groupUniqueLessons->count();
+        // Fallback, якщо старі логи без lesson_id
+        if ($groupDistinctByLessonId === 0) {
+            $groupDistinctByLessonId = (clone $base)
+                ->whereIn('lesson_type', ['group', 'pair'])
+                ->get()
+                ->groupBy(function ($log) {
+                    $timeStr = \Carbon\Carbon::parse($log->time)->format('H:i');
+                    return $log->group_id . '|' . $log->date . '|' . $timeStr;
+                })->count();
+        }
 
         return [
             'individual' => $individualCount,
-            'group' => $groupCount,
+            'group'      => $groupDistinctByLessonId,
         ];
     }
 
-
-    public function getMonthSalary($year, $month)
+    /**
+     * МІСЯЧНА ЗАРПЛАТА викладача (сума snapshot-полів, а не поточні ціни!)
+     */
+    public function getMonthSalary(int $year, int $month): float
     {
-        $counts = $this->getMonthLessonCounts($year, $month);
-        return ($counts['individual'] * ($this->lesson_price ?? 0)) + ($counts['group'] * ($this->group_lesson_price ?? 0));
+        return (float) $this->lessonLogs()
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->whereIn('status', ['completed', 'charged'])
+            ->sum('teacher_payout_amount');
     }
-
 
     public function plannedLessons()
     {
         return $this->hasMany(PlannedLesson::class);
     }
 
-    // app/Models/Teacher.php
     public function user()
     {
         return $this->belongsTo(\App\Models\User::class);
     }
 
-
-
-
-    public function getStudentIdsByLessonTypeAndMonth(string $type, int $year, int $month)
+    protected function monthLogsBase(int $year, int $month)
     {
         return $this->lessonLogs()
             ->whereYear('date', $year)
             ->whereMonth('date', $month)
-            ->whereIn('status', ['completed', 'charged'])
-            ->when($type === 'individual', fn($q) => $q->whereNull('group_id'))
-            ->when($type === 'group', fn($q) => $q->whereNotNull('group_id'))
+            ->whereIn('status', [LessonLogStatus::Completed->value, LessonLogStatus::Charged->value]);
+    }
+
+    /** К-сть занять за МІСЯЦЬ окремо: individual, trial, group, pair. */
+    public function getMonthLessonCountsDetailed(int $year, int $month): array
+    {
+        $base = $this->monthLogsBase($year, $month);
+
+        // індивідуальні — БЕЗ пробних
+        $individual = (clone $base)
+            ->where('lesson_type', LessonType::Individual->value)
+            ->count();
+
+        // пробні — окремо
+        $trial = (clone $base)
+            ->where('lesson_type', LessonType::Trial->value)
+            ->count();
+
+        // групові — distinct за lesson_id (fallback)
+        $group = $this->distinctCountByLessonOrFallback(
+            (clone $base)->where('lesson_type', LessonType::Group->value)
+        );
+
+        // парні — distinct за lesson_id (fallback)
+        $pair = $this->distinctCountByLessonOrFallback(
+            (clone $base)->where('lesson_type', LessonType::Pair->value)
+        );
+
+        return compact('individual', 'trial', 'group', 'pair');
+    }
+
+    /** Допоміжний: distinct за lesson_id з fallback на group|date|time. */
+    protected function distinctCountByLessonOrFallback($query): int
+    {
+        $byLessonId = (clone $query)
+            ->whereNotNull('lesson_id')
+            ->distinct()
+            ->count('lesson_id');
+        if ($byLessonId > 0) {
+            return $byLessonId;
+        }
+
+        $logs = $query->get();
+        return $logs->groupBy(function ($log) {
+            $timeStr = Carbon::parse($log->time)->format('H:i');
+            return ($log->group_id ?? 'no-group') . '|' . $log->date . '|' . $timeStr;
+        })->count();
+    }
+
+    /** Суми snapshot-виплат (зарплати) за МІСЯЦЬ окремо: individual, trial, group, pair. */
+    public function getMonthCostsByType(int $year, int $month): array
+    {
+        $base = $this->monthLogsBase($year, $month);
+
+        $individual = (float) (clone $base)
+            ->where('lesson_type', LessonType::Individual->value)
+            ->sum('teacher_payout_amount');
+
+        $trial = (float) (clone $base)
+            ->where('lesson_type', LessonType::Trial->value)
+            ->sum('teacher_payout_amount');
+
+        $group = (float) (clone $base)
+            ->where('lesson_type', LessonType::Group->value)
+            ->sum('teacher_payout_amount');
+
+        $pair = (float) (clone $base)
+            ->where('lesson_type', LessonType::Pair->value)
+            ->sum('teacher_payout_amount');
+
+        return compact('individual', 'trial', 'group', 'pair');
+    }
+
+    /** Ідентифікатори студентів, що МАЛИ логи в цьому місяці з будь-яким із типів. */
+    public function getStudentIdsByLessonTypesAndMonth(array $types, int $year, int $month)
+    {
+        return $this->monthLogsBase($year, $month)
+            ->whereIn('lesson_type', $types)
             ->pluck('student_id')
             ->unique();
     }
 
-    // Отримати кількість занять (індивідуальних або групових) за місяць (для групових враховує унікальні заняття по даті+часу)
-    public function getLessonCountByTypeAndMonth(string $type, int $year, int $month)
+    /**
+     * Сума оплат з підписок по студентам, які мали логи потрібних lesson_type в цьому місяці.
+     * (Твій поточний дизайн: прив'язка доходу до активності студентів за типом.)
+     */
+    public function getSubscriptionSumByLessonTypes(array $types, int $year, int $month): float
     {
-        $logs = $this->lessonLogs()
-            ->whereYear('date', $year)
-            ->whereMonth('date', $month)
-            ->whereIn('status', ['completed', 'charged']);
+        $studentIds = $this->getStudentIdsByLessonTypesAndMonth($types, $year, $month);
 
-        if ($type === 'individual') {
-            return $logs->whereNull('group_id')->count();
-        }
-
-        if ($type === 'group') {
-            // Порахуємо кількість унікальних занять по group_id + date + time
-            $groupLogs = $logs->whereNotNull('group_id')->get();
-
-            return $groupLogs->groupBy(function ($log) {
-                // Робимо time у форматі 'H:i'
-                $timeStr = \Carbon\Carbon::parse($log->time)->format('H:i');
-                return $log->group_id . '|' . $log->date . '|' . $timeStr;
-            })->count();
-        }
-
-        return 0;
+        return (float) \App\Models\StudentSubscription::whereIn('student_id', $studentIds)
+            ->where(function ($q) use ($year, $month) {
+                $q->whereYear('start_date', $year)->whereMonth('start_date', $month)
+                    ->orWhereYear('end_date', $year)->whereMonth('end_date', $month);
+            })
+            ->whereIn('type', ['subscription', 'single'])
+            ->sum('price');
     }
 
-
-
-    // Отримати суму оплат студентів за типом (індивідуальні або групові) за місяць
-    public function getSubscriptionSumByTypeAndMonth(string $type, int $year, int $month)
+    /**
+     * Детальний місячний “прибуток” по типах:
+     * - revenue_*: надходження з підписок (за методом вище)
+     * - costs_*: snapshot-виплати викладачу
+     * - income_*: revenue_* - costs_*
+     * - trial_revenue зазвичай 0 (пробні не продаються як абонемент), але лишаємо поле для гнучкості.
+     */
+    public function getMonthlyIncomeDetailed(int $year, int $month): array
     {
-        $studentIds = $this->getStudentIdsByLessonTypeAndMonth(
-            $type,
-            $year,
-            $month
-        );
+        $counts = $this->getMonthLessonCountsDetailed($year, $month);
+        $costs  = $this->getMonthCostsByType($year, $month);
 
-        if ($type === 'individual') {
-            // Для індивідуальних беремо підписки типу subscription або single,
-            // які співпадають з місяцем (start_date або end_date у місяці)
-            return \App\Models\StudentSubscription::whereIn('student_id', $studentIds)
-                ->where(function ($query) use ($year, $month) {
-                    $query->whereYear('start_date', $year)->whereMonth('start_date', $month)
-                        ->orWhereYear('end_date', $year)->whereMonth('end_date', $month);
-                })
-                ->whereIn('type', ['subscription', 'single'])
-                ->sum('price');
-        }
+        // надходження
+        $revenue_individual = $this->getSubscriptionSumByLessonTypes([LessonType::Individual->value], $year, $month);
+        $revenue_group      = $this->getSubscriptionSumByLessonTypes([LessonType::Group->value], $year, $month);
+        $revenue_pair       = $this->getSubscriptionSumByLessonTypes([LessonType::Pair->value], $year, $month);
+        $revenue_trial      = 0.0; // якщо будуть платні пробні — тут можна додати джерело
 
-        if ($type === 'group') {
-            // Аналогічно для групових, але студентів, які у групових заняттях
-            return \App\Models\StudentSubscription::whereIn('student_id', $studentIds)
-                ->where(function ($query) use ($year, $month) {
-                    $query->whereYear('start_date', $year)->whereMonth('start_date', $month)
-                        ->orWhereYear('end_date', $year)->whereMonth('end_date', $month);
-                })
-                ->whereIn('type', ['subscription', 'single'])
-                ->sum('price');
-        }
+        // прибуток по типах
+        $income_individual = $revenue_individual - $costs['individual'];
+        $income_group      = $revenue_group      - $costs['group'];
+        $income_pair       = $revenue_pair       - $costs['pair'];
+        $income_trial      = $revenue_trial      - $costs['trial']; // скоріш за все від'ємне або 0
 
-        return 0;
-    }
-
-    // Головний метод: отримаємо дохід викладача за місяць (індивідуальний, груповий, загальний)
-    public function getMonthlyIncome(int $year, int $month)
-    {
-        $individualLessonsCount = $this->getLessonCountByTypeAndMonth('individual', $year, $month);
-        $groupLessonsCount = $this->getLessonCountByTypeAndMonth('group', $year, $month);
-
-        $individualSubscriptionsSum = $this->getSubscriptionSumByTypeAndMonth('individual', $year, $month);
-        $groupSubscriptionsSum = $this->getSubscriptionSumByTypeAndMonth('group', $year, $month);
-
-        $individualExpenses = $individualLessonsCount * ($this->lesson_price ?? 0);
-        $groupExpenses = $groupLessonsCount * ($this->group_lesson_price ?? 0);
-
-        $incomeIndividual = $individualSubscriptionsSum - $individualExpenses;
-        $incomeGroup = $groupSubscriptionsSum - $groupExpenses;
+        // підсумок
+        $total_income = $income_individual + $income_group + $income_pair + $income_trial;
 
         return [
-            'individual_lessons_count' => $individualLessonsCount,
-            'group_lessons_count' => $groupLessonsCount,
-            'individual_subscriptions_sum' => $individualSubscriptionsSum,
-            'group_subscriptions_sum' => $groupSubscriptionsSum,
-            'individual_income' => $incomeIndividual,
-            'group_income' => $incomeGroup,
-            'total_income' => $incomeIndividual + $incomeGroup,
+            // к-сті
+            'counts'  => $counts, // ['individual','trial','group','pair']
+
+            // собівартість (зарплата) по типах
+            'costs'   => $costs, // ['individual','trial','group','pair']
+
+            // надходження по типах
+            'revenue' => [
+                'individual' => $revenue_individual,
+                'trial'      => $revenue_trial,
+                'group'      => $revenue_group,
+                'pair'       => $revenue_pair,
+            ],
+
+            // прибуток по типах
+            'income'  => [
+                'individual' => $income_individual,
+                'trial'      => $income_trial,
+                'group'      => $income_group,
+                'pair'       => $income_pair,
+            ],
+
+            // загальний прибуток
+            'total_income' => $total_income,
         ];
     }
-
-
 }

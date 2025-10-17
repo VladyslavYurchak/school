@@ -8,60 +8,93 @@ use App\Models\PlannedLesson;
 use App\Models\LessonLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use Symfony\Component\HttpFoundation\Response;
 
 class MarkAsCancelledController extends Controller
 {
     public function __invoke($id)
     {
         try {
-            $lesson = PlannedLesson::findOrFail($id);
+            // беремо урок та одразу блокуємо в транзакції
+            $result = DB::transaction(function () use ($id) {
+                /** @var \App\Models\PlannedLesson|null $lesson */
+                $lesson = PlannedLesson::query()
+                    ->whereKey((int)$id)
+                    ->lockForUpdate()
+                    ->first();
 
-            // якщо це групове — користуй груповий ендпойнт
+                if (!$lesson) {
+                    return [
+                        'status'  => Response::HTTP_NOT_FOUND,
+                        'success' => false,
+                        'message' => 'Заняття з таким ID не знайдено.',
+                    ];
+                }
 
+                // якщо це групове — користуй груповий ендпойнт
+                if (!is_null($lesson->group_id)) {
+                    return [
+                        'status'  => Response::HTTP_UNPROCESSABLE_ENTITY,
+                        'success' => false,
+                        'message' => 'Цей ендпойнт призначений для індивідуальних/пробних занять. Для груп використай груповий контролер скасування.',
+                    ];
+                }
 
-            // вже скасований? — робимо no-op
-            if ($lesson->status === LessonStatus::Cancelled->value) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Заняття вже було скасоване.'
-                ]);
-            }
+                // вже скасований? — no-op
+                if ((string)$lesson->status === LessonStatus::Cancelled->value) {
+                    return [
+                        'status'  => Response::HTTP_OK,
+                        'success' => true,
+                        'message' => 'Заняття вже було скасоване.',
+                        'meta'    => ['lesson_id' => $lesson->id],
+                    ];
+                }
 
-
-            DB::transaction(function () use ($lesson) {
-                // позначаємо як скасоване
+                // ставимо статус Cancelled
                 $lesson->status = LessonStatus::Cancelled->value;
                 $lesson->save();
 
-                // обчислюємо ключ журналу один раз
-                $start = Carbon::parse($lesson->start_date);
-                $date  = $start->toDateString();
-                $time  = $start->format('H:i:s');
-
-                // видаляємо лише відповідний запис журналу
-                LessonLog::where('student_id', $lesson->student_id)   // може бути null (trial) — Laravel поставить IS NULL
-                ->where('teacher_id', $lesson->teacher_id)
-                    ->where('group_id', $lesson->group_id)             // зазвичай null для індивідуалок
-                    ->whereDate('date', $date)
-                    ->whereTime('time', $time)
+                // видаляємо усі журнали САМЕ цього уроку
+                $deletedLogs = LessonLog::query()
+                    ->where('lesson_id', $lesson->id)
                     ->delete();
 
-                // soft delete самого уроку
+                // якщо у PlannedLesson увімкнено SoftDeletes — це буде soft delete
                 $lesson->delete();
+
+                return [
+                    'status'  => Response::HTTP_OK,
+                    'success' => true,
+                    'message' => 'Заняття скасоване, журнали цього уроку очищено.',
+                    'meta'    => [
+                        'lesson_id'    => $lesson->id,
+                        'deleted_logs' => $deletedLogs,
+                    ],
+                ];
             });
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Заняття скасоване та видалене з журналу.'
+            return response()->json(
+                ['success' => $result['success'], 'message' => $result['message'], 'meta' => $result['meta'] ?? null],
+                $result['status']
+            );
+
+        } catch (\Throwable $e) {
+            Log::error('MarkAsCancelledController error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'lesson_id' => $id,
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('MarkAsCancelledController error: ' . $e->getMessage());
-            return response()->json([
+            $payload = [
                 'success' => false,
-                'message' => 'Помилка при скасуванні заняття.'
-            ], 500);
+                'message' => 'Помилка при скасуванні заняття.',
+            ];
+
+            if (config('app.debug')) {
+                $payload['error'] = $e->getMessage();
+            }
+
+            return response()->json($payload, Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }

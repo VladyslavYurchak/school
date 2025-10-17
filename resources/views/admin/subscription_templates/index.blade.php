@@ -47,9 +47,12 @@
                                 data-lessons="{{ $template->lessons_per_week }}"
                                 data-price="{{ $template->price }}"
                                 data-description="{{ $template->description }}"
+                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"  {{-- ← ось це ключ --}}
                             >
                                 Редагувати
                             </button>
+
+
 
                             <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
                                   method="POST"
@@ -104,6 +107,7 @@
                                 data-lessons="{{ $template->lessons_per_week }}"
                                 data-price="{{ $template->price }}"
                                 data-description="{{ $template->description }}"
+                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"  {{-- ← ось це ключ --}}
                             >
                                 Редагувати
                             </button>
@@ -122,6 +126,65 @@
             </table>
         @else
             <p>Групові абонементи відсутні.</p>
+        @endif
+
+        {{-- Парні // + pair --}}
+        <h3 class="mt-4">Парні абонементи</h3>
+        @if(isset($pairTemplates) && $pairTemplates->count())
+            <table class="table table-bordered align-middle">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Назва</th>
+                    <th>Занять/тиждень</th>
+                    <th>Ціна</th>
+                    <th>Опис</th>
+                    <th>Створено</th>
+                    <th>Оновлено</th>
+                    <th>Дія</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach($pairTemplates as $template)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $template->title }}</td>
+                        <td>{{ $template->lessons_per_week }}</td>
+                        <td>{{ number_format($template->price, 2, ',', ' ') }} грн</td>
+                        <td>{{ $template->description }}</td>
+                        <td>{{ $template->created_at->format('d.m.Y') }}</td>
+                        <td>{{ $template->updated_at->format('d.m.Y') }}</td>
+                        <td class="d-flex gap-2">
+                            <button
+                                class="btn btn-sm btn-outline-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editSubscriptionModal"
+                                data-id="{{ $template->id }}"
+                                data-title="{{ $template->title }}"
+                                data-type="{{ $template->type }}"
+                                data-lessons="{{ $template->lessons_per_week }}"
+                                data-price="{{ $template->price }}"
+                                data-description="{{ $template->description }}"
+                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"  {{-- ← ось це ключ --}}
+                            >
+                                Редагувати
+                            </button>
+
+
+                            <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('Ви впевнені, що хочете видалити цей абонемент?')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger">Видалити</button>
+                            </form>
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        @else
+            <p>Парні абонементи відсутні.</p>
         @endif
     </div>
 
@@ -149,6 +212,7 @@
                             <select class="form-select" id="editType" name="type" required>
                                 <option value="individual">Індивідуальний</option>
                                 <option value="group">Груповий</option>
+                                <option value="pair">Парний</option> {{-- + pair --}}
                             </select>
                         </div>
 
@@ -192,9 +256,9 @@
                 const price = button.getAttribute('data-price');
                 const description = button.getAttribute('data-description');
 
-                editForm.setAttribute('action', `/admin/subscription-templates/${id}`);
+                editForm.setAttribute('action', `/subscription-templates/${id}`);
                 document.getElementById('editTitle').value = title;
-                document.getElementById('editType').value = type;
+                document.getElementById('editType').value = type;       // працює і для 'pair'
                 document.getElementById('editLessons').value = lessons;
                 document.getElementById('editPrice').value = price;
                 document.getElementById('editDescription').value = description || '';

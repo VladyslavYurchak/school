@@ -12,6 +12,7 @@ class StoreController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'type'       => 'nullable|in:group,pair',
             'teacher_id' => 'required|exists:teachers,id',
             'notes' => 'nullable|string',
         ]);

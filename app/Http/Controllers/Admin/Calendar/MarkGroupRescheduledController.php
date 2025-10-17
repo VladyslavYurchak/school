@@ -12,6 +12,7 @@ use App\Models\Group;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Symfony\Component\HttpFoundation\Response;
 
 class MarkGroupRescheduledController extends Controller
 {
@@ -20,55 +21,105 @@ class MarkGroupRescheduledController extends Controller
         $data = $request->validated();
 
         try {
-            DB::transaction(function () use ($data) {
-                $lesson = PlannedLesson::findOrFail($data['lesson_id']);
-                $group  = Group::findOrFail($data['group_id']);
+            $result = DB::transaction(function () use ($data) {
+                // 1) Точно беремо урок і блокуємо, а також перевіряємо групу
+                /** @var \App\Models\PlannedLesson|null $lesson */
+                $lesson = PlannedLesson::query()
+                    ->whereKey((int)$data['lesson_id'])
+                    ->lockForUpdate()
+                    ->first();
 
+                if (!$lesson) {
+                    return [
+                        'status'  => Response::HTTP_NOT_FOUND,
+                        'success' => false,
+                        'message' => 'Урок із таким ID не знайдено.',
+                    ];
+                }
+
+                /** @var \App\Models\Group|null $group */
+                $group = Group::query()->find((int)$data['group_id']);
+                if (!$group) {
+                    return [
+                        'status'  => Response::HTTP_UNPROCESSABLE_ENTITY,
+                        'success' => false,
+                        'message' => 'Групу не знайдено.',
+                    ];
+                }
+
+                if ((int)$lesson->group_id !== (int)$group->id) {
+                    return [
+                        'status'  => Response::HTTP_UNPROCESSABLE_ENTITY,
+                        'success' => false,
+                        'message' => 'Урок не належить зазначеній групі.',
+                    ];
+                }
+
+                // 2) Нова дата/час
                 $newDateTime = Carbon::parse($data['new_date'] . ' ' . $data['new_time']);
 
-                // Позначаємо старе заняття як перенесене (soft delete, якщо ввімкнено)
-                $lesson->status = LessonStatus::Rescheduled->value;
-                $lesson->initiator = null; // за потреби, постав того, хто ініціював
+                // 3) Позначаємо старе заняття як перенесене (і видаляємо, якщо увімкнено SoftDeletes)
+                $lesson->status    = LessonStatus::Rescheduled->value;
+                $lesson->initiator = $lesson->initiator ?? null;
                 $lesson->save();
-                $lesson->delete();
+                $lesson->delete(); // soft delete, якщо модель використовує SoftDeletes
 
-                $start = Carbon::parse($lesson->start_date);
-                $end   = Carbon::parse($lesson->end_date);
-                $durationMinutes = $lesson->duration ?? $start->diffInMinutes($end);
-                $durationMinutes = max(15, $durationMinutes);
+                // 4) Тривалість
+                $start  = Carbon::parse($lesson->start_date);
+                $end    = Carbon::parse($lesson->end_date);
+                $durMin = $lesson->duration ?? $start->diffInMinutes($end);
+                $durMin = max(15, $durMin);
 
-                // Створюємо нове заняття
-                PlannedLesson::create([
-                    'title'       => $lesson->title ?? ($group->name ?? 'Без назви групи'),
+                // 5) Створюємо НОВИЙ урок (копіюємо важливі поля)
+                $newLesson = PlannedLesson::create([
+                    'title'       => $lesson->title ?? ($group->name ?? 'Групове заняття'),
                     'teacher_id'  => $lesson->teacher_id,
                     'group_id'    => $group->id,
                     'student_id'  => null,
                     'start_date'  => $newDateTime,
-                    'end_date'    => (clone $newDateTime)->addMinutes($durationMinutes),
+                    'end_date'    => (clone $newDateTime)->addMinutes($durMin),
                     'status'      => LessonStatus::Planned->value,
                     'initiator'   => null,
-                    'duration'    => $lesson->duration,
+                    'duration'    => $lesson->duration ?? $durMin,
                     'notes'       => $lesson->notes,
                     'lesson_type' => $lesson->lesson_type ?? LessonType::Group->value,
                 ]);
 
-                // Видаляємо старий запис з LessonLog (якщо є)
-                LessonLog::where('group_id', $group->id)
-                    ->whereDate('date', $data['date'])
-                    ->whereTime('time', $data['time'])
+                // 6) Чистимо логи СТАРОГО уроку по lesson_id
+                $deletedLogs = LessonLog::query()
+                    ->where('lesson_id', $lesson->id)
                     ->delete();
+
+                return [
+                    'status'  => Response::HTTP_OK,
+                    'success' => true,
+                    'message' => 'Групове заняття перенесено на нову дату.',
+                    'meta'    => [
+                        'old_lesson_id' => $lesson->id,
+                        'new_lesson_id' => $newLesson->id,
+                        'deleted_logs'  => $deletedLogs,
+                        'new_start'     => $newLesson->start_date,
+                        'new_end'       => $newLesson->end_date,
+                    ],
+                ];
             });
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Групове заняття перенесено на нову дату.',
+            return response()->json(
+                ['success' => $result['success'], 'message' => $result['message'], 'meta' => $result['meta'] ?? null],
+                $result['status']
+            );
+
+        } catch (\Throwable $e) {
+            Log::error('MarkGroupRescheduledController error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'payload' => $request->all(),
             ]);
-        } catch (\Exception $e) {
-            Log::error('MarkGroupRescheduledController error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => 'Помилка при перенесенні групового заняття.',
+                'error'   => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
     }

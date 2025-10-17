@@ -15,6 +15,7 @@ class SubscriptionTemplate extends Model
         'type', // 'individual' або 'group'
         'lessons_per_week',
         'price',
+        'description' => 'nullable|string'
     ];
 
     // Студенти, які мають цей шаблон

@@ -39,10 +39,11 @@ class IndexController extends Controller
         }
 
         // день
-        $logs = LessonLog::with(['student','teacher','group'])
+        $logs = LessonLog::with(['teacher'])
             ->whereDate('date', $date)
             ->orderBy('time')
             ->get();
+
 
         $rescheduledLessons = PlannedLesson::withTrashed() // 🔑 тут
         ->with(['student','teacher','group'])

@@ -12,87 +12,86 @@ class MarkGroupCancelledRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // при потребі додай перевірку доступу
+        return true;
     }
 
-    // App/Http/Requests/Admin/Calendar/MarkGroupCancelledRequest.php
     public function rules(): array
     {
         return [
-            'group_id' => ['required', 'integer', 'exists:groups,id'],
-            'date'     => ['required', 'date'],          // наприклад: 2025-10-14
-            'time'     => ['required', 'date_format:H:i'] // наприклад: 18:30
-            // teacher_id не потрібен, якщо беремо з уроку
+            'group_id'  => ['required', 'integer', 'exists:groups,id'],
+            'lesson_id' => ['required', 'integer', 'exists:planned_lessons,id'],
+
+            // необов’язково: лише для додаткової звірки
+            'date'      => ['sometimes', 'date'],
+            'time'      => ['sometimes', 'date_format:H:i'],
         ];
     }
-
 
     public function attributes(): array
     {
         return [
-            'group_id'   => 'група',
-            'lesson_id'  => 'заняття',
-            'date'       => 'дата',
-            'time'       => 'час',
-            'teacher_id' => 'викладач',
+            'group_id'  => 'група',
+            'lesson_id' => 'заняття',
+            'date'      => 'дата',
+            'time'      => 'час',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'group_id.required'   => 'Група є обовʼязковою.',
-            'group_id.exists'     => 'Обрану групу не знайдено.',
-            'lesson_id.required'  => 'Заняття є обовʼязковим.',
-            'lesson_id.exists'    => 'Обране заняття не знайдено.',
-            'date.required'       => 'Дата є обовʼязковою.',
-            'date.date'           => 'Невірний формат дати.',
-            'time.required'       => 'Час є обовʼязковим.',
-            'time.date_format'    => 'Невірний формат часу (очікується H:i).',
-            'teacher_id.required' => 'Викладач є обовʼязковим.',
-            'teacher_id.exists'   => 'Обраного викладача не знайдено.',
+            'group_id.required'  => 'Група є обовʼязковою.',
+            'group_id.exists'    => 'Обрану групу не знайдено.',
+            'lesson_id.required' => 'Заняття є обовʼязковим.',
+            'lesson_id.exists'   => 'Обране заняття не знайдено.',
+            'date.date'          => 'Невірний формат дати.',
+            'time.date_format'   => 'Невірний формат часу (очікується H:i).',
         ];
     }
 
     public function withValidator($validator): void
     {
         $validator->after(function ($v) {
-            $lesson  = PlannedLesson::find((int)$this->input('lesson_id'));
-            $groupId = (int)$this->input('group_id');
+            $lessonId = (int) $this->input('lesson_id');
+            $groupId  = (int) $this->input('group_id');
 
+            $lesson = PlannedLesson::find($lessonId);
             if (!$lesson) {
-                return; // базове правило exists спрацює
+                return; // базові правила вже додадуть помилку
             }
 
-            // 1) Переконаймося, що урок належить до цієї групи
+            // 1) Урок має належати цій групі
             if ((int)$lesson->group_id !== $groupId) {
                 $v->errors()->add('lesson_id', 'Заняття не належить вказаній групі.');
             }
 
-            // 2) Переконаймося, що це груповий тип уроку
+            // 2) Тип уроку має бути груповий або парний
             if (
                 $lesson->lesson_type !== null &&
                 (string)$lesson->lesson_type !== LessonType::Group->value &&
                 (string)$lesson->lesson_type !== LessonType::Pair->value
             ) {
-                $v->errors()->add('lesson_id', 'Заняття має бути групового типу.');
+                $v->errors()->add('lesson_id', 'Заняття має бути групового або парного типу.');
             }
 
-            // 3) Дозволяємо скасування навіть якщо Completed (тільки перевіримо, щоб не скасовано двічі)
+            // 3) Не скасовуємо вдруге
             if ((string)$lesson->status === LessonStatus::Cancelled->value) {
                 $v->errors()->add('lesson_id', 'Цей урок уже скасовано.');
             }
 
-            // 4) Перевірка відповідності дати/часу
-            try {
-                $start = Carbon::parse($lesson->start_date);
-                $reqDt = Carbon::parse($this->input('date') . ' ' . $this->input('time'));
-
-                if (!$start->equalTo($reqDt)) {
-                    $v->errors()->add('date', 'Передані дата/час не збігаються з початком цього уроку.');
+            // 4) Якщо користувач передав date/time — звіряємо зі start_date
+            $date = $this->input('date');
+            $time = $this->input('time');
+            if ($date && $time) {
+                try {
+                    $start = Carbon::parse($lesson->start_date);
+                    $reqDt = Carbon::parse($date . ' ' . $time);
+                    if (!$start->equalTo($reqDt)) {
+                        $v->errors()->add('date', 'Передані дата/час не збігаються з початком цього уроку.');
+                    }
+                } catch (\Throwable $e) {
+                    // формат already validated
                 }
-            } catch (\Throwable $e) {
-                // формат уже перевірено rules
             }
         });
     }

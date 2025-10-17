@@ -3,107 +3,98 @@
 namespace App\Http\Requests\Admin\Calendar;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use App\Models\PlannedLesson;
 use App\Enums\LessonType;
+use Carbon\Carbon;
 
 class MarkGroupRescheduledRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Якщо треба обмежити за роллю — додай перевірку тут
-        return true;
+        return true; // додай перевірку ролей за потреби
     }
 
     public function rules(): array
     {
         return [
-            'group_id' => ['required', 'exists:groups,id'],
-            'lesson_id' => ['required', 'exists:planned_lessons,id'],
-            'new_date' => ['required', 'date'],
-            'new_time' => ['required', 'date_format:H:i'],
-            'date' => ['required', 'date'],            // стара дата (для чистки LessonLog)
-            'time' => ['required', 'date_format:H:i'], // старий час (для чистки LessonLog)
+            'group_id'  => ['required', 'integer', 'exists:groups,id'],
+            'lesson_id' => ['required', 'integer', 'exists:planned_lessons,id'],
+            'new_date'  => ['required', 'date'],
+            'new_time'  => ['required', 'date_format:H:i'],
+            // 'date' / 'time' більше не потрібні — працюємо по lesson_id
         ];
     }
 
     public function messages(): array
     {
         return [
-            'group_id.required' => 'Група є обовʼязковою.',
-            'group_id.exists' => 'Обрану групу не знайдено.',
+            'group_id.required'  => 'Група є обовʼязковою.',
+            'group_id.exists'    => 'Обрану групу не знайдено.',
             'lesson_id.required' => 'Заняття є обовʼязковим.',
-            'lesson_id.exists' => 'Обране заняття не знайдено.',
-            'new_date.required' => 'Нова дата обовʼязкова.',
-            'new_date.date' => 'Невірний формат нової дати.',
-            'new_time.required' => 'Новий час обовʼязковий.',
+            'lesson_id.exists'   => 'Обране заняття не знайдено.',
+            'new_date.required'  => 'Нова дата обовʼязкова.',
+            'new_date.date'      => 'Невірний формат нової дати.',
+            'new_time.required'  => 'Новий час обовʼязковий.',
             'new_time.date_format' => 'Невірний формат нового часу (очікується H:i).',
-            'date.required' => 'Поточна дата обовʼязкова.',
-            'date.date' => 'Невірний формат поточної дати.',
-            'time.required' => 'Поточний час обовʼязковий.',
-            'time.date_format' => 'Невірний формат поточного часу (очікується H:i).',
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'group_id' => 'група',
+            'group_id'  => 'група',
             'lesson_id' => 'заняття',
-            'new_date' => 'нова дата',
-            'new_time' => 'новий час',
-            'date' => 'поточна дата',
-            'time' => 'поточний час',
+            'new_date'  => 'нова дата',
+            'new_time'  => 'новий час',
         ];
     }
 
-    protected function prepareForValidation(): void
-    {
-        // нічого особливого, але місце є, якщо захочеш нормалізувати вхідні дані
-    }
-
-    /**
-     * Додаткові перевірки зв’язків і логіки:
-     * - lesson має належати цій групі
-     * - lesson має бути групового типу
-     * - новий datetime не збігається зі старим
-     */
     public function withValidator($validator): void
     {
         $validator->after(function ($v) {
-            $lessonId = $this->input('lesson_id');
-            $groupId = $this->input('group_id');
+            $lessonId = (int) $this->input('lesson_id');
+            $groupId  = (int) $this->input('group_id');
 
             $lesson = PlannedLesson::find($lessonId);
             if (!$lesson) {
-                return; // exists уже згенерував помилку
+                return; // базові правила вже додадуть помилку
             }
 
-            // 1) Перевірка відповідності групі
-            if ((int)$lesson->group_id !== (int)$groupId) {
+            // 1) урок має належати цій групі
+            if ((int)$lesson->group_id !== $groupId) {
                 $v->errors()->add('lesson_id', 'Заняття не належить вказаній групі.');
             }
 
-            // 2) Перевірка типу заняття
+            // 2) тип — лише group або pair
             if (
                 $lesson->lesson_type !== null &&
                 (string)$lesson->lesson_type !== LessonType::Group->value &&
                 (string)$lesson->lesson_type !== LessonType::Pair->value
             ) {
-                $v->errors()->add('lesson_id', 'Заняття має бути групового типу.');
+                $v->errors()->add('lesson_id', 'Заняття має бути групового або парного типу.');
             }
 
-
-            // 3) Новий datetime не повинен співпадати зі старим
+            // 3) новий datetime відрізняється від старого
             try {
-                $oldStart = \Carbon\Carbon::parse($lesson->start_date);
-                $newStart = \Carbon\Carbon::parse($this->input('new_date') . ' ' . $this->input('new_time'));
+                $oldStart = Carbon::parse($lesson->start_date);
+                $newStart = Carbon::parse($this->input('new_date') . ' ' . $this->input('new_time'));
 
                 if ($oldStart->equalTo($newStart)) {
                     $v->errors()->add('new_date', 'Нова дата і час співпадають з поточними.');
                 }
+
+                // 4) немає конфлікту з іншим уроком цієї групи у новий слот
+                $conflict = PlannedLesson::query()
+                    ->where('group_id', $groupId)
+                    ->where('start_date', $newStart)
+                    ->where('id', '!=', $lessonId)
+                    ->exists();
+
+                if ($conflict) {
+                    $v->errors()->add('new_date', 'Для цієї групи вже існує інше заняття у вказаний час.');
+                }
             } catch (\Throwable $e) {
-                // якщо парсинг впаде — базові правила вже згенерують помилки
+                // формат уже перевірено в rules
             }
         });
     }

@@ -1,7 +1,5 @@
 <div>
     <form id="attendanceFilterForm" method="GET" class="mb-3 d-flex align-items-center gap-2">
-
-
         <label class="form-label mb-0" for="month">Місяць:</label>
         <select name="month" id="month" class="form-select">
             @for ($m = 1; $m <= 12; $m++)
@@ -19,10 +17,10 @@
         </select>
     </form>
 
-    <div id="salaryTableWrapper">
+    <div id="attendanceTableWrapper">
         @if($students->count() > 0)
             <div class="table-responsive shadow rounded">
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered table-striped align-middle">
                     <thead>
                     <tr>
                         <th>Ім'я</th>
@@ -31,34 +29,37 @@
                         <th>Абонемент</th>
                         <th>Занять цього місяця</th>
                         <th>Загальна кількість</th>
-                        <th>Поразові оплати</th>
                         <th>Відвідуваність</th>
-
                     </tr>
                     </thead>
                     <tbody>
                     @foreach($students as $student)
+                        @php
+                            $sid = $student->id;
+                            $studentFullName = $student->full_name ?? ($student->first_name . ' ' . $student->last_name);
+                        @endphp
                         <tr>
                             <td>{{ $student->first_name }}</td>
                             <td>{{ $student->last_name }}</td>
-                            <td>{{ $student->teacher->full_name ?? '—' }}</td>
-                            <td>@if($student->subscriptionTemplate)
+                            <td>{{ $student->teacher?->full_name ?? '—' }}</td>
+                            <td>
+                                @if($student->subscriptionTemplate)
                                     {{ $student->subscriptionTemplate->title }}
                                     ({{ $student->subscriptionTemplate->lessons_per_week }} р/т)
-                                    ({{ $student->subscriptionTemplate->price }}грн)
+                                    ({{ number_format($student->subscriptionTemplate->price, 2, ',', ' ') }} грн)
                                 @else
                                     —
                                 @endif
                             </td>
-                            <td>{{ $monthLessonsCount[$student->id] ?? 0 }}</td>
-                            <td>{{ $totalLessonsCount[$student->id] ?? 0 }}</td>
-                            <td>{{ $singlePaymentsCount[$student->id] ?? 0 }}</td>
+                            <td>{{ $monthLessonsCount[$sid] ?? 0 }}</td>
+                            <td>{{ $totalLessonsCount[$sid] ?? 0 }}</td>
                             <td>
-                                <button class="btn btn-link p-0 student-calendar-btn" data-student-id="{{ $student->id }}" data-student-name="{{ $student->full_name }}">
+                                <button class="btn btn-link p-0 student-calendar-btn"
+                                        data-student-id="{{ $sid }}"
+                                        data-student-name="{{ $studentFullName }}">
                                     КАЛЕНДАР
                                 </button>
                             </td>
-
                         </tr>
                     @endforeach
                     </tbody>
@@ -72,14 +73,13 @@
                         });
                     });
                 </script>
-
             </div>
         @else
             <div class="alert alert-info">Студенти не знайдені.</div>
         @endif
-
     </div>
 </div>
+
 <!-- Модальне вікно -->
 <div class="modal fade" id="studentCalendarModal" tabindex="-1" aria-labelledby="studentCalendarLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -94,4 +94,3 @@
         </div>
     </div>
 </div>
-

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('subscription_templates', function (Blueprint $table) {
             $table->id();
             $table->string('title'); // Назва: "2 заняття на тиждень", "3 заняття", "Груповий"
-            $table->enum('type', ['individual', 'group']); // Тип абонементу
+            $table->enum('type', ['individual', 'group', 'pair']); // Тип абонементу
             $table->integer('lessons_per_week'); // Кількість занять на тиждень
             $table->decimal('price', 8, 2); // Ціна за місяць
             $table->timestamps();

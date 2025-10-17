@@ -10,17 +10,38 @@ class EditController extends Controller
 {
     public function __invoke(Group $group)
     {
-        // Студенти, які не належать до жодної групи (тобто вільні)
-        $availableStudents = Student::whereNull('group_id')
-            ->where('is_active', true)
+        // Студенти, які вже у групі (з шаблоном абонемента для відображення)
+        $students = $group->students()
+            ->with(['subscriptionTemplate'])  // щоб у вʼюшці показати тип абонементу
+            ->orderBy('last_name')
+            ->orderBy('first_name')
             ->get();
 
-        // Студенти, які вже є у цій групі
-        $students = $group->students; // викликаємо як властивість, а не метод
+        // Доступні для додавання: активні, без групи, мають абонемент,
+        // і тип абонементу збігається з типом групи
+        $availableStudents = Student::with(['subscriptionTemplate'])
+            ->whereNull('group_id')
+            ->where('is_active', true)
+            ->whereNotNull('subscription_id')
+            ->whereHas('subscriptionTemplate', function ($q) use ($group) {
+                $q->where('type', $group->type); // 'group' або 'pair'
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
 
-        // Усі викладачі
-        $teachers = Teacher::all();
+        // Усі викладачі (для селекта керівника групи)
+        $teachers = Teacher::orderBy('last_name')->orderBy('first_name')->get();
 
-        return view('admin.groups.edit', compact('group', 'teachers', 'availableStudents', 'students'));
+        // Для парної групи: не дозволяти додавати більше 2-х студентів
+        $canAddMore = !($group->type === 'pair' && $students->count() >= 2);
+
+        return view('admin.groups.edit', compact(
+            'group',
+            'teachers',
+            'availableStudents',
+            'students',
+            'canAddMore'
+        ));
     }
 }

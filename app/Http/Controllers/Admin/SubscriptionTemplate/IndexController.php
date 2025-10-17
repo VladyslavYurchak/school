@@ -11,7 +11,9 @@ class IndexController extends Controller
     {
         $individualTemplates = SubscriptionTemplate::where('type', 'individual')->orderBy('title')->get();
         $groupTemplates = SubscriptionTemplate::where('type', 'group')->orderBy('title')->get();
+        $pairTemplates = SubscriptionTemplate::where('type', 'pair')->orderBy('title')->get();
 
-        return view('admin.subscription_templates.index', compact('individualTemplates', 'groupTemplates'));
+
+        return view('admin.subscription_templates.index', compact('individualTemplates', 'groupTemplates', 'pairTemplates'));
     }
 }

@@ -1,133 +1,140 @@
 @extends('admin.layouts.layout')
 
+@section('styles')
+    {{-- DataTables + Bootstrap 5 theme --}}
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <style>
+        /* Відступ зверху сторінки */
+        .app-main { padding-top: 1.25rem; }
+
+        /* Заголовок сторінки */
+        .page-title {
+            margin-bottom: 1rem;
+            font-weight: 600;
+            letter-spacing: .2px;
+        }
+        .page-subtitle {
+            margin-top: -.25rem;
+            color: #6c757d;
+        }
+
+        /* Таблиця */
+        table.dataTable > thead > tr > th {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6 !important;
+        }
+
+        /* Пагінація DataTables — відступи та стан активної */
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            margin: 0 .25rem !important;
+            padding: .375rem .65rem !important;
+            border-radius: .375rem !important;
+            border: 1px solid #dee2e6 !important;
+            background: #fff !important;
+            cursor: pointer;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #0d6efd !important;
+            color: #fff !important;
+            border-color: #0d6efd !important;
+        }
+
+        /* Інфо-рядок */
+        .dataTables_info { color: #6c757d; }
+
+        /* Контроли зверху */
+        .dataTables_length select { border-radius: .375rem; }
+        .dataTables_filter input { border-radius: .375rem; }
+
+        /* Бейджі статусів */
+        .badge-soft { padding: .45em .6em; border-radius: .5rem; font-weight: 500; }
+        .badge-soft-success { background: #e8f5e9; color: #198754; border: 1px solid #ccead0; }
+        .badge-soft-secondary { background: #f1f3f5; color: #6c757d; border: 1px solid #e9ecef; }
+    </style>
+@endsection
+
 @section('content')
     <main class="app-main">
         <div class="container-fluid">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2>Мої групи</h2>
-                {{-- Кнопка створення групи, якщо буде потрібно --}}
-                {{-- <a href="{{ route('admin.groups.create') }}" class="btn btn-success">+ Додати групу</a> --}}
+            <div class="d-flex justify-content-between align-items-end">
+                <div>
+                    <h2 class="page-title">Мої групи</h2>
+                    <div class="page-subtitle">Перелік ваших груп із розкладом та статусом</div>
+                </div>
+                {{-- Жодних кнопок додавання: групи створює адміністратор --}}
             </div>
 
             @if(session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
+                <div class="alert alert-success mt-3">{{ session('success') }}</div>
             @endif
 
             @if($groups->isEmpty())
-                <div class="alert alert-info">
-                    У вас немає груп.
+                <div class="alert alert-info mt-3">
+                    Наразі у вас немає груп.
                 </div>
             @else
-                <div class="card shadow-sm">
-                    <div class="card-body table-responsive">
-                        <table class="table table-bordered table-hover align-middle" id="groups-table" style="cursor: pointer;">
-                            <thead class="table-light">
-                            <tr>
-                                <th>Назва групи</th>
-                                <th>Кількість студентів</th>
-                                <th>Нотатки</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($groups as $group)
-                                <tr data-group="{{ json_encode([
-                                'name' => $group->name,
-                                'notes' => $group->notes,
-                                'students' => $group->students->map(fn($s) => [
-                                    'first_name' => $s->first_name,
-                                    'last_name' => $s->last_name,
-                                    'phone' => $s->phone,
-                                    'email' => $s->email,
-                                ]),
-                            ]) }}">
-                                    <td>{{ $group->name }}</td>
-                                    <td>{{ $group->students_count ?? $group->students->count() }}</td>
-                                    <td class="text-truncate" style="max-width: 300px;">{{ $group->notes ?? '-' }}</td>
+                <div class="card shadow-sm mt-3">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover align-middle w-100" id="groups-table">
+                                <thead>
+                                <tr>
+                                    <th>Група</th>
+                                    <th>Кількість студентів</th>
+                                    <th>Розклад</th>
+                                    <th>Статус</th>
                                 </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                @foreach($groups as $group)
+                                    @php
+                                        $studentsCount = $group->students_count ?? ($group->students->count() ?? 0);
+                                        $isActive = $group->is_active ?? true;
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $group->name ?? '—' }}</td>
+                                        <td>{{ $studentsCount }}</td>
+                                        <td>
+                                            {{-- Можна підставити ваш готовий accessor/поле --}}
+                                            {{ $group->schedule_text ?? ($group->schedule ?? '—') }}
+                                        </td>
+                                        <td>
+                                            @if($isActive)
+                                                <span class="badge-soft badge-soft-success">Активна</span>
+                                            @else
+                                                <span class="badge-soft badge-soft-secondary">Архів</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div> {{-- /.table-responsive --}}
                     </div>
                 </div>
             @endif
         </div>
     </main>
-
-    {{-- Модальне вікно --}}
-    <div class="modal fade" id="groupDetailsModal" tabindex="-1" aria-labelledby="groupDetailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="groupDetailsModalLabel">Інформація про групу</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
-                </div>
-                <div class="modal-body">
-                    <h4 id="modalGroupName"></h4>
-                    <p id="modalGroupNotes" class="mb-3"></p>
-
-                    <table class="table table-striped table-bordered">
-                        <thead>
-                        <tr>
-                            <th>Ім'я</th>
-                            <th>Прізвище</th>
-                            <th>Телефон</th>
-                            <th>Email</th>
-                        </tr>
-                        </thead>
-                        <tbody id="modalStudentsBody">
-                        </tbody>
-                    </table>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
-                </div>
-            </div>
-        </div>
-    </div>
 @endsection
 
 @section('scripts')
+    {{-- jQuery за потреби:
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> --}}
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script>
-        $(document).ready(function() {
-            const modal = new bootstrap.Modal(document.getElementById('groupDetailsModal'));
-            const $modalGroupName = $('#modalGroupName');
-            const $modalGroupNotes = $('#modalGroupNotes');
-            const $modalStudentsBody = $('#modalStudentsBody');
-
+        $(function() {
             $('#groups-table').DataTable({
                 language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/uk.json'
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/uk.json'
                 },
                 pageLength: 10,
                 lengthMenu: [5, 10, 25, 50],
                 order: [[0, 'asc']],
-            });
-
-            $('#groups-table tbody').on('click', 'tr', function () {
-                const groupData = $(this).data('group');
-
-                $modalGroupName.text(groupData.name);
-                $modalGroupNotes.text(groupData.notes ?? '');
-
-                $modalStudentsBody.empty();
-
-                if(groupData.students.length === 0) {
-                    $modalStudentsBody.append('<tr><td colspan="4" class="text-center">Немає студентів у цій групі</td></tr>');
-                } else {
-                    groupData.students.forEach(student => {
-                        $modalStudentsBody.append(`
-                    <tr>
-                        <td>${student.first_name}</td>
-                        <td>${student.last_name}</td>
-                        <td>${student.phone ?? '-'}</td>
-                        <td>${student.email ?? '-'}</td>
-                    </tr>
-                `);
-                    });
-                }
-
-                modal.show();
+                dom: "<'row mb-2'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                    "<'row'<'col-sm-12'tr>>" +
+                    "<'row mt-2'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
             });
         });
     </script>

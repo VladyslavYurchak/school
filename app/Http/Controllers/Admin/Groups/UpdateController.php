@@ -11,14 +11,19 @@ class UpdateController extends Controller
     public function __invoke(Request $request, Group $group)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name'       => 'required|string|max:255',
+            'type'       => 'nullable|in:group,pair',
             'teacher_id' => 'required|exists:teachers,id',
-            'note' => 'nullable|string',
-            // додайте інші поля групи, якщо потрібно
+            'notes'      => 'nullable|string',
         ]);
+
+        // якщо тип не передано — залишаємо старий або дефолт 'group'
+        $validated['type'] = $validated['type'] ?? $group->type ?? 'group';
 
         $group->update($validated);
 
-        return redirect()->route('admin.groups.index')->with('success', 'Групу оновлено успішно.');
+        return redirect()
+            ->route('admin.groups.index')
+            ->with('success', 'Групу оновлено успішно.');
     }
 }

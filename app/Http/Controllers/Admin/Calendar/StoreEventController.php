@@ -6,6 +6,7 @@ use App\Enums\LessonStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Calendar\StoreEventRequest;
 use App\Models\PlannedLesson;
+use App\Models\SubscriptionTemplate; // <-- додайте імпорт
 use Carbon\Carbon;
 
 class StoreEventController extends Controller
@@ -22,6 +23,18 @@ class StoreEventController extends Controller
         $teacherId = $teacher->id;
         $start = Carbon::parse($validated['start']);
         $duration = (int) ($validated['duration'] ?? 60);
+
+        // ✅ Перевірка, що тип абонементу = типу уроку (якщо абонемент передано)
+        $template = null;
+        if (!empty($validated['subscription_template_id'])) {
+            $template = SubscriptionTemplate::findOrFail($validated['subscription_template_id']);
+            if ($template->type !== $validated['lesson_type']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Тип абонементу має відповідати типу заняття, яке створюється.',
+                ], 422);
+            }
+        }
 
         // ==========================
         // Повторювані заняття
@@ -47,6 +60,9 @@ class StoreEventController extends Controller
                     'notes'       => $validated['notes'] ?? null,
                     'status'      => LessonStatus::Planned->value,
                     'lesson_type' => $validated['lesson_type'],
+
+                    // опційно: якщо у вас у PlannedLesson є колонка subscription_template_id
+                    // 'subscription_template_id' => $template?->id,
                 ]);
 
                 $lessons[] = $lesson;
@@ -81,8 +97,11 @@ class StoreEventController extends Controller
             'student_id'  => $validated['student_id'] ?? null,
             'group_id'    => $validated['group_id'] ?? null,
             'notes'       => $validated['notes'] ?? null,
-            'status'      => LessonStatus::Planned->value, // уніфікував з enum
+            'status'      => LessonStatus::Planned->value,
             'lesson_type' => $validated['lesson_type'],
+
+            // опційно, якщо є колонка
+            // 'subscription_template_id' => $template?->id,
         ]);
 
         return response()->json([

@@ -17,6 +17,7 @@
                 <select class="form-control" id="type" name="type" required>
                     <option value="individual">Індивідуальні</option>
                     <option value="group">Групові</option>
+                    <option value="pair">Парні</option> {{-- ✅ додано --}}
                 </select>
             </div>
 

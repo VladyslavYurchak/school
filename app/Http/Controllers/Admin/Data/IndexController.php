@@ -6,39 +6,38 @@ use App\Http\Controllers\Controller;
 use App\Models\LessonLog;
 use App\Models\Student;
 use App\Models\StudentSubscription;
-use App\Models\Teacher;
 use Carbon\Carbon;
+use App\Services\Data\TeacherMonthlyReportService; // ✅ додаємо
+use Illuminate\Http\Request;
 
 class IndexController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request, TeacherMonthlyReportService $svc)
     {
-        $selectedMonth = request('month') ?? now()->month;
-        $selectedYear = request('year') ?? now()->year;
+        $selectedMonth = (int) ($request->input('month') ?? now()->month);
+        $selectedYear  = (int) ($request->input('year')  ?? now()->year);
 
+        $monthStart = Carbon::create($selectedYear, $selectedMonth, 1)->startOfMonth()->toDateString();
+        $monthEnd   = Carbon::create($selectedYear, $selectedMonth, 1)->endOfMonth()->toDateString();
+
+        // === Студенти для attendance ===
         $students = Student::with(['teacher', 'subscriptionTemplate'])->get();
 
-        // Всі lessonLogs для студентів
         $lessonLogs = LessonLog::whereIn('student_id', $students->pluck('id'))
             ->whereIn('status', ['completed', 'charged'])
             ->get();
 
-        // Кількість усіх занять та занять за місяць
         $totalLessonsCount = [];
         $monthLessonsCount = [];
-
         foreach ($lessonLogs as $log) {
-            $studentId = $log->student_id;
+            $sid  = $log->student_id;
             $date = Carbon::parse($log->date);
-
-            $totalLessonsCount[$studentId] = ($totalLessonsCount[$studentId] ?? 0) + 1;
-
-            if ($date->year == $selectedYear && $date->month == $selectedMonth) {
-                $monthLessonsCount[$studentId] = ($monthLessonsCount[$studentId] ?? 0) + 1;
+            $totalLessonsCount[$sid] = ($totalLessonsCount[$sid] ?? 0) + 1;
+            if ($date->betweenIncluded($monthStart, $monthEnd)) {
+                $monthLessonsCount[$sid] = ($monthLessonsCount[$sid] ?? 0) + 1;
             }
         }
 
-        // Кількість одноразових оплат
         $singlePaymentsCount = [];
         foreach ($students as $student) {
             $singlePaymentsCount[$student->id] = StudentSubscription::where('student_id', $student->id)
@@ -46,45 +45,34 @@ class IndexController extends Controller
                 ->count();
         }
 
-        $teachers = Teacher::with('lessonLogs')->get();
+        // Пробні за місяць по студенту
+        $trialCountsByStudent = [];
+        $trialCostsByStudent  = [];
+        LessonLog::query()
+            ->whereBetween('date', [$monthStart, $monthEnd])
+            ->whereIn('status', ['completed', 'charged'])
+            ->where('lesson_type', 'trial')
+            ->get()
+            ->groupBy('student_id')
+            ->each(function ($logs, $sid) use (&$trialCountsByStudent, &$trialCostsByStudent) {
+                $trialCountsByStudent[$sid] = $logs->count();
+                $trialCostsByStudent[$sid]  = (float) $logs->sum('teacher_payout_amount');
+            });
 
-        // Підрахунок зарплат і доходу школи через методи моделі
-        $incomeData = [];
-        foreach ($teachers as $teacher) {
-            // Витягуємо кількість індивідуальних і групових занять
-            $counts = $teacher->getMonthLessonCounts($selectedYear, $selectedMonth);
+        // ✅ отримуємо готове зведення з сервісу
+        $reports = $svc->build($selectedYear, $selectedMonth);
 
-            // Зберігаємо їх для відображення
-            $teacher->individualCount = $counts['individual'];
-            $teacher->groupCount = $counts['group'];
-
-            // Розраховуємо зарплату
-            $teacher->salary = $teacher->getMonthSalary($selectedYear, $selectedMonth);
-
-            // Розраховуємо загальний дохід (метод already returns all needed data)
-            $income = $teacher->getMonthlyIncome($selectedYear, $selectedMonth);
-
-            $incomeData[$teacher->id] = [
-                'individualIncome' => $income['individual_subscriptions_sum'],
-                'individualCosts' => $income['individual_lessons_count'] * ($teacher->lesson_price ?? 0),
-                'individualProfit' => $income['individual_income'],
-                'groupIncome' => $income['group_subscriptions_sum'],
-                'groupCosts' => $income['group_lessons_count'] * ($teacher->group_lesson_price ?? 0),
-                'groupProfit' => $income['group_income'],
-                'totalProfit' => $income['total_income'],
-            ];
-
-        }
-
-        return view('admin.data.index', compact(
-            'students',
-            'singlePaymentsCount',
-            'totalLessonsCount',
-            'monthLessonsCount',
-            'teachers',
-            'selectedMonth',
-            'selectedYear',
-            'incomeData'
-        ));
+        return view('admin.data.index', [
+            'students'              => $students,
+            'singlePaymentsCount'   => $singlePaymentsCount,
+            'totalLessonsCount'     => $totalLessonsCount,
+            'monthLessonsCount'     => $monthLessonsCount,
+            'trialCountsByStudent'  => $trialCountsByStudent,
+            'trialCostsByStudent'   => $trialCostsByStudent,
+            'teachers'              => collect(array_column($reports, 'teacher')), // можна передати окремо
+            'selectedMonth'         => $selectedMonth,
+            'selectedYear'          => $selectedYear,
+            'reports'               => $reports,
+        ]);
     }
 }

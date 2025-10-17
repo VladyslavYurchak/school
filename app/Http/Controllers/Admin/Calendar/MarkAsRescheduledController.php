@@ -11,6 +11,7 @@ use App\Models\PlannedLesson;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Symfony\Component\HttpFoundation\Response;
 
 class MarkAsRescheduledController extends Controller
 {
@@ -19,15 +20,30 @@ class MarkAsRescheduledController extends Controller
         $data = $request->validated();
 
         try {
-            return DB::transaction(function () use ($id, $data) {
-                $lesson = PlannedLesson::findOrFail($id);
+            $result = DB::transaction(function () use ($id, $data) {
+                /** @var \App\Models\PlannedLesson|null $lesson */
+                $lesson = PlannedLesson::query()
+                    ->whereKey((int)$id)
+                    ->lockForUpdate()
+                    ->first();
 
-                $initiator  = $data['initiator'];                 // teacher|student|admin
-                $newDate    = $data['new_date'];
-                $newTime    = $data['new_time'];
-                $newDateTime = Carbon::parse("$newDate $newTime");
+                if (!$lesson) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Заняття з таким ID не знайдено.',
+                    ], Response::HTTP_NOT_FOUND);
+                }
 
-                $oldStart = $lesson->start_date;
+                // цей контролер лише для індивідуальних/пробних
+                if (!is_null($lesson->group_id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Цей ендпойнт призначений для індивідуальних/пробних. Для груп/пар — використай груповий контролер перенесення.',
+                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+
+                $initiator   = $data['initiator']; // teacher|student|admin
+                $newDateTime = Carbon::parse($data['new_date'].' '.$data['new_time']);
 
                 // 🔢 Ліміт переносів для студента (2/місяць по новій даті)
                 if ($initiator === 'student' && $lesson->student_id) {
@@ -44,8 +60,8 @@ class MarkAsRescheduledController extends Controller
                     if ($reschedulesThisMonth >= 2) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Учень вже використав ліміт на 2 переноси цього місяця.'
-                        ], 403);
+                            'message' => 'Учень вже використав ліміт на 2 переноси цього місяця.',
+                        ], Response::HTTP_FORBIDDEN);
                     }
                 }
 
@@ -55,47 +71,60 @@ class MarkAsRescheduledController extends Controller
                     'initiator' => $initiator,
                 ]);
 
-                LessonLog::where('student_id', $lesson->student_id)
-                    ->whereDate('date', $oldStart->toDateString())
-                    ->whereTime('time', $oldStart->format('H:i:s'))       // 'H:i:s' важливо!// 'Y-m-d'
+                // 🧹 Чистимо всі журнали САМЕ цього уроку
+                $deletedLogs = LessonLog::query()
+                    ->where('lesson_id', $lesson->id)
                     ->delete();
 
-                $start = Carbon::parse($lesson->start_date);
-                $end   = Carbon::parse($lesson->end_date);
-                $durationMinutes = $lesson->duration ?? $start->diffInMinutes($end);
-                $durationMinutes = max(15, $durationMinutes);
+                // ⏱️ Тривалість
+                $start  = Carbon::parse($lesson->start_date);
+                $end    = Carbon::parse($lesson->end_date);
+                $durMin = $lesson->duration ?? $start->diffInMinutes($end);
+                $durMin = max(15, $durMin);
 
                 // 🆕 Створюємо нове заняття (копіюємо корисні поля)
                 PlannedLesson::create([
                     'title'       => $lesson->title,
                     'student_id'  => $lesson->student_id,
                     'teacher_id'  => $lesson->teacher_id,
-                    'group_id'    => $lesson->group_id,
+                    'group_id'    => $lesson->group_id, // має бути null для індивідуального
                     'start_date'  => $newDateTime,
-                    'end_date'    => $newDateTime->copy()->addMinutes($durationMinutes),
+                    'end_date'    => (clone $newDateTime)->addMinutes($durMin),
                     'status'      => LessonStatus::Planned->value,
-                    'initiator'   => null, // нове — ще не перенесене
+                    'initiator'   => null,
                     'lesson_type' => $lesson->lesson_type ?? LessonType::Individual->value,
-                    'duration'    => $lesson->duration ?? $durationMinutes,
+                    'duration'    => $lesson->duration ?? $durMin,
                     'notes'       => $lesson->notes,
                 ]);
 
-
-                // мʼяке видалення старого (якщо ввімкнений SoftDeletes)
+                // 🗑️ Soft delete старого (якщо ввімкнено SoftDeletes)
                 $lesson->delete();
 
                 return response()->json([
                     'success' => true,
                     'message' => 'Заняття перенесено на нову дату.',
+                    'meta'    => [
+                        'old_lesson_id' => $lesson->id,
+                        'deleted_logs'  => $deletedLogs,
+                    ],
                 ]);
             });
-        } catch (\Exception $e) {
-            Log::error('MarkAsRescheduledController error: ' . $e->getMessage());
+
+            return $result;
+
+        } catch (\Throwable $e) {
+            Log::error('MarkAsRescheduledController error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'lesson_id' => $id,
+                'payload' => $request->all(),
+            ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Помилка при перенесенні заняття.',
-            ], 500);
+                'error'   => config('app.debug') ? $e->getMessage() : null,
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }
