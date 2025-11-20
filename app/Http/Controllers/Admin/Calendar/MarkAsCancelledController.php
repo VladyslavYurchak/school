@@ -41,7 +41,7 @@ class MarkAsCancelledController extends Controller
                 }
 
                 // вже скасований? — no-op
-                if ((string)$lesson->status === LessonStatus::Cancelled->value) {
+                if ($lesson->status === LessonStatus::Cancelled) {
                     return [
                         'status'  => Response::HTTP_OK,
                         'success' => true,
@@ -51,7 +51,7 @@ class MarkAsCancelledController extends Controller
                 }
 
                 // ставимо статус Cancelled
-                $lesson->status = LessonStatus::Cancelled->value;
+                $lesson->status = LessonStatus::Cancelled;
                 $lesson->save();
 
                 // видаляємо усі журнали САМЕ цього уроку

@@ -3,24 +3,17 @@
 namespace App\Http\Controllers\Admin\SubscriptionTemplate;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SubscriptionTemplate\UpdateRequest;
 use App\Models\SubscriptionTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 
 class UpdateController extends Controller
 {
-    public function __invoke(Request $request, SubscriptionTemplate $subscriptionTemplate): RedirectResponse
+    public function __invoke(UpdateRequest $request, SubscriptionTemplate $subscriptionTemplate): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255', // ← замість name
-            'type' => 'required|in:individual,group,pair',
-            'lessons_per_week' => 'required|integer|min:1|max:7',
-            'price' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-        ]);
 
-
-        $subscriptionTemplate->update($validated);
+        $subscriptionTemplate->update($request->validated());
 
         return redirect()
             ->route('admin.subscription-templates.index')

@@ -19,6 +19,7 @@
         "vite": "^6.0"
     },
     "dependencies": {
-        "admin-lte": "^4.0.0-beta3"
+        "admin-lte": "^4.0.0-beta3",
+        "fullcalendar": "^6.1.19"
     }
 }

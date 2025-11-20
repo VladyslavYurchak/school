@@ -89,23 +89,33 @@
 
                     {{-- Поразова оплата --}}
                     <div id="singlePayment{{ $student->id }}" style="display:none;">
-                        <label for="singlePrice{{ $student->id }}" class="form-label fw-semibold">
-                            Сума поразової оплати (грн)
-                        </label>
-                        <input
-                            type="number"
-                            name="price"
-                            id="singlePrice{{ $student->id }}"
-                            min="1" step="1"
-                            class="form-control"
-                            placeholder="Введіть суму"
-                            inputmode="numeric"
-                        >
-                        <button type="button" class="btn btn-primary mt-2"
-                                onclick="submitSinglePayment('{{ $student->id }}')">
+                        <label for="singlePrice{{ $student->id }}" class="form-label fw-semibold">Сума поразової оплати (грн)</label>
+                        <input type="number" name="price" id="singlePrice{{ $student->id }}" min="1" step="1"
+                               class="form-control" placeholder="Введіть суму" inputmode="numeric">
+                        <button type="button" class="btn btn-primary mt-2" onclick="submitSinglePayment('{{ $student->id }}')">
                             Оплатити
                         </button>
+
+                        <hr class="my-3">
+
+                        <div class="d-flex align-items-end gap-2">
+                            <div class="flex-grow-1">
+                                <label class="form-label fw-semibold" for="singleMonth{{ $student->id }}">Показати оплати за місяць</label>
+                                <input type="month" class="form-control" id="singleMonth{{ $student->id }}"
+                                       value="{{ \Carbon\Carbon::now('Europe/Kyiv')->format('Y-m') }}">
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary"
+                                    onclick="loadSinglePayments('{{ $student->id }}')">
+                                Показати
+                            </button>
+                        </div>
+
+                        <div class="mt-3" id="singlePaymentsList{{ $student->id }}">
+                            {{-- Початкове завантаження може бути порожнім, або підставити сервером --}}
+                            <div class="text-muted small">Натисніть «Показати», щоб завантажити оплати за вибраний місяць.</div>
+                        </div>
                     </div>
+
                 </div>
 
                 <div class="modal-footer border-0">

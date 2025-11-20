@@ -13,57 +13,60 @@ class IndexController extends Controller
 {
     public function __invoke()
     {
-
-
-
         $now = Carbon::now('Europe/Kyiv');
         $currentMonth = $now->format('Y-m');
 
-        // Отримуємо всіх студентів з потрібними зв’язками
+        // 1️⃣ Отримуємо всі дані одним махом
         $students = Student::with(['teacher', 'subscriptionTemplate'])->get();
         $teachers = Teacher::all();
-
         $subscriptionTemplates = SubscriptionTemplate::all();
-        $paidMonthsByStudent = [];
-        $singlePaymentsCount = [];
 
+        // 2️⃣ Підписки групуємо по студенту
+        $subscriptions = StudentSubscription::all()->groupBy('student_id');
+
+        // 3️⃣ Підрахунок поразових оплат — одним запитом
+        $singlePaymentsCount = StudentSubscription::whereNull('subscription_template_id')
+            ->selectRaw('student_id, COUNT(*) as cnt')
+            ->groupBy('student_id')
+            ->pluck('cnt', 'student_id');
+
+        // 4️⃣ Формуємо масиви оплат по місяцях
+        $paidMonthsByStudent = [];
 
         foreach ($students as $student) {
-            $subscriptions = StudentSubscription::where('student_id', $student->id)->get();
-
+            $studentSubs = $subscriptions[$student->id] ?? collect();
             $paidMonthsByStudent[$student->id] = [];
 
-            foreach ($subscriptions as $subscription) {
-                // Парсимо дату підписки з TZ Київ
-                $start = Carbon::parse($subscription->start_date, 'Europe/Kyiv');
+            foreach ($studentSubs as $studentSub) {
+                $start = Carbon::parse($studentSub->start_date, 'Europe/Kyiv');
                 $month = $start->format('Y-m');
-                $paidMonthsByStudent[$student->id][$month] = $subscription->price;
-            }
 
-            $singlePaymentsCount[$student->id] = StudentSubscription::where('student_id', $student->id)
-                ->whereNull('subscription_template_id')
-                ->count();
+                // додаємо всі оплати за місяць
+                if (!isset($paidMonthsByStudent[$student->id][$month])) {
+                    $paidMonthsByStudent[$student->id][$month] = 0;
+                }
+
+                $paidMonthsByStudent[$student->id][$month] += $studentSub->price;
+            }
         }
 
-
-        // Розбиваємо студентів на активних та неактивних
+        // 5️⃣ Поділ студентів на активних і неактивних
         $activeStudents = $students->where('is_active', true)
             ->sortBy(function ($student) use ($paidMonthsByStudent, $currentMonth) {
                 $paidMonths = $paidMonthsByStudent[$student->id] ?? [];
-                // Якщо оплатив поточний місяць — 1, інакше 0
                 return array_key_exists($currentMonth, $paidMonths) ? 1 : 0;
             });
 
-
         $inactiveStudents = $students->where('is_active', false);
 
+        // 6️⃣ Повертаємо у view
         return view('admin.students.index', compact(
             'activeStudents',
             'inactiveStudents',
             'teachers',
             'subscriptionTemplates',
             'paidMonthsByStudent',
-            'singlePaymentsCount'  // додаємо сюди
+            'singlePaymentsCount'
         ));
     }
 }

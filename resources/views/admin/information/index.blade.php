@@ -5,7 +5,9 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <style>
         /* Як і всюди: відступ зверху під фіксований хедер */
-        .app-main { padding-top: 1.25rem; }
+        .app-main {
+            padding-top: 1.25rem;
+        }
 
         /* Заголовки сторінки */
         .page-title {
@@ -13,6 +15,7 @@
             font-weight: 600;
             letter-spacing: .2px;
         }
+
         .page-subtitle {
             margin-top: -.25rem;
             color: #6c757d;
@@ -33,6 +36,7 @@
             background: #fff !important;
             cursor: pointer;
         }
+
         .dataTables_wrapper .dataTables_paginate .paginate_button.current,
         .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
             background: #0d6efd !important;
@@ -41,11 +45,18 @@
         }
 
         /* Інфо-рядок “Показано від …” */
-        .dataTables_info { color: #6c757d; }
+        .dataTables_info {
+            color: #6c757d;
+        }
 
         /* Контроли зверху */
-        .dataTables_length select { border-radius: .375rem; }
-        .dataTables_filter input { border-radius: .375rem; }
+        .dataTables_length select {
+            border-radius: .375rem;
+        }
+
+        .dataTables_filter input {
+            border-radius: .375rem;
+        }
     </style>
 @endsection
 
@@ -164,8 +175,10 @@
                                 @foreach($logs as $log)
                                     @php
                                         $statusBadge = $statusConfig[$log->status] ?? null;
-                                        $typeBadge   = $typeConfig[$log->lesson_type] ?? null;
-                                    @endphp
+                                        $typeValue   = $log->lesson_type instanceof \App\Enums\LessonType
+                                                ? $log->lesson_type->value
+                                                : ($log->lesson_type ?? '');
+                                        $typeBadge   = $typeConfig[$typeValue] ?? null;                                    @endphp
                                     <tr>
                                         @if($showWeekView)
                                             <td>{{ $formatDate($log->date) }}</td>
@@ -175,9 +188,11 @@
 
                                         <td>
                                             @if($typeBadge)
-                                                <span class="badge {{ $typeBadge['class'] }}">{{ $typeBadge['label'] }}</span>
+                                                <span
+                                                    class="badge {{ $typeBadge['class'] }}">{{ $typeBadge['label'] }}</span>
                                             @elseif($log->lesson_type)
-                                                <span class="badge bg-secondary">{{ Str::ucfirst($log->lesson_type) }}</span>
+                                                <span
+                                                    class="badge bg-secondary">{{ Str::ucfirst($log->lesson_type) }}</span>
                                             @else
                                                 <span class="badge bg-secondary">—</span>
                                             @endif
@@ -190,7 +205,8 @@
 
                                         <td>
                                             @if($statusBadge)
-                                                <span class="badge {{ $statusBadge['class'] }}">{{ $statusBadge['label'] }}</span>
+                                                <span
+                                                    class="badge {{ $statusBadge['class'] }}">{{ $statusBadge['label'] }}</span>
                                             @elseif($log->status)
                                                 <span class="badge bg-secondary">{{ Str::ucfirst($log->status) }}</span>
                                             @else
@@ -244,8 +260,12 @@
                                 <tbody>
                                 @foreach($rescheduledLessons as $lesson)
                                     @php
-                                        $typeBadge = $typeConfig[$lesson->lesson_type ?? ''] ?? null;
+                                        $typeValue = $lesson->lesson_type instanceof \App\Enums\LessonType
+                                            ? $lesson->lesson_type->value
+                                            : ($lesson->lesson_type ?? '');
+                                        $typeBadge = $typeConfig[$typeValue] ?? null;
                                     @endphp
+
                                     <tr>
                                         @if($showWeekView)
                                             <td>{{ $formatDate($lesson->start_date) }}</td>
@@ -253,7 +273,8 @@
                                         <td>{{ $formatTime($lesson->start_date) }}</td>
                                         <td>
                                             @if($typeBadge)
-                                                <span class="badge {{ $typeBadge['class'] }}">{{ $typeBadge['label'] }}</span>
+                                                <span
+                                                    class="badge {{ $typeBadge['class'] }}">{{ $typeBadge['label'] }}</span>
                                             @else
                                                 <span class="badge bg-secondary">—</span>
                                             @endif

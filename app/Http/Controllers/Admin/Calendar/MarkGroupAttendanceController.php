@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Calendar;
 
 use App\Enums\LessonLogStatus;
 use App\Enums\LessonStatus;
+use App\Enums\LessonType;
 use App\Http\Controllers\Controller;
 use App\Models\LessonLog;
 use App\Models\Group;
@@ -11,19 +12,13 @@ use App\Models\PlannedLesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Admin\Calendar\MarkGroupAttendanceRequest;
 
 class MarkGroupAttendanceController extends Controller
 {
-    public function __invoke(Request $request)
+    public function __invoke(MarkGroupAttendanceRequest $request)
     {
-        $request->validate([
-            'group_id' => 'required|exists:groups,id',
-            'lesson_id' => 'required|exists:planned_lessons,id',
-            'date' => 'required|date',
-            'time' => 'required|date_format:H:i',
-            'present_students' => 'array',
-            'present_students.*' => 'exists:students,id',
-        ]);
+        $request->validated();
 
         try {
             DB::transaction(function () use ($request) {
@@ -45,14 +40,17 @@ class MarkGroupAttendanceController extends Controller
                 $presentSet = array_flip($present);
 
                 $duration = $lesson->duration ?? 60;
-                $type = in_array($lesson->lesson_type, ['group', 'pair'], true)
-                    ? $lesson->lesson_type
-                    : 'group';
+                $typeEnum = $lesson->lesson_type; // LessonType enum завдяки casts
+                $type = $typeEnum instanceof LessonType ? $typeEnum->value : (string) $typeEnum;
+
 
                 $teacher  = $lesson->teacher;
 
 // Базова ставка за ЗАНЯТТЯ
+                $teacher  = $lesson->teacher;
+
                 $basis    = 'per_lesson';
+
                 $baseRate = (float) (
                 $type === 'pair'
                     ? ($teacher?->pair_lesson_price ?? 0)

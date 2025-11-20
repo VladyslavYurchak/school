@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AboutController;
+use Illuminate\Support\Facades\Auth;
+
 use App\Http\Controllers\Admin\Course\Lesson\Test\CreateController;
 use App\Http\Controllers\Admin\Course\Lesson\Test\DestroyController;
 use App\Http\Controllers\Admin\Course\Lesson\Test\EditController;
@@ -124,12 +126,18 @@ Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
         Route::get('/{student}/edit', \App\Http\Controllers\Admin\Students\EditController::class)->name('edit');
         Route::put('/{student}', \App\Http\Controllers\Admin\Students\UpdateController::class)->name('update');
         Route::delete('/{student}', \App\Http\Controllers\Admin\Students\DestroyController::class)->name('destroy');
-        Route::get('/{student}', \App\Http\Controllers\Admin\Students\ShowController::class)->name('show');
 
         Route::post('/{student}/subscription', \App\Http\Controllers\Admin\Students\Subscription\StoreController::class)
             ->name('subscriptions.store');
         Route::delete('/{student}/subscriptions/{month}', \App\Http\Controllers\Admin\Students\Subscription\DestroyController::class)
             ->name('subscriptions.destroyMonth');
+
+        Route::get('/{student}/single-payments', \App\Http\Controllers\Admin\Students\Subscription\Single\IndexController::class)
+            ->name('subscriptions.single.index'); // список поразових оплат з фільтром місяця (AJAX або звичайний)
+
+        Route::delete('/{student}/single-payments/{payment}', \App\Http\Controllers\Admin\Students\Subscription\Single\DestroyController::class)
+            ->name('subscriptions.single.destroy'); // скасування ко
+
     });
 
 
@@ -185,7 +193,7 @@ Route::group(['middleware' => ['teacher']], function () {
 
 
     Route::prefix('admin/calendar-events')->group(function () {
-        Route::get('/{group}/members', \App\Http\Controllers\Admin\Calendar\GetGroupMembers::class) ->name('groups.members');
+        Route::get('/{group}/members', \App\Http\Controllers\Admin\Calendar\GetGroupMembersController::class) ->name('groups.members');
         Route::post('{id}/complete', \App\Http\Controllers\Admin\Calendar\MarkAsCompletedController::class);
         Route::post('{id}/cancel', \App\Http\Controllers\Admin\Calendar\MarkAsCancelledController::class);
         Route::post('{id}/reschedule', \App\Http\Controllers\Admin\Calendar\MarkAsRescheduledController::class);

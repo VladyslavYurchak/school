@@ -65,17 +65,23 @@ class MarkGroupCancelledRequest extends FormRequest
                 $v->errors()->add('lesson_id', 'Заняття не належить вказаній групі.');
             }
 
-            // 2) Тип уроку має бути груповий або парний
-            if (
-                $lesson->lesson_type !== null &&
-                (string)$lesson->lesson_type !== LessonType::Group->value &&
-                (string)$lesson->lesson_type !== LessonType::Pair->value
-            ) {
+            $lessonType = $lesson->lesson_type instanceof LessonType
+                ? $lesson->lesson_type
+                : LessonType::tryFrom((string) $lesson->lesson_type);
+
+            // Аналогічно для статусу
+            $status = $lesson->status instanceof LessonStatus
+                ? $lesson->status
+                : LessonStatus::tryFrom((string) $lesson->status);
+            // ----------------------------------------
+
+
+            if (!in_array($lessonType, [LessonType::Group, LessonType::Pair], true)) {
                 $v->errors()->add('lesson_id', 'Заняття має бути групового або парного типу.');
             }
 
             // 3) Не скасовуємо вдруге
-            if ((string)$lesson->status === LessonStatus::Cancelled->value) {
+            if ($status === LessonStatus::Cancelled) {
                 $v->errors()->add('lesson_id', 'Цей урок уже скасовано.');
             }
 
@@ -84,13 +90,18 @@ class MarkGroupCancelledRequest extends FormRequest
             $time = $this->input('time');
             if ($date && $time) {
                 try {
-                    $start = Carbon::parse($lesson->start_date);
-                    $reqDt = Carbon::parse($date . ' ' . $time);
+                    // Якщо в моделі є каст на immutable_datetime, тут уже Carbon
+                    $start = $lesson->start_date instanceof \Carbon\CarbonInterface
+                        ? $lesson->start_date
+                        : Carbon::parse($lesson->start_date);
+
+                    $reqDt = Carbon::parse($date.' '.$time);
+
                     if (!$start->equalTo($reqDt)) {
                         $v->errors()->add('date', 'Передані дата/час не збігаються з початком цього уроку.');
                     }
                 } catch (\Throwable $e) {
-                    // формат already validated
+                    // формат вже перевіряється rules(), ігноруємо
                 }
             }
         });

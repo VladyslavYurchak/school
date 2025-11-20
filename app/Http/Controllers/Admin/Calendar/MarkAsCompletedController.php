@@ -43,15 +43,15 @@ class MarkAsCompletedController extends Controller
                 $duration = $lesson->duration ?? max(15, $start->diffInMinutes(Carbon::parse($lesson->end_date)) ?: 60);
 
                 $teacher = $lesson->teacher;
-                $type    = $lesson->lesson_type ?: 'individual';
+                $type = $lesson->lesson_type;
 
                 // Вибір ставки згідно типу
                 $basis    = 'per_lesson';
                 $baseRate = 0.0;
-                if ($type === 'trial' && !is_null($teacher->trial_lesson_price)) {
+
+                if ($type === \App\Enums\LessonType::Trial && !is_null($teacher->trial_lesson_price)) {
                     $baseRate = (float) $teacher->trial_lesson_price;
                 } else {
-                    // individual за замовчуванням
                     $baseRate = (float) ($teacher->lesson_price ?? 0);
                 }
 

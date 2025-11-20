@@ -16,16 +16,15 @@ class IndexController extends Controller
         $students = Student::query()
             ->where('is_active', true)
             ->where('teacher_id', $teacher->id)
+            ->where(function ($q) {
+                $q->whereNull('subscription_id') // студент без абонемента → можна для індивідуальних
+                ->orWhereHas('subscriptionTemplate', function ($sub) {
+                    $sub->whereNotIn('type', ['group', 'pair']);
+                });
+            })
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
-
-        $groups = Group::query()
-            ->where('teacher_id', $teacher->id)
-            ->withCount('students')
-            ->orderBy('name') // у groups є name — ок
-            ->get();
-
 
 
         $groups = Group::query()

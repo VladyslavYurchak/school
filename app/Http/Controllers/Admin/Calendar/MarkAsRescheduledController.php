@@ -87,15 +87,17 @@ class MarkAsRescheduledController extends Controller
                     'title'       => $lesson->title,
                     'student_id'  => $lesson->student_id,
                     'teacher_id'  => $lesson->teacher_id,
-                    'group_id'    => $lesson->group_id, // має бути null для індивідуального
+                    'group_id'    => $lesson->group_id,
                     'start_date'  => $newDateTime,
                     'end_date'    => (clone $newDateTime)->addMinutes($durMin),
-                    'status'      => LessonStatus::Planned->value,
+                    'status'      => \App\Enums\LessonStatus::Planned->value,      // 👈 скаляр
                     'initiator'   => null,
-                    'lesson_type' => $lesson->lesson_type ?? LessonType::Individual->value,
+                    'lesson_type' => $lesson->lesson_type?->value                  // 👈 не об’єкт
+                        ?? \App\Enums\LessonType::Individual->value,
                     'duration'    => $lesson->duration ?? $durMin,
                     'notes'       => $lesson->notes,
                 ]);
+
 
                 // 🗑️ Soft delete старого (якщо ввімкнено SoftDeletes)
                 $lesson->delete();

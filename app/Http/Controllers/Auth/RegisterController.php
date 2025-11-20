@@ -55,6 +55,26 @@ class RegisterController extends Controller
         ]);
     }
 
+    public function register(\Illuminate\Http\Request $request)
+    {
+        $this->validator($request->all())->validate();
+
+        $user = $this->create($request->all());
+
+        // Шлемо лист підтвердження
+        event(new \Illuminate\Auth\Events\Registered($user));
+        if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail()) {
+            $user->sendEmailVerificationNotification();
+        }
+
+        // ВАЖЛИВО: одразу логінимо, щоб сторінка /email/verify відкрилась
+        $this->guard()->login($user);
+
+        return redirect()
+            ->route('verification.notice')
+            ->with('status', 'verification-link-sent');
+    }
+
     /**
      * Create a new user instance after a valid registration.
      *

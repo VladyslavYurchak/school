@@ -3,27 +3,16 @@
 namespace App\Http\Controllers\Admin\SubscriptionTemplate;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SubscriptionTemplate\StoreRequest;
 use App\Models\SubscriptionTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class StoreController extends Controller
 {
-    public function __invoke(Request $request): RedirectResponse
+    public function __invoke(StoreRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'type' => 'required|in:individual,group,pair',
-            'lessons_per_week' => 'required|integer|min:1|max:7',
-            'price' => 'required|numeric|min:0',
-        ]);
-
-        SubscriptionTemplate::create($validated);
-
-        $individualTemplates = SubscriptionTemplate::where('type', 'individual')->orderBy('title')->get();
-        $groupTemplates = SubscriptionTemplate::where('type', 'group')->orderBy('title')->get();
-        $pairTemplates = SubscriptionTemplate::where('type', 'pair')->orderBy('title')->get();
-
+        SubscriptionTemplate::create($request->validated());
 
         return redirect()
             ->route('admin.subscription-templates.index')

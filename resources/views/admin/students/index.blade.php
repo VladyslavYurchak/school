@@ -261,5 +261,75 @@
     <script>
         window.activeStudentIds = @json($activeStudents->pluck('id'));
     </script>
+
+    <script>
+        // Базова URL для індексу поразових оплат (щоб працювало і в зовнішньому .js)
+        window.App = window.App || {};
+        window.App.routes = {
+            studentsBase: @json(url('/admin/students'))
+        };
+
+        function getCsrfToken() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        }
+
+        // Завантаження поразових оплат за місяць (AJAX у модалку)
+        function loadSinglePayments(studentId) {
+            const monthInput = document.getElementById(`singleMonth${studentId}`);
+            const month = monthInput ? monthInput.value : '';
+            const url = `${window.App.routes.studentsBase}/${studentId}/single-payments` + (month ? `?month=${encodeURIComponent(month)}` : '');
+
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
+                .then(r => r.text())
+                .then(html => {
+                    const box = document.getElementById(`singlePaymentsList${studentId}`);
+                    if (box) box.innerHTML = html;
+                })
+                .catch(() => {
+                    const box = document.getElementById(`singlePaymentsList${studentId}`);
+                    if (box) box.innerHTML = '<div class="text-danger small">Не вдалося завантажити оплати.</div>';
+                });
+        }
+
+        // Сабміт поразової оплати
+        function submitSinglePayment(studentId) {
+            const form = document.getElementById(`paymentForm${studentId}`);
+            const typeSingle = document.getElementById(`type-single-${studentId}`);
+            if (typeSingle) typeSingle.checked = true;
+            form?.submit();
+        }
+
+        // Автозавантаження списку поразових оплат при відкритті модалки, якщо активна вкладка "поразова"
+        document.addEventListener('shown.bs.modal', function (e) {
+            const modal = e.target;
+            if (!modal.id.startsWith('paymentModal')) return;
+            const studentId = modal.id.replace('paymentModal', '');
+            const singleRadio = document.getElementById(`type-single-${studentId}`);
+            if (singleRadio?.checked) loadSinglePayments(studentId);
+        });
+
+        // П.6 — Перемикач типу оплати: показуємо/ховаємо блоки і підвантажуємо список
+        document.addEventListener('change', function(e) {
+            if (!e.target.matches('.form-check-input[type="radio"][name="type"]')) return;
+
+            // з id формату "type-single-{id}" або "type-subscription-{id}" дістаємо studentId
+            const parts = e.target.id.split('-');
+            const studentId = parts[parts.length - 1];
+
+            const subBlock   = document.getElementById(`subscriptionPayment${studentId}`);
+            const singleBlock= document.getElementById(`singlePayment${studentId}`);
+
+            if (e.target.value === 'subscription') {
+                if (subBlock) subBlock.style.display = '';
+                if (singleBlock) singleBlock.style.display = 'none';
+            } else {
+                if (subBlock) subBlock.style.display = 'none';
+                if (singleBlock) singleBlock.style.display = '';
+                loadSinglePayments(studentId);
+            }
+        });
+    </script>
+
     <script src="{{ asset('admin/students/payment.js') }}"></script>
 @endsection

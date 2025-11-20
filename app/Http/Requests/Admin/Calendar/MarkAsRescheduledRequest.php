@@ -56,9 +56,10 @@ class MarkAsRescheduledRequest extends FormRequest
             // цей реквест/ендпойнт — тільки для індивідуальних/пробних
             if ($lesson->group_id !== null ||
                 ($lesson->lesson_type !== null &&
-                    in_array((string)$lesson->lesson_type, [LessonType::Group->value, LessonType::Pair->value], true))) {
+                    in_array($lesson->lesson_type, [LessonType::Group, LessonType::Pair], true))) {
                 $v->errors()->add('lesson_id', 'Цей ендпойнт лише для індивідуальних/пробних занять.');
             }
+
 
             // новий інтервал = newStart ... newEnd (newEnd рахуємо з тривалості поточного уроку)
             try {

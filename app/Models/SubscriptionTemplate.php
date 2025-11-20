@@ -12,10 +12,10 @@ class SubscriptionTemplate extends Model
 
     protected $fillable = [
         'title',
-        'type', // 'individual' або 'group'
+        'type', // 'individual' або 'group' 'pair' 'trial'
         'lessons_per_week',
         'price',
-        'description' => 'nullable|string'
+        // якщо description немає в БД — не пишемо її тут
     ];
 
     // Студенти, які мають цей шаблон

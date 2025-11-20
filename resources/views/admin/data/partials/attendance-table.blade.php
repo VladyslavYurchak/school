@@ -1,22 +1,4 @@
 <div>
-    <form id="attendanceFilterForm" method="GET" class="mb-3 d-flex align-items-center gap-2">
-        <label class="form-label mb-0" for="month">Місяць:</label>
-        <select name="month" id="month" class="form-select">
-            @for ($m = 1; $m <= 12; $m++)
-                <option value="{{ $m }}" {{ request('month', now()->month) == $m ? 'selected' : '' }}>
-                    {{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}
-                </option>
-            @endfor
-        </select>
-
-        <label class="form-label mb-0" for="year">Рік:</label>
-        <select name="year" id="year" class="form-select">
-            @for ($y = now()->year; $y >= 2022; $y--)
-                <option value="{{ $y }}" {{ request('year', now()->year) == $y ? 'selected' : '' }}>{{ $y }}</option>
-            @endfor
-        </select>
-    </form>
-
     <div id="attendanceTableWrapper">
         @if($students->count() > 0)
             <div class="table-responsive shadow rounded">

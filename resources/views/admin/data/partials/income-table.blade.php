@@ -1,11 +1,3 @@
-@php
-    $S = [
-        'rev_ind'=>0,'rev_trial'=>0,'rev_grp'=>0,'rev_pair'=>0,
-        'cost_ind'=>0,'cost_trial'=>0,'cost_grp'=>0,'cost_pair'=>0,
-        'inc_ind'=>0,'inc_trial'=>0,'inc_grp'=>0,'inc_pair'=>0,
-        'profit_total'=>0,
-    ];
-@endphp
 <div class="table-responsive">
     <table class="table table-bordered align-middle">
         <thead>
@@ -18,93 +10,59 @@
             <th rowspan="2">Всього прибуток</th>
         </tr>
         <tr>
-            <th>Надходження</th>
-            <th>ЗП</th>
-            <th>Прибуток</th>
-            <th></th>
-            <th>ЗП</th>
-            <th>Прибуток</th>
-            <th>Надходження</th>
-            <th>ЗП</th>
-            <th>Прибуток</th>
-            <th>Надходження</th>
-            <th>ЗП</th>
-            <th>Прибуток</th>
+            <th>Надходження</th><th>ЗП</th><th>Прибуток</th>
+            <th>Надходження</th><th>ЗП</th><th>Прибуток</th>
+            <th>Надходження</th><th>ЗП</th><th>Прибуток</th>
+            <th>Надходження</th><th>ЗП</th><th>Прибуток</th>
         </tr>
         </thead>
+
         <tbody>
-        @foreach ($reports as $row)
-            @php
-                $t = $row['teacher'];
-
-                // для підсумків
-                $S['rev_ind']   += $row['rev_individual'];
-                $S['cost_ind']  += $row['cost_individual'];
-                $S['inc_ind']   += $row['inc_individual'];
-
-                $S['rev_trial'] += $row['rev_trial'];
-                $S['cost_trial']+= $row['cost_trial'];
-                $S['inc_trial'] += $row['inc_trial'];
-
-                $S['rev_grp']   += $row['rev_group'];
-                $S['cost_grp']  += $row['cost_group'];
-                $S['inc_grp']   += $row['inc_group'];
-
-                $S['rev_pair']  += $row['rev_pair'];
-                $S['cost_pair'] += $row['cost_pair'];
-                $S['inc_pair']  += $row['inc_pair'];
-
-                $S['profit_total'] += $row['profit_total'];
-            @endphp
+        @forelse ($reports as $row)
             <tr>
-                <td>{{ $t->full_name }}</td>
+                <td>{{ $row['teacher']->full_name }}</td>
+                <td>@money($row['rev_individual'])</td>
+                <td>@money($row['cost_individual'])</td>
+                <td>@money($row['inc_individual'])</td>
 
-                <td>{{ number_format($row['rev_individual'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($row['cost_individual'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($row['inc_individual'], 2, ',', ' ') }}</td>
+                <td>@money($row['rev_trial'])</td>
+                <td>@money($row['cost_trial'])</td>
+                <td>@money($row['inc_trial'])</td>
 
-                <td>{{ number_format($row['rev_trial'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($row['cost_trial'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($row['inc_trial'], 2, ',', ' ') }}</td>
+                <td>@money($row['rev_group'])</td>
+                <td>@money($row['cost_group'])</td>
+                <td>@money($row['inc_group'])</td>
 
-                <td>{{ number_format($row['rev_group'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($row['cost_group'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($row['inc_group'], 2, ',', ' ') }}</td>
+                <td>@money($row['rev_pair'])</td>
+                <td>@money($row['cost_pair'])</td>
+                <td>@money($row['inc_pair'])</td>
 
-                <td>{{ number_format($row['rev_pair'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($row['cost_pair'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($row['inc_pair'], 2, ',', ' ') }}</td>
-
-                <td class="fw-semibold">{{ number_format($row['profit_total'], 2, ',', ' ') }}</td>
+                <td class="fw-semibold">@money($row['profit_total'])</td>
             </tr>
-        @endforeach
+        @empty
+            <tr><td colspan="14" class="text-center text-muted">Дані відсутні</td></tr>
+        @endforelse
         </tbody>
 
-        @if(count($reports))
-            <tfoot>
-            <tr class="fw-semibold">
+        @if(!empty($reportTotals))
+            <tfoot class="fw-semibold">
+            <tr>
                 <td>Разом</td>
-
-                <td>{{ number_format($S['rev_ind'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($S['cost_ind'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($S['inc_ind'], 2, ',', ' ') }}</td>
-
-                <td>{{ number_format($S['rev_trial'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($S['cost_trial'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($S['inc_trial'], 2, ',', ' ') }}</td>
-
-                <td>{{ number_format($S['rev_grp'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($S['cost_grp'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($S['inc_grp'], 2, ',', ' ') }}</td>
-
-                <td>{{ number_format($S['rev_pair'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($S['cost_pair'], 2, ',', ' ') }}</td>
-                <td>{{ number_format($S['inc_pair'], 2, ',', ' ') }}</td>
-
-                <td>{{ number_format($S['profit_total'], 2, ',', ' ') }}</td>
+                <td>@money($reportTotals['rev_ind'])</td>
+                <td>@money($reportTotals['cost_ind'])</td>
+                <td>@money($reportTotals['inc_ind'])</td>
+                <td>@money($reportTotals['rev_trial'])</td>
+                <td>@money($reportTotals['cost_trial'])</td>
+                <td>@money($reportTotals['inc_trial'])</td>
+                <td>@money($reportTotals['rev_grp'])</td>
+                <td>@money($reportTotals['cost_grp'])</td>
+                <td>@money($reportTotals['inc_grp'])</td>
+                <td>@money($reportTotals['rev_pair'])</td>
+                <td>@money($reportTotals['cost_pair'])</td>
+                <td>@money($reportTotals['inc_pair'])</td>
+                <td>@money($reportTotals['profit_total'])</td>
             </tr>
             </tfoot>
         @endif
     </table>
 </div>
-

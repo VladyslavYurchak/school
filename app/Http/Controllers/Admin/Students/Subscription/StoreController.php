@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Students\Subscription;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Students\Subscription\StoreRequest;
 use App\Models\Student;
 use App\Models\StudentSubscription;
 use App\Models\SubscriptionTemplate;
@@ -10,15 +11,10 @@ use Illuminate\Http\Request;
 
 class StoreController extends Controller
 {
-    public function __invoke(Request $request, Student $student)
+    public function __invoke(StoreRequest $request, Student $student)
     {
-        // Валідація полів
-        $data = $request->validate([
-            'type' => 'required|in:subscription,single',
-            'subscription_template_id' => 'nullable|exists:subscription_templates,id',
-            'month' => 'nullable|date_format:Y-m',
-            'price' => 'nullable|numeric|min:0',
-        ]);
+
+        $data = $request->validated();
 
         if ($data['type'] === 'subscription') {
             // Перевірка, що вибрано абонемент

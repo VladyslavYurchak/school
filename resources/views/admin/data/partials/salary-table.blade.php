@@ -1,8 +1,3 @@
-@php
-    $sumCntInd=0; $sumCntTrial=0; $sumCntGrp=0; $sumCntPair=0;
-    $sumCostTrial=0.0; $sumSalary=0.0;
-@endphp
-
 <table class="table table-striped table-bordered align-middle">
     <thead>
     <tr>
@@ -16,18 +11,8 @@
     </thead>
     <tbody>
     @forelse ($reports as $row)
-        @php
-            $t = $row['teacher'];
-
-            // для підсумків
-            $sumCntInd   += $row['cnt_individual'];
-            $sumCntTrial += $row['cnt_trial'];
-            $sumCntGrp   += $row['cnt_group'];
-            $sumCntPair  += $row['cnt_pair'];
-            $sumSalary   += $row['salary_total'];
-        @endphp
         <tr>
-            <td>{{ $t->full_name }}</td>
+            <td>{{ $row['teacher']->full_name }}</td>
             <td>{{ $row['cnt_individual'] }}</td>
             <td>{{ $row['cnt_trial'] }}</td>
             <td>{{ $row['cnt_group'] }}</td>
@@ -35,20 +20,20 @@
             <td>{{ number_format($row['salary_total'], 2, ',', ' ') }}</td>
         </tr>
     @empty
-        <tr><td colspan="7">Дані відсутні.</td></tr>
+        <tr><td colspan="6">Дані відсутні.</td></tr>
     @endforelse
     </tbody>
 
-    @if(count($reports))
+    @isset($reportTotals)
         <tfoot>
         <tr class="fw-semibold">
             <td>Разом</td>
-            <td>{{ $sumCntInd }}</td>
-            <td>{{ $sumCntTrial }}</td>
-            <td>{{ $sumCntGrp }}</td>
-            <td>{{ $sumCntPair }}</td>
-            <td>{{ number_format($sumSalary, 2, ',', ' ') }}</td>
+            <td>{{ $reportTotals['cnt_individual'] }}</td>
+            <td>{{ $reportTotals['cnt_trial'] }}</td>
+            <td>{{ $reportTotals['cnt_group'] }}</td>
+            <td>{{ $reportTotals['cnt_pair'] }}</td>
+            <td>{{ number_format($reportTotals['salary_total'], 2, ',', ' ') }}</td>
         </tr>
         </tfoot>
-    @endif
+    @endisset
 </table>

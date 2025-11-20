@@ -59,8 +59,8 @@ class IndexController extends Controller
                 $trialCostsByStudent[$sid]  = (float) $logs->sum('teacher_payout_amount');
             });
 
-        // ✅ отримуємо готове зведення з сервісу
-        $reports = $svc->build($selectedYear, $selectedMonth);
+        // ✅ отримуємо готове зведення з сервіс
+        $report = $svc->build($selectedYear, $selectedMonth);
 
         return view('admin.data.index', [
             'students'              => $students,
@@ -69,10 +69,11 @@ class IndexController extends Controller
             'monthLessonsCount'     => $monthLessonsCount,
             'trialCountsByStudent'  => $trialCountsByStudent,
             'trialCostsByStudent'   => $trialCostsByStudent,
-            'teachers'              => collect(array_column($reports, 'teacher')), // можна передати окремо
+            'teachers'      => collect(array_column($report['rows'], 'teacher')),
             'selectedMonth'         => $selectedMonth,
             'selectedYear'          => $selectedYear,
-            'reports'               => $reports,
+            'reports'       => $report['rows'],
+            'reportTotals'  => $report['totals'],
         ]);
     }
 }

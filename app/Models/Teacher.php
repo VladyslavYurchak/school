@@ -199,16 +199,39 @@ class Teacher extends Model
      */
     public function getSubscriptionSumByLessonTypes(array $types, int $year, int $month): float
     {
-        $studentIds = $this->getStudentIdsByLessonTypesAndMonth($types, $year, $month);
-
-        return (float) \App\Models\StudentSubscription::whereIn('student_id', $studentIds)
+        $query = StudentSubscription::query()
+            // учні саме цього викладача
+            ->whereHas('student', function ($q) {
+                $q->where('teacher_id', $this->id);
+            })
+            // підписки, що стосуються цього місяця
             ->where(function ($q) use ($year, $month) {
                 $q->whereYear('start_date', $year)->whereMonth('start_date', $month)
                     ->orWhereYear('end_date', $year)->whereMonth('end_date', $month);
             })
-            ->whereIn('type', ['subscription', 'single'])
-            ->sum('price');
+            // тип оплати: абонемент або поразова
+            ->whereIn('type', ['subscription', 'single']);
+
+        if (!empty($types)) {
+            $query->where(function ($q) use ($types) {
+                // 1) усе, що має шаблон потрібного типу (individual/group/pair)
+                $q->whereHas('subscriptionTemplate', function ($subQ) use ($types) {
+                    $subQ->whereIn('type', $types); // type з subscription_templates
+                });
+
+                // 2) plus: поразові без шаблону рахуємо як individual
+                if (in_array('individual', $types, true)) {
+                    $q->orWhere(function ($q2) {
+                        $q2->whereNull('subscription_template_id')
+                            ->where('type', 'single'); // single-платежі без шаблону
+                    });
+                }
+            });
+        }
+
+        return (float) $query->sum('price');
     }
+
 
     /**
      * Детальний місячний “прибуток” по типах:
