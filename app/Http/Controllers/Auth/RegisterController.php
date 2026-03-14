@@ -63,10 +63,7 @@ class RegisterController extends Controller
 
         // Шлемо лист підтвердження
         event(new \Illuminate\Auth\Events\Registered($user));
-        if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail()) {
-            $user->sendEmailVerificationNotification();
-        }
-
+      
         // ВАЖЛИВО: одразу логінимо, щоб сторінка /email/verify відкрилась
         $this->guard()->login($user);
 

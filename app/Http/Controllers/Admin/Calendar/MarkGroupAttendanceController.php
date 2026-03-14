@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LessonLog;
 use App\Models\Group;
 use App\Models\PlannedLesson;
+use App\Services\LessonActionLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,16 @@ class MarkGroupAttendanceController extends Controller
                     $lesson->status = \App\Enums\LessonStatus::Completed->value;
                     $lesson->save();
                 }
+
+                LessonActionLogger::log(
+                    lessonId: $lesson->id,
+                    action: 'completed',
+                    lessonDatetime: $lesson->start_date,
+                    newLessonDatetime: null,
+                    meta: [
+                        'group_id' => $group->id,
+                    ]
+                );
 
                 $present = array_map('intval', $request->present_students ?? []);
                 $presentSet = array_flip($present);

@@ -8,6 +8,7 @@ use App\Actions\Lessons\CancelGroupLessonAction;
 use App\Enums\LessonStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Calendar\MarkGroupCancelledRequest;
+use App\Services\LessonActionLogger;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +23,18 @@ final class MarkGroupCancelledController extends Controller
         $result = $action->handle((int)$data['lesson_id'], (int)$data['group_id']);
 
         $lesson = $result['lesson'];
+
+        LessonActionLogger::log(
+            lessonId: $lesson->id,
+            action: 'cancelled',
+            lessonDatetime: $lesson->start_date?->toDateTimeString(), // дата/час уроку на момент скасування
+            newLessonDatetime: null,
+            meta: [
+                'group_id'          => (int)$data['group_id'],
+                'already_cancelled' => (bool)$result['already_cancelled'],
+                'source'            => 'MarkGroupCancelledController',
+            ]
+        );
 
         return response()->json([
             'success' => true,

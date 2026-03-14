@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Calendar\MarkAsRescheduledRequest;
 use App\Models\LessonLog;
 use App\Models\PlannedLesson;
+use App\Services\LessonActionLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -65,6 +66,8 @@ class MarkAsRescheduledController extends Controller
                     }
                 }
 
+                $oldStart = $lesson->start_date;
+
                 // 📌 Позначаємо старе заняття як перенесене
                 $lesson->update([
                     'status'    => LessonStatus::Rescheduled->value,
@@ -98,6 +101,15 @@ class MarkAsRescheduledController extends Controller
                     'notes'       => $lesson->notes,
                 ]);
 
+                LessonActionLogger::log(
+                    lessonId: $lesson->id,
+                    action: 'rescheduled',
+                    lessonDatetime: $oldStart,
+                    newLessonDatetime: $newDateTime,
+                    meta: [
+                        'initiator' => $initiator, // student|teacher|admin
+                    ]
+                );
 
                 // 🗑️ Soft delete старого (якщо ввімкнено SoftDeletes)
                 $lesson->delete();

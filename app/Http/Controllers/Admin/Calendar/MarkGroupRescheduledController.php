@@ -16,7 +16,6 @@ final class MarkGroupRescheduledController extends Controller
         try {
             $result = $service->handle($request->validated());
 
-            // $result має таку саму структуру як у твоєму старому контролері
             return response()->json(
                 [
                     'success' => $result['success'],

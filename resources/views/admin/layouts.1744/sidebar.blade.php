@@ -41,6 +41,12 @@
             @if (auth()->user()->role === 'admin')
                 <li class="nav-header">Управління заняттями</li>
                 <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon bi bi-calendar-check"></i>
+                        <p>Розклад занять</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{route('admin.course.index')}}" class="nav-link">
                         <i class="nav-icon bi bi-journal-bookmark"></i>
                         <p>Курси</p>
@@ -53,23 +59,11 @@
                     </a>
                 </li>
 
-                <li class="nav-header">Інформація про уроки</li>
-                    <li class="nav-item">
-                        <a href="{{route('admin.calendar_teachers.teachers.index')}}" class="nav-link">
-                            <i class="nav-icon bi bi-calendar-check"></i>
-                            <p>Розклад занять</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{route('admin.history_actions.index')}}" class="nav-link">
-                            <i class="nav-icon bi bi-calendar-check"></i>
-                            <p>Історія дій</p>
-                        </a>
-                    </li>
+                <li class="nav-header">Адміністрування школи</li>
                 <li class="nav-item">
-                    <a href="{{route('admin.information.index')}}" class="nav-link">
+                    <a href="#" class="nav-link">
                         <i class="nav-icon bi bi-person-lines-fill"></i>
-                        <p>Проведені уроки</p>
+                        <p>Графік</p>
                     </a>
                 </li>
                 <li class="nav-item">

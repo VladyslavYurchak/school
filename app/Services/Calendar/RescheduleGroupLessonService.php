@@ -7,6 +7,7 @@ use App\Enums\LessonType;
 use App\Models\Group;
 use App\Models\LessonLog;
 use App\Models\PlannedLesson;
+use App\Services\LessonActionLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,7 +38,6 @@ final class RescheduleGroupLessonService
     public function handle(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            // 1) Точно беремо урок (з блокуванням) і перевіряємо групу
             /** @var PlannedLesson|null $lesson */
             $lesson = PlannedLesson::query()
                 ->whereKey((int)$data['lesson_id'])
@@ -58,29 +58,29 @@ final class RescheduleGroupLessonService
                 return $this->fail(Response::HTTP_UNPROCESSABLE_ENTITY, 'Урок не належить зазначеній групі.');
             }
 
-            // 2) Нова дата/час (immutable, без секунд)
+            // 2) Нова дата/час
             $newStart = CarbonImmutable::createFromFormat('Y-m-d H:i', $data['new_date'].' '.$data['new_time'])
                 ->seconds(0);
 
-            // 3) Заборона переносити в той самий час
+            // 3) Стара дата/час
             $oldStart = CarbonImmutable::parse($lesson->start_date)->seconds(0);
 
             if ($oldStart->equalTo($newStart)) {
                 return $this->fail(Response::HTTP_UNPROCESSABLE_ENTITY, 'Нова дата і час співпадають з поточними.');
             }
 
-            // 4) Тривалість (мінімум 15 хв)
+            // 4) Тривалість
             $duration = (int)($lesson->duration
                 ?? CarbonImmutable::parse($lesson->start_date)->diffInMinutes($lesson->end_date));
             $duration = max(15, $duration);
             $newEnd   = $newStart->addMinutes($duration);
 
-            // 5) Перевірка перекриття для цієї групи (атомарно, у тій самій транзакції)
+            // 5) Перевірка конфліктів
             $hasConflict = PlannedLesson::query()
                 ->lockForUpdate()
                 ->where('group_id', $group->id)
                 ->where('id', '!=', $lesson->id)
-                ->whereNull('deleted_at') // ігноримо soft-deleted
+                ->whereNull('deleted_at')
                 ->whereNotIn('status', [
                     LessonStatus::Rescheduled->value,
                     defined('App\\Enums\\LessonStatus::Cancelled') ? LessonStatus::Cancelled->value : -9999,
@@ -123,6 +123,20 @@ final class RescheduleGroupLessonService
             $deletedLogs = LessonLog::query()
                 ->where('lesson_id', $lesson->id)
                 ->delete();
+
+            // 9) 🔥 ЛОГУЄМО перенесення (ТУТ Є ВСЕ ЩО ТРЕБА)
+            LessonActionLogger::log(
+                lessonId: $lesson->id,                                   // старий (перенесений) урок
+                action: 'rescheduled',
+                lessonDatetime: $oldStart->toDateTimeString(),           // з якої дати
+                newLessonDatetime: $newStart->toDateTimeString(),        // на яку дату
+                meta: [
+                    'group_id'      => $group->id,
+                    'old_lesson_id' => (int)$lesson->id,
+                    'new_lesson_id' => (int)$newLesson->id,
+                    'deleted_logs'  => (int)$deletedLogs,
+                ]
+            );
 
             return [
                 'status'  => Response::HTTP_OK,

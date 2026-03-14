@@ -7,6 +7,7 @@ use App\Enums\LessonLogStatus;
 use App\Http\Controllers\Controller;
 use App\Models\PlannedLesson;
 use App\Models\LessonLog;
+use App\Services\LessonActionLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -34,6 +35,7 @@ class MarkAsCompletedController extends Controller
             }
 
             DB::transaction(function () use ($lesson) {
+                $lessonStart = $lesson->start_date;
                 $lesson->status = LessonStatus::Completed->value;
                 $lesson->save();
 
@@ -58,6 +60,8 @@ class MarkAsCompletedController extends Controller
                 // Фактична виплата за урок (індивідуальний/пробний — вся сума)
                 $amount = round($baseRate, 2);
 
+
+
                 LessonLog::updateOrCreate(
                     [
                         'lesson_id' => $lesson->id, // 1:1 з планом
@@ -80,6 +84,17 @@ class MarkAsCompletedController extends Controller
                         'charged_at'                    => now(),
                     ]
                 );
+
+                LessonActionLogger::log(
+                    lessonId: $lesson->id,
+                    action: 'completed',
+                    lessonDatetime: $lessonStart,
+                    newLessonDatetime: null,
+                    meta: [
+                        'source' => 'MarkAsCompletedController',
+                    ]
+                );
+
             });
 
             return response()->json([

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AboutController;
+use App\Http\Controllers\Admin\History\HistoryActionsController;
 use Illuminate\Support\Facades\Auth;
 
 use App\Http\Controllers\Admin\Course\Lesson\Test\CreateController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Admin\Post\ShowController as PostShowController;
 use App\Http\Controllers\Admin\Post\StoreController as PostStoreController;
 use App\Http\Controllers\Admin\Post\UpdateController as PostUpdateController;
 use App\Http\Controllers\Admin\StoreController as AdminIndexController;
+
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\PaymentController;
@@ -37,7 +39,21 @@ Route::group(['namespace' => 'App\Http\Controllers\Post'], function () {
 });
 
 // Авторизація
-Auth::routes();
+Auth::routes(['verify' => true]);
+// routes/web.php
+
+Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
+
+    Route::get('/history-actions', HistoryActionsController::class)
+        ->name('admin.history_actions.index');
+
+    Route::get('/calendar-teachers', \App\Http\Controllers\Admin\Calendar_teacher\TeachersIndexController::class)
+        ->name('admin.calendar_teachers.teachers.index');
+
+    Route::get('/calendar-teachers/events', \App\Http\Controllers\Admin\Calendar_teacher\TeachersEventsController::class)
+        ->name('admin.calendar_teachers.teachers.events');
+});
+
 
 Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
     // Пост

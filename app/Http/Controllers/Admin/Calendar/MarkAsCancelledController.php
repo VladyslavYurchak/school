@@ -6,6 +6,7 @@ use App\Enums\LessonStatus;
 use App\Http\Controllers\Controller;
 use App\Models\PlannedLesson;
 use App\Models\LessonLog;
+use App\Services\LessonActionLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
@@ -53,6 +54,16 @@ class MarkAsCancelledController extends Controller
                 // ставимо статус Cancelled
                 $lesson->status = LessonStatus::Cancelled;
                 $lesson->save();
+
+                LessonActionLogger::log(
+                    lessonId: $lesson->id,
+                    action: 'cancelled',
+                    lessonDatetime: $lesson->start_date,
+                    newLessonDatetime: null,
+                    meta: [
+                        'reason' => 'manual_cancel',
+                    ]
+                );
 
                 // видаляємо усі журнали САМЕ цього уроку
                 $deletedLogs = LessonLog::query()

@@ -6,7 +6,8 @@ use App\Enums\LessonStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Calendar\StoreEventRequest;
 use App\Models\PlannedLesson;
-use App\Models\SubscriptionTemplate; // <-- додайте імпорт
+use App\Models\SubscriptionTemplate;
+use App\Services\LessonActionLogger;
 use Carbon\Carbon;
 
 class StoreEventController extends Controller
@@ -21,8 +22,8 @@ class StoreEventController extends Controller
         }
 
         $teacherId = $teacher->id;
-        $start = Carbon::parse($validated['start']);
-        $duration = (int) ($validated['duration'] ?? 60);
+        $start     = Carbon::parse($validated['start']);
+        $duration  = (int) ($validated['duration'] ?? 60);
 
         // ✅ Перевірка, що тип абонементу = типу уроку (якщо абонемент передано)
         $template = null;
@@ -40,9 +41,9 @@ class StoreEventController extends Controller
         // Повторювані заняття
         // ==========================
         if (!empty($validated['repeat_weekly'])) {
-            $endOfMonth = $start->copy()->endOfMonth();
+            $endOfMonth  = $start->copy()->endOfMonth();
             $currentDate = $start->copy();
-            $lessons = [];
+            $lessons     = [];
 
             while ($currentDate->lessThanOrEqualTo($endOfMonth)) {
                 $lesson = PlannedLesson::create([
@@ -60,10 +61,20 @@ class StoreEventController extends Controller
                     'notes'       => $validated['notes'] ?? null,
                     'status'      => LessonStatus::Planned->value,
                     'lesson_type' => $validated['lesson_type'],
-
-                    // опційно: якщо у вас у PlannedLesson є колонка subscription_template_id
                     // 'subscription_template_id' => $template?->id,
                 ]);
+
+                // 🔹 Лог: створено урок
+                LessonActionLogger::log(
+                    lessonId: $lesson->id,
+                    action: 'created',
+                    lessonDatetime: $lesson->start_date,
+                    newLessonDatetime: null,
+                    meta: [
+                        'repeat_weekly' => true,
+                        'source'        => 'StoreEventController',
+                    ]
+                );
 
                 $lessons[] = $lesson;
                 $currentDate->addWeek();
@@ -99,10 +110,20 @@ class StoreEventController extends Controller
             'notes'       => $validated['notes'] ?? null,
             'status'      => LessonStatus::Planned->value,
             'lesson_type' => $validated['lesson_type'],
-
-            // опційно, якщо є колонка
             // 'subscription_template_id' => $template?->id,
         ]);
+
+        // 🔹 Лог: створено одиничне заняття
+        LessonActionLogger::log(
+            lessonId: $plannedLesson->id,
+            action: 'created',
+            lessonDatetime: $plannedLesson->start_date,
+            newLessonDatetime: null,
+            meta: [
+                'repeat_weekly' => false,
+                'source'        => 'StoreEventController',
+            ]
+        );
 
         return response()->json([
             'success' => true,
