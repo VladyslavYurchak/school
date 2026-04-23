@@ -32,6 +32,7 @@ class UpdateRequest extends FormRequest
             'note' => 'nullable|string',
             'teacher_id' => 'nullable|exists:teachers,id',
             'subscription_id' => 'nullable|exists:subscription_templates,id',
+            'user_id' => ['nullable', 'exists:users,id']
         ];
     }
 }

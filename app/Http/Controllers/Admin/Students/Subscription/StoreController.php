@@ -7,74 +7,82 @@ use App\Http\Requests\Admin\Students\Subscription\StoreRequest;
 use App\Models\Student;
 use App\Models\StudentSubscription;
 use App\Models\SubscriptionTemplate;
-use Illuminate\Http\Request;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 
 class StoreController extends Controller
 {
-    public function __invoke(StoreRequest $request, Student $student)
+    public function __invoke(StoreRequest $request, Student $student): RedirectResponse
     {
-
         $data = $request->validated();
 
         if ($data['type'] === 'subscription') {
-            // Перевірка, що вибрано абонемент
             if (empty($data['subscription_template_id'])) {
-                return redirect()->back()->with('error', 'Оберіть абонемент для студента перед оплатою.');
+                return redirect()->back()->with('error', 'Оберіть абонемент для студента.');
             }
 
-            // Перевірка місяця
             if (empty($data['month'])) {
                 return redirect()->back()->with('error', 'Оберіть місяць для абонементу.');
             }
 
-            // Створюємо початок та кінець місяця без зсувів
-            $startDate = $data['month'] . '-01';
-            $endDate = date('Y-m-t', strtotime($startDate)); // останній день місяця
+            $startDate = Carbon::createFromFormat('Y-m', $data['month'])->startOfMonth();
+            $endDate = (clone $startDate)->endOfMonth();
 
-            // Перевірка, чи вже існує підписка на цей місяць
-            $exists = StudentSubscription::where('student_id', $student->id)
-                ->where('start_date', $startDate)
-                ->where('end_date', $endDate)
+            $exists = StudentSubscription::query()
+                ->where('student_id', $student->id)
+                ->where('type', 'subscription')
+                ->where('start_date', $startDate->toDateString())
+                ->where('end_date', $endDate->toDateString())
+                ->whereIn('status', ['pending', 'active'])
                 ->exists();
 
             if ($exists) {
-                return redirect()->back()->with('error', 'Підписка на цей місяць уже існує.');
+                return redirect()->back()->with('error', 'Абонемент на цей місяць уже існує.');
             }
 
             $template = SubscriptionTemplate::findOrFail($data['subscription_template_id']);
-            $price = $template->price;
 
             StudentSubscription::create([
                 'student_id' => $student->id,
-                'subscription_template_id' => $data['subscription_template_id'],
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'price' => $price,
+                'subscription_template_id' => $template->id,
+                'payment_id' => null,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+                'price' => $template->price,
                 'type' => 'subscription',
+                'status' => 'active',
+                'lessons_total' => $template->lessons_per_week * 4,
+                'lessons_used' => 0,
+                'paid_at' => now(),
             ]);
 
-            return redirect()->back()->with('success', 'Оплата абонементу успішно додана.');
+            return redirect()->back()->with('success', 'Абонемент успішно додано.');
         }
 
         if ($data['type'] === 'single') {
-            // Для поразової оплати обов'язкова ціна
             if (empty($data['price']) || $data['price'] <= 0) {
-                return redirect()->back()->with('error', 'Вкажіть ціну для поразової оплати.');
+                return redirect()->back()->with('error', 'Вкажіть коректну ціну для поразової оплати.');
             }
 
-            // Ставимо поточну дату у форматі Y-m-d
-            $now = date('Y-m-d');
+            $date = !empty($data['single_date'])
+                ? Carbon::parse($data['single_date'])->toDateString()
+                : now()->toDateString();
 
             StudentSubscription::create([
                 'student_id' => $student->id,
                 'subscription_template_id' => null,
-                'start_date' => $now,
-                'end_date' => $now,
+                'payment_id' => null,
+                'start_date' => $date,
+                'end_date' => $date,
                 'price' => $data['price'],
                 'type' => 'single',
+                'status' => 'active',
+                'lessons_total' => 1,
+                'lessons_used' => 0,
+                'paid_at' => now(),
             ]);
 
-            return redirect()->back()->with('success', 'Поразова оплата успішно додана.');
+            return redirect()->back()->with('success', 'Поразову оплату успішно додано.');
         }
 
         return redirect()->back()->with('error', 'Невідомий тип оплати.');

@@ -12,38 +12,55 @@ class StudentSubscription extends Model
     protected $fillable = [
         'student_id',
         'subscription_template_id',
+        'payment_id',
         'start_date',
         'end_date',
         'price',
-        'type', // додано поле типу оплати
+        'type',
+        'status',
+        'lessons_total',
+        'lessons_used',
+        'paid_at',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'paid_at' => 'datetime',
     ];
 
-    // Відношення до студента
     public function student()
     {
         return $this->belongsTo(Student::class);
     }
 
-    // Відношення до шаблону абонемента (nullable, бо для поразової оплати може бути null)
     public function subscriptionTemplate()
     {
-        return $this->belongsTo(SubscriptionTemplate::class);
+        return $this->belongsTo(SubscriptionTemplate::class, 'subscription_template_id');
     }
 
-    // Хелпер: чи є це поразова оплата?
-    public function isSinglePayment()
+    public function payment()
+    {
+        return $this->belongsTo(Payment::class);
+    }
+
+    public function isSinglePayment(): bool
     {
         return $this->type === 'single';
     }
 
-    // Хелпер: чи є це абонемент?
-    public function isSubscription()
+    public function isSubscription(): bool
     {
         return $this->type === 'subscription';
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    public function getLessonsRemainingAttribute(): int
+    {
+        return max(0, $this->lessons_total - $this->lessons_used);
     }
 }

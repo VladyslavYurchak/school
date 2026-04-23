@@ -1,221 +1,276 @@
 @extends('index.layouts.main')
 
 @section('content')
-    <div class="container mt-4">
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="p-4 shadow-lg border-0 rounded-3 bg-white h-100 d-flex align-items-center justify-content-center">
-                    <!-- Слайдер фото -->
-                    <div class="photo-gallery-wrapper">
-                        <h2 class="photo-gallery-title">НАШІ ФОТО</h2>
-                        <div class="photo-gallery">
-                            @foreach ($photos as $photo)
-                                <div>
-                                    <img src="{{ asset('storage/' . $photo->path) }}" alt="Фото" class="img-fluid">
-                                </div>
-                            @endforeach
+    <div class="home-page py-5">
+        <div class="container">
+
+            {{-- HERO --}}
+            <section class="hero-section mb-5">
+                <div class="hero-card">
+                    <div class="row align-items-center g-4">
+                        <div class="col-lg-7">
+                            <span class="hero-badge">Безкоштовне визначення Вашого рівня мови</span>
+                            <h1 class="hero-title">
+                                Вивчайте іноземні мови сучасно, впевнено та з підтримкою викладача
+                            </h1>
+                            <p class="hero-text">
+                                Пройдіть безкоштовне тестування, дізнайтесь свій рівень та оберіть формат навчання,
+                                який підходить саме вам.
+                            </p>
+
+                            <div class="hero-actions">
+                                <a href="#testing-block" class="btn btn-brand">
+                                    Пройти тестування
+                                </a>
+                                <a href="#events-block" class="btn btn-light-brand">
+                                    Переглянути події
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-5">
+                            <div class="hero-side-card">
+                                <h3 class="mini-title mb-3">Чому обирають нас</h3>
+                                <ul class="feature-list">
+                                    <li>Живі заняття з викладачем</li>
+                                    <li>Сучасні матеріали та практика</li>
+                                    <li>Групові та індивідуальні формати</li>
+                                    <li>Безкоштовне визначення рівня</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="col-md-6">
-                <div class="p-4 shadow-lg border-0 rounded-3 bg-white h-100">
-                    <h2 class="section-title">Заплановані події</h2>
-                    <ul class="list-unstyled">
-                        @foreach ($events as $event)
-                            <li class="event-item">
-                                <div class="event-date">{{ \Carbon\Carbon::parse($event->start_date)->toDateString() }}</div>
-                                <div class="event-title">{{ $event->title }}</div>
-                                @if ($event->image)
-                                    <div class="event-image" style="background-image: url('{{ asset('storage/' . $event->image) }}');"></div>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
+            <section class="self-study-section section-space">
+                <div class="self-study-card">
+                    <div class="row align-items-center g-4">
+                        <div class="col-lg-7">
+                            <span class="hero-badge">Онлайн-уроки</span>
+                            <h2 class="section-title mb-3">Навчайтесь онлайн без викладача</h2>
+                            <p class="section-text mb-4">
+                                Отримайте доступ до уроків різних рівнів і вдосконалюйте англійську
+                                самостійно, у зручний для вас час.
+                            </p>
+
+                            <div class="hero-actions">
+                                <a href="#" class="btn btn-brand">Переглянути уроки</a>
+                                <a href="#" class="btn btn-brand-outline">Дізнатись більше</a>
+                            </div>
+
+                            <p class="levels-text mt-3">
+                                Доступні безкоштовні уроки для всіх рівнів: <strong>A1–C2</strong>
+                            </p>
+
+                        </div>
+
+                        <div class="col-lg-5 text-center">
+                            <div class="self-study-image-wrap">
+                                <img src="{{ asset('images/self-study-bag.png') }}" alt="Онлайн-уроки" class="self-study-image">
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="col-md-6">
-                <div class="p-4 shadow-lg border-0 rounded-3 bg-white h-100 text-center">
-                    <h2 class="section-title">Перевір свої знання іноземної мови безкоштовно</h2>
-                    <div class="d-flex justify-content-center gap-3 mt-3">
-                        <button class="btn btn-tiffany">Англійська</button>
-                        <button class="btn btn-tiffany">Німецька</button>
-                        <button class="btn btn-tiffany">Французька</button>
-                    </div>
-                    <hr>
-                    <h5 class="fw-bold"><a href="#" class="text-decoration-none text-black">Записатись на безкоштовне групове заняття</a></h5>
-                    <hr>
-                    <h5 class="fw-bold"><a href="#" class="text-decoration-none text-black">Отримати безкоштовний доступ до уроків, відеоматеріалів та спільноти Корпорації МОВ</a></h5>
+            {{-- MAIN GRID --}}
+            <div class="row g-4">
+
+                {{-- PHOTOS --}}
+                <div class="col-lg-6">
+                    <section class="content-card h-100">
+                        <div class="section-head">
+                            <h2 class="section-title mb-0">Наші фото</h2>
+                        </div>
+
+                        <div class="photo-gallery-wrapper">
+                            <div class="photo-gallery">
+                                @foreach ($photos as $photo)
+                                    <div class="photo-slide">
+                                        <img src="{{ asset('storage/' . $photo->path) }}" alt="Фото" class="img-fluid gallery-image">
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </section>
                 </div>
-            </div>
 
-            <div class="col-md-6">
-                <div class="p-4 shadow-lg border-0 rounded-3 bg-white h-100">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold">Останні пости</h5>
-                    </div>
-                    <ul class="list-unstyled mt-3">
-                        @foreach ($posts as $post)
-                            <li>{{ $loop->iteration }}. <a href="{{ route('posts.show', $post->id) }}" class="post-link">{{ $post->title }}</a></li>
-                        @endforeach
-                    </ul>
-                    <div class="mt-3 d-flex justify-content-center">
-                        <nav>
-                            <ul class="pagination pagination-sm">
-                                @if ($posts->lastPage() > 1)
-                                    <li class="page-item {{ ($posts->currentPage() == 1) ? ' active' : '' }}">
-                                        <a class="page-link" href="{{ $posts->url(1) }}">1</a>
-                                    </li>
-                                    @if ($posts->currentPage() > 3)
-                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                {{-- EVENTS --}}
+                <div class="col-lg-6" id="events-block">
+                    <section class="content-card h-100">
+                        <div class="section-head">
+                            <h2 class="section-title mb-0">Заплановані події</h2>
+                        </div>
+
+                        <div class="events-list">
+                            @forelse ($events as $event)
+                                <article class="event-card">
+                                    <div class="event-date-box">
+                                        {{ \Carbon\Carbon::parse($event->start_date)->format('d.m.Y') }}
+                                    </div>
+
+                                    <div class="event-content">
+                                        <h3 class="event-title mb-2">{{ $event->title }}</h3>
+
+                                        @if ($event->image)
+                                            <div class="event-image-wrap mt-3">
+                                                <img
+                                                    src="{{ asset('storage/' . $event->image) }}"
+                                                    alt="{{ $event->title }}"
+                                                    class="event-image-preview"
+                                                >
+                                            </div>
+                                        @endif
+                                    </div>
+                                </article>
+                            @empty
+                                <p class="empty-text mb-0">Наразі запланованих подій немає.</p>
+                            @endforelse
+                        </div>
+                    </section>
+                </div>
+
+                {{-- TESTING --}}
+                <div class="col-lg-6" id="testing-block">
+                    <section class="content-card highlight-card h-100">
+                        <div class="section-head">
+                            <h2 class="section-title mb-0">Безкоштовне тестування</h2>
+                        </div>
+
+                        <p class="section-text">
+                            Перевірте свої знання іноземної мови та дізнайтесь свій орієнтовний рівень просто зараз.
+                        </p>
+
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-4">
+                                <form action="{{ route('testing.start', 'en') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn btn-brand w-100">Англійська</button>
+                                </form>
+                            </div>
+
+                            <div class="col-md-4">
+                                <form action="{{ route('testing.start', 'fr') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn btn-brand w-100">Французька</button>
+                                </form>
+                            </div>
+
+                            <div class="col-md-4">
+                                <form action="{{ route('testing.start', 'zh') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn btn-brand w-100">Китайська</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="info-links mt-4">
+                            <a href="#" class="info-link">
+                                Записатись на безкоштовне групове заняття
+                            </a>
+
+                            <a href="#" class="info-link">
+                                Отримати безкоштовний доступ до уроків, відеоматеріалів та спільноти
+                            </a>
+                        </div>
+                    </section>
+                </div>
+
+                {{-- POSTS --}}
+                <div class="col-lg-6">
+                    <section class="content-card h-100">
+                        <div class="section-head">
+                            <h2 class="section-title mb-0">Останні пости</h2>
+                        </div>
+
+                        <div class="posts-list">
+                            @forelse ($posts as $post)
+                                <a href="{{ route('posts.show', $post->id) }}" class="post-item">
+                                    <span class="post-number">{{ $loop->iteration }}</span>
+                                    <span class="post-title">{{ $post->title }}</span>
+                                </a>
+                            @empty
+                                <p class="empty-text mb-0">Постів поки немає.</p>
+                            @endforelse
+                        </div>
+
+                        <div class="mt-4 d-flex justify-content-center">
+                            <nav>
+                                <ul class="pagination pagination-sm custom-pagination mb-0">
+                                    @if ($posts->lastPage() > 1)
+                                        <li class="page-item {{ ($posts->currentPage() == 1) ? 'active' : '' }}">
+                                            <a class="page-link" href="{{ $posts->url(1) }}">1</a>
+                                        </li>
+
+                                        @if ($posts->currentPage() > 3)
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        @endif
+
+                                        @if ($posts->currentPage() > 2)
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ $posts->url($posts->currentPage() - 1) }}">
+                                                    {{ $posts->currentPage() - 1 }}
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if ($posts->currentPage() > 1 && $posts->currentPage() < $posts->lastPage())
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ $posts->currentPage() }}</span>
+                                            </li>
+                                        @endif
+
+                                        @if ($posts->currentPage() < $posts->lastPage() - 1)
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ $posts->url($posts->currentPage() + 1) }}">
+                                                    {{ $posts->currentPage() + 1 }}
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if ($posts->currentPage() < $posts->lastPage() - 2)
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        @endif
+
+                                        <li class="page-item {{ ($posts->currentPage() == $posts->lastPage()) ? 'active' : '' }}">
+                                            <a class="page-link" href="{{ $posts->url($posts->lastPage()) }}">
+                                                {{ $posts->lastPage() }}
+                                            </a>
+                                        </li>
                                     @endif
-                                    @if ($posts->currentPage() > 2)
-                                        <li class="page-item"><a class="page-link" href="{{ $posts->url($posts->currentPage() - 1) }}">{{ $posts->currentPage() - 1 }}</a></li>
-                                    @endif
-                                    @if ($posts->currentPage() > 1 && $posts->currentPage() < $posts->lastPage())
-                                        <li class="page-item active"><span class="page-link">{{ $posts->currentPage() }}</span></li>
-                                    @endif
-                                    @if ($posts->currentPage() < $posts->lastPage() - 1)
-                                        <li class="page-item"><a class="page-link" href="{{ $posts->url($posts->currentPage() + 1) }}">{{ $posts->currentPage() + 1 }}</a></li>
-                                    @endif
-                                    @if ($posts->currentPage() < $posts->lastPage() - 2)
-                                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                                    @endif
-                                    <li class="page-item {{ ($posts->currentPage() == $posts->lastPage()) ? ' active' : '' }}">
-                                        <a class="page-link" href="{{ $posts->url($posts->lastPage()) }}">{{ $posts->lastPage() }}</a>
-                                    </li>
-                                @endif
-                            </ul>
-                        </nav>
-                    </div>
+                                </ul>
+                            </nav>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
     </div>
 
-    <style>
-        .btn-tiffany {
-            background-color: #4ca8a1;
-            border: none;
-            color: white;
-            font-weight: bold;
-            padding: 10px 20px;
-            border-radius: 8px;
-            transition: background 0.3s ease, transform 0.2s ease;
-        }
 
-        .btn-tiffany:hover {
-            background-color: #3a8f8a;
-            transform: scale(1.05);
-        }
-
-        .post-link {
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-            transition: color 0.3s ease;
-        }
-
-        .post-link:hover {
-            color: #4ca8a1;
-        }
-
-        .pagination-sm .page-link {
-            font-size: 0.875rem;
-            padding: 5px 10px;
-        }
-
-        /* Стилі для слайдера */
-        .photo-gallery-wrapper {
-            text-align: center; /* Вирівнює заголовок і галерею */
-        }
-
-        .photo-gallery-title {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Контейнер для фото */
-        .photo-gallery {
-            width: 350px;
-            height: 350px;
-            margin: 0 auto;
-            overflow: hidden;
-            border-radius: 12px;
-            border: 4px solid #e0e0e0;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Фото всередині */
-        .photo-gallery img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 10px;
-        }
-
-        /* Стилі для подій */
-        .event-item {
-            position: relative;
-            padding: 15px;
-            border-bottom: 1px solid #e0e0e0;
-            margin-bottom: 10px;
-            transition: background 0.3s ease;
-        }
-
-        .event-item:hover {
-            background-color: #f7f7f7;
-        }
-
-        .event-date {
-            font-size: 14px;
-            color: #888;
-        }
-
-        .event-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-            margin-top: 5px;
-        }
-
-        .event-item:hover .event-image {
-            opacity: 1;
-        }
-
-        .event-image {
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: 0;
-            background-size: cover;
-            background-position: center;
-            border-radius: 8px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        /* Стиль для заголовків */
-        .section-title {
-            font-size: 24px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #333;
-            margin-bottom: 20px;
-            text-align: center;
-            letter-spacing: 1px;
-        }
-    </style>
-
-    <!-- Підключення Slick Slider CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css"/>
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css"/>
-@endsection
 
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('.photo-gallery').slick({
+                slidesToShow: 1,
+                slidesToScroll: 1,
+                arrows: true,
+                dots: true,
+                infinite: true,
+                autoplay: true,
+                autoplaySpeed: 3000,
+                adaptiveHeight: false
+            });
+        });
+    </script>
+@endsection

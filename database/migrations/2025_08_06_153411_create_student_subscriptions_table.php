@@ -6,35 +6,45 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('student_subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('student_id')->constrained()->onDelete('cascade');
 
-            // nullable, бо для поразової оплати шаблон не потрібен
-            $table->foreignId('subscription_template_id')->nullable()->constrained()->onDelete('cascade');
-            $table->unsignedInteger('price');
+            $table->foreignId('student_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-            // Тип оплати: 'subscription' або 'single'
-            $table->enum('type', ['subscription', 'single'])->default('subscription');
+            $table->foreignId('subscription_template_id')
+                ->nullable()
+                ->constrained('subscription_templates')
+                ->nullOnDelete();
 
-            // Для абонементу — місяць, для поразової — дата уроку
-            $table->date('start_date'); // для subscription: 1 число місяця, для single — дата уроку
-            $table->date('end_date');   // для subscription: останнє число місяця, для single — теж дата уроку
+            $table->foreignId('payment_id')
+                ->nullable()
+                ->constrained('payments')
+                ->nullOnDelete();
+
+            $table->decimal('price', 10, 2);
+
+            $table->enum('type', ['subscription', 'single'])
+                ->default('subscription');
+
+            $table->enum('status', ['pending', 'active', 'expired', 'cancelled'])
+                ->default('pending');
+
+            $table->date('start_date');
+            $table->date('end_date');
+
+            $table->unsignedInteger('lessons_total')->default(0);
+            $table->unsignedInteger('lessons_used')->default(0);
+
+            $table->timestamp('paid_at')->nullable();
 
             $table->timestamps();
         });
-
-
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('student_subscriptions');

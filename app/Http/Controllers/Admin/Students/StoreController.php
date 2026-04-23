@@ -12,6 +12,11 @@ class StoreController extends Controller
     public function __invoke(StoreRequest $request)
     {
         Student::create($request->validated());
+        if (!empty($data['user_id'])) {
+            \App\Models\User::where('id', $data['user_id'])->update([
+                'role' => 'student',
+            ]);
+        }
         return redirect()->route('admin.students.index')->with('success', 'Учня успішно додано');
     }
 }

@@ -15,6 +15,22 @@ class EditController extends Controller
         $teachers = Teacher::all();
         $subscriptionTemplates = SubscriptionTemplate::orderBy('title')->get();
 
-        return view('admin.students.edit', compact('student', 'teachers', 'subscriptionTemplates'));
+        $users = User::query()
+            ->where(function ($query) use ($student) {
+                $query->whereDoesntHave('student');
+
+                if ($student->user_id) {
+                    $query->orWhere('id', $student->user_id);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.students.edit', compact(
+            'student',
+            'teachers',
+            'subscriptionTemplates',
+            'users'
+        ));
     }
 }

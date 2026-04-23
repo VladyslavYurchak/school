@@ -1,0 +1,38 @@
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    background: linear-gradient(180deg, #f7fafc 0%, #eef4f8 100%);
+    font-family: "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--text-color);
+    overflow-x: hidden;
+}
+
+.app-wrapper {
+    min-height: 100vh;
+}
+
+.app-main {
+    padding-top: 1rem;
+    padding-bottom: calc(var(--footer-height) + 18px);
+    min-height: 100vh;
+    overflow-x: auto;
+}
+
+.app-content,
+.content-wrapper,
+.app-main-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.content-header,
+.page-header {
+    margin-bottom: 1rem;
+}
+
+body.layout-fixed .app-main {
+    margin-top: 0 !important;
+}

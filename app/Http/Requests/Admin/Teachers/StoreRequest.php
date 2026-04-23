@@ -23,12 +23,20 @@ class StoreRequest extends FormRequest
     {
         return [
             'user_id'      => 'required|exists:users,id',
+
             'lesson_price' => 'nullable|numeric|min:0',
-            'note'         => 'nullable|string',
-            'is_active'    => 'required|boolean',
             'group_lesson_price' => 'nullable|numeric|min:0',
             'trial_lesson_price' => 'nullable|numeric|min:0',
-            'pair_lesson_price' => 'nullable|numeric|min:0'
+            'pair_lesson_price' => 'nullable|numeric|min:0',
+
+            'note'         => 'nullable|string',
+            'is_active'    => 'required|boolean',
+
+            // 🔥 нове (для сайту)
+            'public_photo'      => 'nullable|image|max:4096',
+            'public_bio'        => 'nullable|string',
+            'is_public'         => 'nullable|boolean',
+            'public_sort_order' => 'nullable|integer|min:0',
         ];
     }
 }

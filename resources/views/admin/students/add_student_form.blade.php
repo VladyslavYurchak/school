@@ -21,8 +21,16 @@
         </div>
 
         <div class="col-md-6">
-            <label class="form-label">Email</label>
-            <input type="email" name="email" class="form-control" value="{{ old('email', $student->email ?? '') }}">
+            <label class="form-label">Зареєстрований акаунт</label>
+            <select name="user_id" class="form-select">
+                <option value="">— Без акаунта —</option>
+                @foreach ($users as $user)
+                    <option value="{{ $user->id }}"
+                        @selected(old('user_id', $student->user_id ?? '') == $user->id)>
+                        {{ $user->name }} — {{ $user->email }}
+                    </option>
+                @endforeach
+            </select>
         </div>
 
         <div class="col-md-6">

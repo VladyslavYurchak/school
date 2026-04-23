@@ -6,31 +6,65 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Photo;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class UploadController extends Controller
 {
     public function __invoke(Request $request)
     {
-        // Перевірка, чи є обрізане зображення
-        if ($request->has('cropped_image')) {
-            $croppedImage = $request->input('cropped_image');
-
-            // Перетворюємо дані зображення в файл
-            $image = base64_decode(preg_replace('/^data:image\/\w+;base64,/', '', $croppedImage));
-            $imageName = uniqid('photo_') . '.jpg';
-            $path = 'photos/' . $imageName;
-
-            // Зберігаємо зображення
-            Storage::disk('public')->put($path, $image);
-
-            // Зберігаємо дані в базі даних
-            $photo = new Photo();
-            $photo->path = $path;
-            $photo->save();
-
-            return redirect()->route('admin.photos.index')->with('success', 'Фото успішно завантажене і обрізане!');
+        if (!$request->filled('cropped_image')) {
+            return redirect()->route('admin.photos.index')
+                ->with('error', 'Немає зображення.');
         }
 
-        return redirect()->route('admin.photos.index')->with('error', 'Не вдалося завантажити фото.');
+        $base64 = $request->input('cropped_image');
+
+        // Витягуємо дані
+        if (!preg_match('/^data:image\/(\w+);base64,/', $base64)) {
+            return redirect()->route('admin.photos.index')
+                ->with('error', 'Невірний формат.');
+        }
+
+        $imageData = substr($base64, strpos($base64, ',') + 1);
+        $imageData = base64_decode($imageData);
+
+        if ($imageData === false) {
+            return redirect()->route('admin.photos.index')
+                ->with('error', 'Помилка декодування.');
+        }
+
+        // Ініціалізація Intervention
+        $manager = new ImageManager(new Driver());
+
+        $image = $manager->read($imageData);
+
+        /**
+         * 🔥 ВАЖЛИВО:
+         * тут контролюється якість і розмір
+         */
+
+        // Якщо велике — зменшуємо (щоб не було 5MB фото)
+        if ($image->width() > 2000) {
+            $image->scale(width: 2000);
+        }
+
+        // Конвертація в WebP з хорошою якістю
+        $encoded = $image->toWebp(90); // 90 = дуже гарний баланс
+
+        // Генеруємо ім’я
+        $imageName = uniqid('photo_') . '.webp';
+        $path = 'photos/' . $imageName;
+
+        // Зберігаємо
+        Storage::disk('public')->put($path, (string) $encoded);
+
+        // DB
+        $photo = new Photo();
+        $photo->path = $path;
+        $photo->save();
+
+        return redirect()->route('admin.photos.index')
+            ->with('success', 'Фото завантажене (WebP, оптимізоване)');
     }
 }

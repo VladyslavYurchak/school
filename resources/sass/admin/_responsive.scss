@@ -1,0 +1,84 @@
+@media (max-width: 991.98px) {
+    :root {
+        --header-height: 64px;
+        --footer-height: 74px;
+    }
+
+    .app-header .container-fluid {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .app-header .brand-title {
+        font-size: 1rem;
+    }
+
+    .app-header .brand-subtitle {
+        display: none;
+    }
+
+    .nav-sidebar .nav-link {
+        min-height: 44px;
+        padding: 0.72rem 0.85rem;
+    }
+
+    .app-main {
+        padding-top: calc(var(--header-height) + 14px);
+        padding-bottom: calc(var(--footer-height) + 14px);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .app-header .nav-link {
+        min-height: 40px;
+        padding: 0.45rem 0.65rem;
+        font-size: 0.92rem;
+    }
+
+    .app-header .container-fluid {
+        gap: 6px;
+    }
+
+    .app-content,
+    .content-wrapper,
+    .app-main-content {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .card {
+        border-radius: 16px;
+    }
+
+    .card-header,
+    .card-body {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .app-header .hide-mobile {
+        display: none !important;
+    }
+
+    .sidebar-brand {
+        min-height: 72px;
+        padding: 0.9rem 1rem;
+    }
+
+    .sidebar-brand .brand-note {
+        display: none;
+    }
+
+    .header-exit-btn {
+        width: 40px;
+        justify-content: center;
+        padding: 0;
+    }
+}

@@ -4,13 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Teacher;
 
 class Student extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'first_name',
         'last_name',
         'phone',
@@ -28,7 +28,7 @@ class Student extends Model
         'start_date',
         'total_lessons_attended',
         'note',
-        'subscription_id'
+        'subscription_id',
     ];
 
     protected $casts = [
@@ -37,45 +37,61 @@ class Student extends Model
         'is_active' => 'boolean',
     ];
 
-    // Відношення до викладача
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function teacher()
     {
         return $this->belongsTo(Teacher::class);
     }
 
-    public function group() {
+    public function group()
+    {
         return $this->belongsTo(Group::class);
     }
 
+    // legacy, якщо поки ще використовуєш students.subscription_id
     public function subscriptionTemplate()
     {
         return $this->belongsTo(SubscriptionTemplate::class, 'subscription_id');
     }
 
-    // Повне імʼя студента
-    public function getFullNameAttribute()
+    public function subscriptions()
     {
-        return "{$this->last_name} {$this->first_name}";
+        return $this->hasMany(StudentSubscription::class);
     }
 
-    public function getTotalLessonsAttendedAttribute()
+    public function activeSubscription()
     {
-        // Припускаю, що в таблиці lesson_logs є поле student_id, яке пов'язує запис з учнем
-        return \DB::table('lesson_logs')
-            ->where('student_id', $this->id)
-            ->count();
+        return $this->hasOne(StudentSubscription::class)
+            ->where('status', 'active')
+            ->latestOfMany();
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 
     public function lessonLogs()
     {
-        return $this->hasMany(\App\Models\LessonLog::class);
+        return $this->hasMany(LessonLog::class);
     }
 
-
-    public function getTotalEarningsAttribute()
+    public function getFullNameAttribute(): string
     {
-        return $this->subscriptions()->sum('price');
+        return trim("{$this->last_name} {$this->first_name}");
     }
 
-}
+    public function getLessonLogsCountAttribute(): int
+    {
+        return $this->lessonLogs()->count();
+    }
 
+    public function getTotalEarningsAttribute(): float
+    {
+        return (float) $this->subscriptions()->sum('price');
+    }
+}

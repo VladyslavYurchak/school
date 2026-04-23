@@ -5,8 +5,8 @@
         <div class="card shadow-lg border-0">
             <div class="card-header bg-white d-flex align-items-center">
                 <h3 class="fw-bold text-dark mb-0">{{ $lesson->title }}</h3>
-                <a href="{{ route('admin.course.index') }}" class="btn btn-outline-secondary btn-sm ms-auto">
-                    ← Назад
+                <a href="{{ route('admin.course.show', $lesson->course_id) }}" class="btn btn-outline-secondary btn-sm ms-auto">
+                    Назад
                 </a>
             </div>
 
@@ -15,72 +15,74 @@
                     @csrf
                     @method('PUT')
 
-                    {{-- Основний текст --}}
                     <div class="mb-4">
                         <label for="content" class="form-label fw-bold">Основний зміст</label>
                         <textarea name="content" id="content" rows="5" class="form-control shadow-sm">{{ old('content', $lesson->content) }}</textarea>
                     </div>
 
-                    {{-- Посилання на відео --}}
                     <div class="mb-4">
                         <label for="video_url" class="form-label fw-bold">Посилання на відео</label>
-                        <input type="url" name="video_url" id="video_url" class="form-control shadow-sm"
-                               value="{{ old('video_url', $lesson->video_url) }}">
+                        <input
+                            type="url"
+                            name="video_url"
+                            id="video_url"
+                            class="form-control shadow-sm"
+                            value="{{ old('video_url', $lesson->video_url) }}"
+                        >
                     </div>
 
-                    {{-- Завантаження файлів --}}
                     <div class="mb-4">
-                        <label for="media" class="form-label fw-bold">Матеріали</label>
-                        <input type="file" name="media[]" id="media" class="form-control shadow-sm" multiple>
+                        <label for="media_files" class="form-label fw-bold">Матеріали</label>
+                        <input type="file" name="media_files[]" id="media_files" class="form-control shadow-sm" multiple>
+                        <div id="selected-media-files" class="small text-muted mt-2">Файли не вибрані.</div>
 
-                        @if($lesson->media && count($lesson->media) > 0)
+                        @if(count($mediaFiles) > 0)
                             <ul class="list-group list-group-flush mt-3 shadow-sm rounded">
-                                @foreach($lesson->media as $file)
+                                @foreach($mediaFiles as $file)
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        📎 {{ $file->name }}
-                                        <a href="{{ route('admin.course.lesson.main.deleteMedia', $file->id) }}"
-                                           onclick="return confirm('Видалити цей файл?')"
-                                           class="btn btn-sm btn-outline-danger">
-                                            🗑️
-                                        </a>
+                                        <span>{{ basename($file) }}</span>
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            onclick="deleteFile('{{ route('admin.course.lesson.main.file.delete', ['lesson' => $lesson->id, 'filename' => basename($file)]) }}')"
+                                        >
+                                            Видалити
+                                        </button>
                                     </li>
                                 @endforeach
                             </ul>
                         @endif
                     </div>
 
-                    {{-- Аудіо --}}
                     <div class="mb-4">
-                        <label for="audio" class="form-label fw-bold">Аудіо</label>
-                        <input type="file" name="audio" id="audio" class="form-control shadow-sm">
+                        <label for="audio_file" class="form-label fw-bold">Аудіо</label>
+                        <input type="file" name="audio_file" id="audio_file" class="form-control shadow-sm">
 
-                        @if($lesson->audio)
+                        @if($lesson->audio_file)
                             <div class="mt-3 p-2 bg-light rounded shadow-sm d-flex justify-content-between align-items-center">
-                                🎵 {{ basename($lesson->audio) }}
-                                <a href="{{ route('admin.course.lesson.main.deleteAudio', $lesson->id) }}"
-                                   onclick="return confirm('Видалити аудіо?')"
-                                   class="btn btn-sm btn-outline-danger">
-                                    🗑️
-                                </a>
+                                <span>{{ basename($lesson->audio_file) }}</span>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    onclick="deleteFile('{{ route('admin.course.lesson.main.audio.delete', $lesson->id) }}', 'Видалити аудіо?')"
+                                >
+                                    Видалити
+                                </button>
                             </div>
                         @endif
                     </div>
 
-                    {{-- Кнопки дій --}}
                     <div class="d-flex justify-content-between align-items-center mt-4">
-                        <form action="{{ route('admin.course.lesson.main.destroy', $lesson->id) }}"
-                              method="POST"
-                              onsubmit="return confirm('Ви впевнені, що хочете видалити основну частину уроку?');"
-                              class="m-0">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-outline-danger shadow-sm">
-                                🗑️ Видалити
-                            </button>
-                        </form>
+                        <button
+                            type="button"
+                            class="btn btn-outline-danger shadow-sm"
+                            onclick="deleteFile('{{ route('admin.course.lesson.main.destroy', $lesson->id) }}', 'Ви впевнені, що хочете видалити основну частину уроку?')"
+                        >
+                            Видалити
+                        </button>
 
                         <button type="submit" class="btn btn-success shadow-sm">
-                            💾 Оновити основну частину
+                            Оновити основну частину
                         </button>
                     </div>
                 </form>
@@ -94,14 +96,17 @@
 
         inputMedia?.addEventListener('change', () => {
             let output = '';
+
             for (let i = 0; i < inputMedia.files.length; i++) {
-                output += `<div>📎 ${inputMedia.files[i].name}</div>`;
+                output += `<div>${inputMedia.files[i].name}</div>`;
             }
+
             selectedMedia.innerHTML = output || 'Файли не вибрані.';
         });
 
-        function deleteFile(url) {
-            if (!confirm('Видалити файл?')) return;
+        function deleteFile(url, message = 'Видалити файл?') {
+            if (!confirm(message)) return;
+
             const form = document.createElement('form');
             form.action = url;
             form.method = 'POST';

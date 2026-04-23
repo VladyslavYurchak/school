@@ -31,7 +31,8 @@ class StoreRequest extends FormRequest
             'parent_contact'    => 'nullable|string|max:255',
             'is_active'         => 'nullable|boolean',
             'note'              => 'nullable|string',
-            'email'             => 'nullable|email|max:255'
+            'email'             => 'nullable|email|max:255',
+            'user_id' => ['nullable', 'exists:users,id']
         ];
     }
 }

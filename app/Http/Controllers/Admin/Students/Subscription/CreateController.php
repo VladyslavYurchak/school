@@ -12,5 +12,4 @@ class CreateController extends Controller
 
     {
     }
-
 }

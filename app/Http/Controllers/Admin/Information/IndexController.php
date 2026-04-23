@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin\Information;
 
 use App\Http\Controllers\Controller;
 use App\Models\LessonLog;
-use App\Models\Photo;
 use App\Models\PlannedLesson;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -35,7 +34,7 @@ class IndexController extends Controller
                 ->get();
 
 
-            return view('admin.lesson_logs.index', compact('logs','rescheduledLessons','date','view','startOfWeek','endOfWeek'));
+            return view('admin.information.index', compact('logs','rescheduledLessons','date','view','startOfWeek','endOfWeek'));
         }
 
         // день

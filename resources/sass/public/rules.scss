@@ -1,0 +1,175 @@
+.rules-page {
+    .container {
+        max-width: 1120px;
+    }
+}
+
+.rules-hero-card {
+    padding: 40px 44px;
+    border-radius: 32px;
+    border: 1px solid #dceee9;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    background:
+        radial-gradient(circle at top left, rgba(87, 183, 171, 0.18), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(87, 183, 171, 0.10), transparent 30%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 251, 250, 0.92) 55%, rgba(232, 247, 244, 0.92) 100%);
+    backdrop-filter: blur(4px);
+}
+
+.rules-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #e8f7f5;
+    color: #2f7f79;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 18px;
+}
+
+.rules-page-title {
+    font-size: 44px;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #111827;
+}
+
+.rules-page-text {
+    max-width: 700px;
+    font-size: 17px;
+    line-height: 1.8;
+    color: #4b5563;
+}
+
+.rules-hero-side {
+    padding: 22px 24px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.rules-hero-side-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 10px;
+}
+
+.rules-hero-side-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #6b7280;
+}
+
+.rules-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.rule-item {
+    border-radius: 24px;
+    border: 1px solid #e5e7eb;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+    backdrop-filter: blur(4px);
+}
+
+.rule-toggle {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 28px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.rule-toggle-title {
+    font-size: 22px;
+    line-height: 1.4;
+    font-weight: 700;
+    color: #111827;
+}
+
+.rule-toggle-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #e8f7f5;
+    color: #2f7f79;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: 0.25s ease;
+}
+
+.rule-toggle:not(.collapsed) .rule-toggle-icon {
+    transform: rotate(45deg);
+}
+
+.rule-content {
+    padding: 0 28px 26px;
+    font-size: 16px;
+    line-height: 1.85;
+    color: #4b5563;
+    white-space: pre-line;
+}
+
+@media (max-width: 991.98px) {
+    .rules-hero-card {
+        padding: 32px 26px;
+    }
+
+    .rules-page-title {
+        font-size: 36px;
+    }
+
+    .rule-toggle-title {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .rules-page-title {
+        font-size: 32px;
+    }
+
+    .rules-page-text {
+        font-size: 16px;
+    }
+
+    .rule-toggle {
+        padding: 20px 20px;
+    }
+
+    .rule-content {
+        padding: 0 20px 22px;
+        font-size: 15px;
+    }
+
+    .rule-toggle-title {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .rules-hero-card {
+        padding: 26px 20px;
+        border-radius: 24px;
+    }
+
+    .rules-page-title {
+        font-size: 28px;
+    }
+}

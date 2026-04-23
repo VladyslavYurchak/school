@@ -18,9 +18,8 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
             $table->date('birth_date')->nullable();
-            $table->unsignedBigInteger('teacher_id')->nullable();
             $table->unsignedBigInteger('group_id')->nullable();
-
+            $table->foreignId('user_id')->nullable()->unique()->constrained('users')->nullOnDelete();
             $table->decimal('custom_lesson_price', 8, 2)->nullable();
             $table->decimal('custom_group_lesson_price', 8, 2)->nullable();
 
@@ -38,7 +37,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->foreign('teacher_id')->references('id')->on('teachers')->nullOnDelete();
+            $table->foreignId('teacher_id')->nullable()->constrained('teachers')->nullOnDelete();
             $table->foreign('subscription_id')->references('id')->on('subscription_templates')->nullOnDelete();
         });
 

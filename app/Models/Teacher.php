@@ -23,13 +23,18 @@ class Teacher extends Model
         'trial_lesson_price',
         'pair_lesson_price',
         'note',
-        'is_active'
+        'is_active',
+
+        'public_photo',
+        'public_bio',
+        'is_public',
+        'public_sort_order'
     ];
 
     /** Один викладач має багато студентів. */
     public function students()
     {
-        return $this->hasMany(User::class, 'teacher_id');
+        return $this->hasMany(Student::class);
     }
 
     /** Один викладач має багато записів занять. */
@@ -39,9 +44,9 @@ class Teacher extends Model
     }
 
     /** Отримати повне імʼя викладача. */
-    public function getFullNameAttribute()
+    public function getFullNameAttribute(): string
     {
-        return "{$this->last_name} {$this->first_name}";
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
     }
 
     /**
@@ -103,7 +108,7 @@ class Teacher extends Model
 
     public function user()
     {
-        return $this->belongsTo(\App\Models\User::class);
+        return $this->belongsTo(User::class);
     }
 
     protected function monthLogsBase(int $year, int $month)

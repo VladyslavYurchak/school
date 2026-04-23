@@ -90,12 +90,7 @@
                         responsive: true,
                         ready: function () {
                             // Фіксовані розміри для обрізки
-                            cropper.setCropBoxData({
-                                left: 0,
-                                top: 0,
-                                width: 300, // Ширина обрізаного зображення
-                                height: 300, // Висота обрізаного зображення
-                            });
+
                         },
                     });
                 };
@@ -108,14 +103,15 @@
             event.preventDefault(); // Запобігаємо стандартній поведінці форми
 
             const canvas = cropper.getCroppedCanvas({
-                width: 300,  // Задаємо ширину для обрізаного фото
-                height: 300, // Задаємо висоту для обрізаного фото
+                maxWidth: 2000,
+                maxHeight: 2000,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
             });
+
             const fileType = photoInput.files[0].type; // Отримуємо формат файлу
             const imageFormat = fileType === 'image/png' ? 'image/png' : 'image/jpeg';
-            const croppedImage = canvas.toDataURL(imageFormat, 1.0); // Використовуємо правильний формат
-
-            // Створюємо прихований інпут для обрізаного фото
+            const croppedImage = canvas.toDataURL('image/webp', 0.95);            // Створюємо прихований інпут для обрізаного фото
             const hiddenInput = document.createElement('input');
             hiddenInput.type = 'hidden';
             hiddenInput.name = 'cropped_image';

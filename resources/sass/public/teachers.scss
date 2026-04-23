@@ -1,0 +1,220 @@
+.teachers-page {
+    .container {
+        max-width: 1120px;
+    }
+}
+
+.teachers-hero-card {
+    padding: 40px 44px;
+    border-radius: 32px;
+    border: 1px solid #dceee9;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    background:
+        radial-gradient(circle at top left, rgba(87, 183, 171, 0.18), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(87, 183, 171, 0.10), transparent 30%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 251, 250, 0.92) 55%, rgba(232, 247, 244, 0.92) 100%);
+    backdrop-filter: blur(4px);
+}
+
+.teachers-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #e8f7f5;
+    color: #2f7f79;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 18px;
+}
+
+.teachers-page-title {
+    font-size: 44px;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #111827;
+}
+
+.teachers-page-text {
+    max-width: 700px;
+    font-size: 17px;
+    line-height: 1.8;
+    color: #4b5563;
+}
+
+.teachers-hero-side {
+    padding: 22px 24px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.teachers-hero-side-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 10px;
+}
+
+.teachers-hero-side-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #6b7280;
+}
+
+.teachers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.teacher-card {
+    padding: 28px 30px;
+    border-radius: 30px;
+    border: 1px solid #e5e7eb;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(4px);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.teacher-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 42px rgba(15, 23, 42, 0.08);
+    border-color: #d8ebe6;
+}
+
+.teacher-photo-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.teacher-photo {
+    width: 100%;
+    max-width: 230px;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 26px;
+    box-shadow: 0 16px 28px rgba(15, 23, 42, 0.10);
+    border: 1px solid rgba(229, 231, 235, 0.9);
+}
+
+.teacher-photo-placeholder {
+    width: 100%;
+    max-width: 230px;
+    aspect-ratio: 1 / 1;
+    border-radius: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        linear-gradient(135deg, #eef7f6 0%, #e5f4f0 100%);
+    border: 1px solid #d9ebe7;
+    box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+}
+
+.teacher-photo-placeholder span {
+    font-size: 64px;
+    font-weight: 700;
+    color: #58aa9f;
+    line-height: 1;
+}
+
+.teacher-content {
+    max-width: 760px;
+}
+
+.teacher-name {
+    font-size: 34px;
+    line-height: 1.15;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+}
+
+.teacher-bio {
+    font-size: 16px;
+    line-height: 1.85;
+    color: #4b5563;
+    white-space: pre-line;
+}
+
+.teacher-bio-empty {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+@media (max-width: 991.98px) {
+    .teachers-hero-card {
+        padding: 32px 26px;
+    }
+
+    .teachers-page-title {
+        font-size: 36px;
+    }
+
+    .teacher-card {
+        padding: 24px;
+    }
+
+    .teacher-name {
+        font-size: 30px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .teachers-page-title {
+        font-size: 32px;
+    }
+
+    .teachers-page-text {
+        font-size: 16px;
+    }
+
+    .teacher-card {
+        text-align: center;
+    }
+
+    .teacher-content {
+        max-width: none;
+    }
+
+    .teacher-name {
+        margin-top: 6px;
+        font-size: 28px;
+    }
+
+    .teacher-bio {
+        font-size: 15px;
+        line-height: 1.8;
+    }
+
+    .teacher-photo,
+    .teacher-photo-placeholder {
+        max-width: 200px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .teachers-hero-card {
+        padding: 26px 20px;
+        border-radius: 24px;
+    }
+
+    .teacher-card {
+        padding: 20px;
+        border-radius: 24px;
+    }
+
+    .teachers-page-title {
+        font-size: 28px;
+    }
+
+    .teacher-name {
+        font-size: 24px;
+    }
+}

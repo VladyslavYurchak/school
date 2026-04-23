@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Teachers\StoreRequest;
 use App\Models\Teacher;
 use App\Models\User;
-use Illuminate\Http\Request;
 
 class StoreController extends Controller
 {
@@ -16,23 +15,31 @@ class StoreController extends Controller
 
         $user = User::findOrFail($data['user_id']);
 
-        // оновлюємо роль користувача
         $user->role = 'teacher';
         $user->save();
 
-        // створюємо запис викладача
+        if ($request->hasFile('public_photo')) {
+            $data['public_photo'] = $request->file('public_photo')->store('teachers', 'public');
+        }
+
         Teacher::create([
             'user_id'            => $user->id,
             'lesson_price'       => $data['lesson_price'] ?? null,
             'note'               => $data['note'] ?? null,
-            'is_active'          => $data['is_active'],
+            'is_active'          => (bool) ($data['is_active'] ?? true),
 
             'group_lesson_price' => $data['group_lesson_price'] ?? 0,
             'trial_lesson_price' => $data['trial_lesson_price'] ?? 0,
             'pair_lesson_price'  => $data['pair_lesson_price'] ?? 0,
+
+            'public_photo'       => $data['public_photo'] ?? null,
+            'public_bio'         => $data['public_bio'] ?? null,
+            'is_public' => (bool) ($data['is_public'] ?? false),
+            'public_sort_order'  => $data['public_sort_order'] ?? 0,
         ]);
 
-
-        return redirect()->route('admin.teachers.index')->with('success', 'Викладача додано');
+        return redirect()
+            ->route('admin.teachers.index')
+            ->with('success', 'Викладача додано');
     }
 }

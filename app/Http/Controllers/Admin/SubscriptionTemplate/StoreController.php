@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SubscriptionTemplate\StoreRequest;
 use App\Models\SubscriptionTemplate;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 class StoreController extends Controller
 {

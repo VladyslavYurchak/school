@@ -8,9 +8,10 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
-        <a href="{{ route('admin.subscription-templates.create') }}" class="btn btn-primary mb-3">Додати новий абонемент</a>
+        <a href="{{ route('admin.subscription-templates.create') }}" class="btn btn-primary mb-3">
+            Додати новий абонемент
+        </a>
 
-        {{-- Індивідуальні --}}
         <h3>Індивідуальні абонементи</h3>
         @if($individualTemplates->count())
             <table class="table table-bordered align-middle">
@@ -20,7 +21,6 @@
                     <th>Назва</th>
                     <th>Занять/тиждень</th>
                     <th>Ціна</th>
-                    <th>Опис</th>
                     <th>Створено</th>
                     <th>Оновлено</th>
                     <th>Дія</th>
@@ -33,7 +33,6 @@
                         <td>{{ $template->title }}</td>
                         <td>{{ $template->lessons_per_week }}</td>
                         <td>{{ number_format($template->price, 2, ',', ' ') }} грн</td>
-                        <td>{{ $template->description }}</td>
                         <td>{{ $template->created_at->format('d.m.Y') }}</td>
                         <td>{{ $template->updated_at->format('d.m.Y') }}</td>
                         <td class="d-flex gap-2">
@@ -46,13 +45,10 @@
                                 data-type="{{ $template->type }}"
                                 data-lessons="{{ $template->lessons_per_week }}"
                                 data-price="{{ $template->price }}"
-                                data-description="{{ $template->description }}"
-                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"  {{-- ← ось це ключ --}}
+                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"
                             >
                                 Редагувати
                             </button>
-
-
 
                             <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
                                   method="POST"
@@ -70,7 +66,6 @@
             <p>Індивідуальні абонементи відсутні.</p>
         @endif
 
-        {{-- Групові --}}
         <h3 class="mt-4">Групові абонементи</h3>
         @if($groupTemplates->count())
             <table class="table table-bordered align-middle">
@@ -80,7 +75,6 @@
                     <th>Назва</th>
                     <th>Занять/тиждень</th>
                     <th>Ціна</th>
-                    <th>Опис</th>
                     <th>Створено</th>
                     <th>Оновлено</th>
                     <th>Дія</th>
@@ -93,7 +87,6 @@
                         <td>{{ $template->title }}</td>
                         <td>{{ $template->lessons_per_week }}</td>
                         <td>{{ number_format($template->price, 2, ',', ' ') }} грн</td>
-                        <td>{{ $template->description }}</td>
                         <td>{{ $template->created_at->format('d.m.Y') }}</td>
                         <td>{{ $template->updated_at->format('d.m.Y') }}</td>
                         <td class="d-flex gap-2">
@@ -106,8 +99,7 @@
                                 data-type="{{ $template->type }}"
                                 data-lessons="{{ $template->lessons_per_week }}"
                                 data-price="{{ $template->price }}"
-                                data-description="{{ $template->description }}"
-                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"  {{-- ← ось це ключ --}}
+                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"
                             >
                                 Редагувати
                             </button>
@@ -128,7 +120,6 @@
             <p>Групові абонементи відсутні.</p>
         @endif
 
-        {{-- Парні // + pair --}}
         <h3 class="mt-4">Парні абонементи</h3>
         @if(isset($pairTemplates) && $pairTemplates->count())
             <table class="table table-bordered align-middle">
@@ -138,7 +129,6 @@
                     <th>Назва</th>
                     <th>Занять/тиждень</th>
                     <th>Ціна</th>
-                    <th>Опис</th>
                     <th>Створено</th>
                     <th>Оновлено</th>
                     <th>Дія</th>
@@ -151,7 +141,6 @@
                         <td>{{ $template->title }}</td>
                         <td>{{ $template->lessons_per_week }}</td>
                         <td>{{ number_format($template->price, 2, ',', ' ') }} грн</td>
-                        <td>{{ $template->description }}</td>
                         <td>{{ $template->created_at->format('d.m.Y') }}</td>
                         <td>{{ $template->updated_at->format('d.m.Y') }}</td>
                         <td class="d-flex gap-2">
@@ -164,12 +153,10 @@
                                 data-type="{{ $template->type }}"
                                 data-lessons="{{ $template->lessons_per_week }}"
                                 data-price="{{ $template->price }}"
-                                data-description="{{ $template->description }}"
-                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"  {{-- ← ось це ключ --}}
+                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"
                             >
                                 Редагувати
                             </button>
-
 
                             <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
                                   method="POST"
@@ -188,8 +175,7 @@
         @endif
     </div>
 
-    {{-- 🛠 Modal --}}
-    <div class="modal fade" id="editSubscriptionModal" tabindex="-1" aria-labelledby="editSubscriptionModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editSubscriptionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <form method="POST" id="editSubscriptionForm">
                 @csrf
@@ -212,7 +198,7 @@
                             <select class="form-select" id="editType" name="type" required>
                                 <option value="individual">Індивідуальний</option>
                                 <option value="group">Груповий</option>
-                                <option value="pair">Парний</option> {{-- + pair --}}
+                                <option value="pair">Парний</option>
                             </select>
                         </div>
 
@@ -225,11 +211,6 @@
                             <label for="editPrice" class="form-label">Ціна (грн)</label>
                             <input type="number" class="form-control" id="editPrice" name="price" step="0.01" required>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="editDescription" class="form-label">Опис</label>
-                            <textarea class="form-control" id="editDescription" name="description" rows="2"></textarea>
-                        </div>
                     </div>
 
                     <div class="modal-footer">
@@ -240,7 +221,6 @@
         </div>
     </div>
 
-    {{-- JS --}}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const editModal = document.getElementById('editSubscriptionModal');
@@ -254,14 +234,13 @@
                 const type = button.getAttribute('data-type');
                 const lessons = button.getAttribute('data-lessons');
                 const price = button.getAttribute('data-price');
-                const description = button.getAttribute('data-description');
+                const updateUrl = button.getAttribute('data-update-url');
 
-                editForm.setAttribute('action', `/subscription-templates/${id}`);
+                editForm.setAttribute('action', updateUrl);
                 document.getElementById('editTitle').value = title;
-                document.getElementById('editType').value = type;       // працює і для 'pair'
+                document.getElementById('editType').value = type;
                 document.getElementById('editLessons').value = lessons;
                 document.getElementById('editPrice').value = price;
-                document.getElementById('editDescription').value = description || '';
             });
         });
     </script>

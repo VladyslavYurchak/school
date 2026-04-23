@@ -1,8 +1,6 @@
-// Fonts
-@import url('https://fonts.bunny.net/css?family=Nunito');
+// resources/sass/app.scss
 
-// Variables
-@import 'variables';
-
-// Bootstrap
-@import 'bootstrap/scss/bootstrap';
+@import "public/app";
+@import "public/teachers";
+@import "public/contact";
+@import "public/rules";

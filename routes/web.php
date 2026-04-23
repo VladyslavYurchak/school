@@ -2,8 +2,9 @@
 
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\Admin\History\HistoryActionsController;
+use App\Http\Controllers\TeacherPageController;
 use Illuminate\Support\Facades\Auth;
-
+use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\Admin\Course\Lesson\Test\CreateController;
 use App\Http\Controllers\Admin\Course\Lesson\Test\DestroyController;
 use App\Http\Controllers\Admin\Course\Lesson\Test\EditController;
@@ -24,23 +25,58 @@ use App\Http\Controllers\Admin\Post\ShowController as PostShowController;
 use App\Http\Controllers\Admin\Post\StoreController as PostStoreController;
 use App\Http\Controllers\Admin\Post\UpdateController as PostUpdateController;
 use App\Http\Controllers\Admin\StoreController as AdminIndexController;
+use App\Http\Controllers\Admin\Testing\OptionController;
+use App\Http\Controllers\Admin\Testing\QuestionController;
+use App\Http\Controllers\Admin\Testing\ResultRangeController;
+use App\Http\Controllers\Admin\Testing\SectionController;
+use App\Http\Controllers\Admin\Testing\SessionController;
+use App\Http\Controllers\Admin\Testing\TestController;
+use App\Http\Controllers\Post\ShowController as PublicPostShowController;
+use App\Http\Controllers\SchoolRulePageController;
+use App\Http\Controllers\StudentPaymentController;
+use App\Http\Controllers\LiqPayCallbackController;
 
+use App\Http\Controllers\Testing\PublicTestingController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\IndexController;
-use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
+
+use App\Http\Controllers\Admin\SchoolRules\IndexController as AdminSchoolRuleIndexController;
+use App\Http\Controllers\Admin\SchoolRules\CreateController as AdminSchoolRuleCreateController;
+use App\Http\Controllers\Admin\SchoolRules\StoreController as AdminSchoolRuleStoreController;
+use App\Http\Controllers\Admin\SchoolRules\EditController as AdminSchoolRuleEditController;
+use App\Http\Controllers\Admin\SchoolRules\UpdateController as AdminSchoolRuleUpdateController;
+use App\Http\Controllers\Admin\SchoolRules\DestroyController as AdminSchoolRuleDestroyController;
+
+Route::prefix('admin/school-rules')->name('admin.school-rules.')->middleware(['auth'])->group(function () {
+    Route::get('/', AdminSchoolRuleIndexController::class)->name('index');
+    Route::get('/create', AdminSchoolRuleCreateController::class)->name('create');
+    Route::post('/', AdminSchoolRuleStoreController::class)->name('store');
+    Route::get('/{schoolRule}/edit', AdminSchoolRuleEditController::class)->name('edit');
+    Route::put('/{schoolRule}', AdminSchoolRuleUpdateController::class)->name('update');
+    Route::delete('/{schoolRule}', AdminSchoolRuleDestroyController::class)->name('destroy');
+});
+
 
 // Головна сторінка
 Route::get('/', IndexController::class)->name('index');
 
 // Пост
-Route::group(['namespace' => 'App\Http\Controllers\Post'], function () {
-    Route::get('/posts/{post}', 'ShowController')->name('posts.show');
-});
-
+Route::get('/posts', fn () => redirect()->route('index'))->name('posts.index');
+Route::get('/posts/{post}', PublicPostShowController::class)->name('posts.show');
+Route::get('/rules', [SchoolRulePageController::class, 'index'])->name('rules.index');
 // Авторизація
 Auth::routes(['verify' => true]);
 // routes/web.php
+Route::get('/teachers', [TeacherPageController::class, 'index'])->name('teachers.index');
+
+Route::prefix('testing')->name('testing.')->group(function () {
+    Route::post('/start/{language}', [PublicTestingController::class, 'start'])->name('start');
+    Route::get('/session/{session}', [PublicTestingController::class, 'show'])->name('session.show');
+    Route::post('/session/{session}/submit', [PublicTestingController::class, 'submit'])->name('session.submit');
+    Route::get('/session/{session}/result', [PublicTestingController::class, 'result'])->name('session.result');
+    Route::post('/session/{session}/lead', [PublicTestingController::class, 'storeLead'])->name('session.lead.store');
+});
 
 Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
 
@@ -106,7 +142,7 @@ Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
     // Main block
     Route::get('lessons/{lesson}/main-block/create', \App\Http\Controllers\Admin\Course\Lesson\Main\CreateController::class)->name('admin.course.lesson.main.create');
     Route::post('lessons/{lesson}/main-block', \App\Http\Controllers\Admin\Course\Lesson\Main\StoreController::class)->name('admin.course.lesson.main.store');
-    Route::get('lessons/{lesson}/main-block/edit', \App\Http\Controllers\Admin\Course\Lesson\Main\EditController::class)->name('admin.course.lesson.main.edit');
+    Route::get('lessons/{lesson}/main-block/edit', \App\Http\Controllers\Admin\Course\Lesson\Main\CreateController::class)->name('admin.course.lesson.main.edit');
     Route::put('lessons/{lesson}/main-block/', \App\Http\Controllers\Admin\Course\Lesson\Main\UpdateController::class)->name('admin.course.lesson.main.update');
     Route::delete('lessons/{lesson}/main-block/audio', \App\Http\Controllers\Admin\Course\Lesson\Main\DeleteAudioController::class)
         ->name('admin.course.lesson.main.audio.delete');
@@ -135,7 +171,7 @@ Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
     //адміністрація школою
     Route::prefix('students')->name('admin.students.')->group(function () {
         Route::get('/main', \App\Http\Controllers\Admin\Students\IndexController::class)->name('index');
-        Route::get('/create', \App\Http\Controllers\Admin\Students\CreateController::class)->name('create');
+        Route::redirect('/create', '/admin/students/main')->name('create');
         Route::post('/store', \App\Http\Controllers\Admin\Students\StoreController::class)->name('store');
 
         // Потрібно, щоб маршрути з параметрами були після конкретних
@@ -235,10 +271,23 @@ Route::group(['middleware' => ['teacher']], function () {
 });
 
 
+Route::prefix('admin/testing')
+    ->name('admin.testing.')
+    ->middleware(['auth'])
+    ->group(function () {
+        Route::resource('tests', TestController::class);
 
+        Route::resource('tests.sections', SectionController::class)->shallow();
+        Route::resource('tests.questions', QuestionController::class)->shallow();
+        Route::resource('questions.options', OptionController::class)->shallow();
+        Route::resource('tests.result-ranges', ResultRangeController::class)->shallow();
+
+        Route::get('sessions', [SessionController::class, 'index'])->name('sessions.index');
+        Route::get('sessions/{session}', [SessionController::class, 'show'])->name('sessions.show');
+    });
 
 // Інші сторінки
-Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+Route::redirect('/payments', '/')->name('payments.index');
 Route::get('/about', [AboutController::class, 'index'])->name('about.index');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::redirect('/home', '/');
@@ -254,3 +303,23 @@ Route::get('/debug/time', function () {
         'system_date'   => trim(@shell_exec('date +"%F %T %Z"') ?: 'N/A'),
     ]);
 });
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/student/dashboard', StudentDashboardController::class)
+        ->name('student.dashboard');
+
+    Route::get('/student/payments', [StudentPaymentController::class, 'index'])
+        ->name('student.payments.index');
+
+    Route::post('/student/payments', [StudentPaymentController::class, 'store'])
+        ->name('student.payments.store');
+
+    Route::get('/student/payments/liqpay/{payment}', [StudentPaymentController::class, 'checkout'])
+        ->name('student.payments.checkout');
+
+    Route::get('/student/payments/result', [StudentPaymentController::class, 'result'])
+        ->name('student.payments.result');
+});
+
+Route::post('/liqpay/callback', LiqPayCallbackController::class)
+    ->name('liqpay.callback');

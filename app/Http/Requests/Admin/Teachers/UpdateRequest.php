@@ -10,36 +10,40 @@ class UpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // or use a policy if you have one
+        return true;
     }
 
     public function rules(): array
     {
         /** @var Teacher|null $teacher */
-        $teacher = $this->route('teacher'); // comes from {teacher} in your route
+        $teacher = $this->route('teacher');
 
         return [
-            'first_name'          => ['required','string','max:255'],
-            'last_name'           => ['required','string','max:255'],
-            'phone'               => ['nullable','string','max:20'],
-            'email'               => [
-                'nullable','email',
-                Rule::unique('teachers', 'email')->ignore($teacher?->id),
-            ],
-            'lesson_price'        => ['nullable','numeric','min:0'],
-            'note'                => ['nullable','string'],
-            'is_active'           => ['required','boolean'],
-            'group_lesson_price'  => ['nullable','numeric','min:0'],
-            'trial_lesson_price'  => ['nullable','numeric','min:0'],
-            'pair_lesson_price'   => ['nullable','numeric','min:0'],
+            'user_id'      => 'required|exists:users,id',
+            'first_name'          => ['required', 'string', 'max:255'],
+            'last_name'           => ['required', 'string', 'max:255'],
+            'phone'               => ['nullable', 'string', 'max:20'],
+
+            'lesson_price'        => ['nullable', 'numeric', 'min:0'],
+            'note'                => ['nullable', 'string'],
+            'is_active'           => ['required', 'boolean'],
+            'group_lesson_price'  => ['nullable', 'numeric', 'min:0'],
+            'trial_lesson_price'  => ['nullable', 'numeric', 'min:0'],
+            'pair_lesson_price'   => ['nullable', 'numeric', 'min:0'],
+
+            // Для сайту
+            'public_photo'        => ['nullable', 'image', 'max:4096'],
+            'public_bio'          => ['nullable', 'string'],
+            'is_public'           => ['nullable', 'boolean'],
+            'public_sort_order'   => ['nullable', 'integer', 'min:0'],
         ];
     }
 
-    // (optional) normalize booleans and numbers coming from forms
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'is_active' => filter_var($this->boolean('is_active'), FILTER_VALIDATE_BOOL),
+            'is_active' => $this->boolean('is_active'),
+            'is_public' => $this->boolean('is_public'),
         ]);
     }
 }

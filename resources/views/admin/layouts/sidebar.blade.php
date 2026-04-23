@@ -123,12 +123,39 @@
                         <p>Фото</p>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon bi bi-puzzle"></i>
-                        <p>Тестування</p>
-                    </a>
-                </li>
+                    <li class="nav-item {{ request()->routeIs('admin.testing.*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('admin.testing.*') ? 'active' : '' }}">
+                            <i class="nav-icon bi bi-ui-checks"></i>
+                            <p>
+                                Тестування
+                                <i class="nav-arrow bi bi-chevron-down"></i>
+                            </p>
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('admin.testing.tests.index') }}"
+                                   class="nav-link {{ request()->routeIs('admin.testing.tests.*') ? 'active' : '' }}">
+                                    <i class="nav-icon bi bi-list"></i>
+                                    <p>Тести</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('admin.school-rules.index') }}"
+                                   class="nav-link {{ request()->routeIs('admin.school-rules.*') ? 'active' : '' }}">
+                                    <i class="nav-icon bi bi-list-check"></i>
+                                    <p>Правила школи</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('admin.testing.sessions.index') }}"
+                                   class="nav-link {{ request()->routeIs('admin.testing.sessions.*') ? 'active' : '' }}">
+                                    <i class="nav-icon bi bi-bar-chart"></i>
+                                    <p>Сесії</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon bi bi-telephone"></i>

@@ -6,25 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('subscription_templates', function (Blueprint $table) {
             $table->id();
-            $table->string('title'); // Назва: "2 заняття на тиждень", "3 заняття", "Груповий"
-            $table->enum('type', ['individual', 'group', 'pair']); // Тип абонементу
-            $table->integer('lessons_per_week'); // Кількість занять на тиждень
-            $table->decimal('price', 8, 2); // Ціна за місяць
+            $table->string('title');
+            $table->enum('type', ['individual', 'group', 'pair']);
+            $table->unsignedInteger('lessons_per_week');
+            $table->decimal('price', 10, 2);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
 
-
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('subscription_templates');

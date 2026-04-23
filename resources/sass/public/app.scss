@@ -1,0 +1,17 @@
+@import url('https://fonts.bunny.net/css?family=Poppins:400,500,600,700&display=swap');
+
+@import '../../../node_modules/bootstrap/scss/bootstrap';
+
+// Core
+@import "variables";
+@import "base";
+
+// Layout
+@import "header";
+@import "footer";
+
+// Pages
+@import "home";
+
+// Responsive
+@import "responsive";

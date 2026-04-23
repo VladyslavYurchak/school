@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -12,21 +11,20 @@ class SubscriptionTemplate extends Model
 
     protected $fillable = [
         'title',
-        'type', // 'individual' або 'group' 'pair' 'trial'
+        'type',
         'lessons_per_week',
         'price',
-        // якщо description немає в БД — не пишемо її тут
+        'is_active',
     ];
 
-    // Студенти, які мають цей шаблон
+    public function studentSubscriptions()
+    {
+        return $this->hasMany(StudentSubscription::class, 'subscription_template_id');
+    }
+
+    // лишай тільки якщо реально ще використовуєш students.subscription_id
     public function students()
     {
         return $this->hasMany(Student::class, 'subscription_id');
     }
-
-    public function studentsSubscriptions()
-    {
-        return $this->hasMany(StudentSubscription::class, 'subscription_id');
-    }
-
 }
