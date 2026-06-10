@@ -1,19 +1,24 @@
-/node_modules          # великі залежності, можна встановити через npm/yarn
-/public/build          # згенеровані файли фронтенду (Mix/Vite)
-/public/hot            # тимчасові файли для Vite
-/public/storage        # символьні лінки до storage
-/storage/*.key         # приватні ключі
-/storage/pail          # якщо використовується для тимчасових файлів
-/vendor                # залежності composer
-.env                   # секрети, ключі
-.env.backup            # теж секрети
-.env.production        # теж секрети
-.phpunit.cache         # тимчасові дані PHPUnit
-.phpunit.result.cache  # теж PHPUnit
+/node_modules/
+/vendor/
+
+/.env
+/.env.backup
+/.env.production
+/auth.json
+
+/public/build/
+/public/hot
+/public/storage
+
+/storage/*.key
+/storage/pail
+
+/.phpunit.cache
+/.phpunit.result.cache
+/.idea/
+
 Homestead.yaml
 Homestead.json
-auth.json              # може містити паролі/токени
 npm-debug.log
 yarn-error.log
 .DS_Store
-
