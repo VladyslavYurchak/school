@@ -62,6 +62,7 @@ function setupPaymentToggle(studentId) {
             subscriptionDiv.style.display = 'none';
             singleDiv.style.display = 'block';
             document.getElementById(`selectedMonthInput${studentId}`).value = '';
+            loadSinglePayments(studentId);
         }
     }
 
@@ -69,6 +70,27 @@ function setupPaymentToggle(studentId) {
     singleRadio.addEventListener('change', toggle);
 
     toggle();
+}
+
+function loadSinglePayments(studentId) {
+    const monthInput = document.getElementById(`singleMonth${studentId}`);
+    const month = monthInput ? monthInput.value : '';
+    const url = `/admin/students/${studentId}/single-payments${month ? `?month=${encodeURIComponent(month)}` : ''}`;
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(response => response.text())
+        .then(html => {
+            const box = document.getElementById(`singlePaymentsList${studentId}`);
+            if (box) {
+                box.innerHTML = html;
+            }
+        })
+        .catch(() => {
+            const box = document.getElementById(`singlePaymentsList${studentId}`);
+            if (box) {
+                box.innerHTML = '<div class="text-danger small">Не вдалося завантажити оплати.</div>';
+            }
+        });
 }
 
 function submitSinglePayment(studentId) {
@@ -92,14 +114,10 @@ function submitSinglePayment(studentId) {
 
     // Встановлюємо тип оплати явно (необов’язково)
     // Якщо хочеш, можна додати приховане поле з типом оплати, якщо його немає:
-    let typeInput = form.querySelector('input[name="type"]');
-    if (!typeInput) {
-        typeInput = document.createElement('input');
-        typeInput.type = 'hidden';
-        typeInput.name = 'type';
-        form.appendChild(typeInput);
+    const singleRadio = document.getElementById(`type-single-${studentId}`);
+    if (singleRadio) {
+        singleRadio.checked = true;
     }
-    typeInput.value = 'single';
 
     form.submit();
 }
@@ -114,7 +132,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+document.addEventListener('shown.bs.modal', function (event) {
+    const modal = event.target;
+    if (!modal.id?.startsWith('paymentModal')) {
+        return;
+    }
+
+    const studentId = modal.id.replace('paymentModal', '');
+    const singleRadio = document.getElementById(`type-single-${studentId}`);
+
+    if (singleRadio?.checked) {
+        loadSinglePayments(studentId);
+    }
+});
+
 window.selectMonth = selectMonth;
 window.cancelPayment = cancelPayment;
 window.setupPaymentToggle = setupPaymentToggle;
+window.loadSinglePayments = loadSinglePayments;
 window.submitSinglePayment = submitSinglePayment;
