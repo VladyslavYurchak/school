@@ -14,10 +14,15 @@ Route::middleware(['teacher'])->group(function () {
         ->name('admin.calendar.group-lessons.cancel');
 
     Route::prefix('admin/calendar-events')->group(function () {
-        Route::get('/{group}/members', \App\Http\Controllers\Admin\Calendar\GetGroupMembersController::class)->name('groups.members');
-        Route::post('{id}/complete', \App\Http\Controllers\Admin\Calendar\MarkAsCompletedController::class);
-        Route::post('{id}/cancel', \App\Http\Controllers\Admin\Calendar\MarkAsCancelledController::class);
-        Route::post('{id}/reschedule', \App\Http\Controllers\Admin\Calendar\MarkAsRescheduledController::class);
-        Route::put('{id}', \App\Http\Controllers\Admin\Calendar\UpdateEventController::class);
+        Route::get('/{group}/members', \App\Http\Controllers\Admin\Calendar\GetGroupMembersController::class)
+            ->name('groups.members');
+        Route::post('{id}/complete', \App\Http\Controllers\Admin\Calendar\MarkAsCompletedController::class)
+            ->name('admin.calendar.events.complete');
+        Route::post('{id}/cancel', \App\Http\Controllers\Admin\Calendar\MarkAsCancelledController::class)
+            ->name('admin.calendar.events.cancel');
+        Route::post('{id}/reschedule', \App\Http\Controllers\Admin\Calendar\MarkAsRescheduledController::class)
+            ->name('admin.calendar.events.reschedule');
+        Route::put('{id}', \App\Http\Controllers\Admin\Calendar\UpdateEventController::class)
+            ->name('admin.calendar.events.update');
     });
 });

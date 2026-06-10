@@ -343,7 +343,7 @@ class CalendarWorkflowTest extends TestCase
 
         $this
             ->actingAs($teacherUser)
-            ->putJson("/admin/calendar-events/{$lesson->id}", [
+            ->putJson(route('admin.calendar.events.update', ['id' => $lesson->id]), [
                 'title' => 'Updated lesson',
                 'date' => '2026-06-11',
                 'time' => '12:30',
@@ -389,7 +389,7 @@ class CalendarWorkflowTest extends TestCase
 
         $this
             ->actingAs($teacherUser)
-            ->putJson("/admin/calendar-events/{$lessonToMove->id}", [
+            ->putJson(route('admin.calendar.events.update', ['id' => $lessonToMove->id]), [
                 'title' => $lessonToMove->title,
                 'date' => '2026-06-10',
                 'time' => '10:30',
@@ -426,13 +426,13 @@ class CalendarWorkflowTest extends TestCase
 
         $this
             ->actingAs($teacherUser)
-            ->postJson("/admin/calendar-events/{$lesson->id}/complete")
+            ->postJson(route('admin.calendar.events.complete', ['id' => $lesson->id]))
             ->assertOk()
             ->assertJson(['success' => true]);
 
         $this
             ->actingAs($teacherUser)
-            ->postJson("/admin/calendar-events/{$lesson->id}/complete")
+            ->postJson(route('admin.calendar.events.complete', ['id' => $lesson->id]))
             ->assertOk()
             ->assertJson(['success' => false]);
 
@@ -471,7 +471,7 @@ class CalendarWorkflowTest extends TestCase
 
         $this
             ->actingAs($teacherUser)
-            ->postJson("/admin/calendar-events/{$lesson->id}/cancel")
+            ->postJson(route('admin.calendar.events.cancel', ['id' => $lesson->id]))
             ->assertOk()
             ->assertJson(['success' => true]);
 
@@ -507,7 +507,7 @@ class CalendarWorkflowTest extends TestCase
 
         $this
             ->actingAs($teacherUser)
-            ->postJson("/admin/calendar-events/{$lesson->id}/reschedule", [
+            ->postJson(route('admin.calendar.events.reschedule', ['id' => $lesson->id]), [
                 'new_date' => '2026-06-12',
                 'new_time' => '15:00',
                 'initiator' => 'teacher',
@@ -548,7 +548,7 @@ class CalendarWorkflowTest extends TestCase
 
         $this
             ->actingAs($teacherUser)
-            ->putJson("/admin/calendar-events/{$foreignLesson->id}", [
+            ->putJson(route('admin.calendar.events.update', ['id' => $foreignLesson->id]), [
                 'title' => 'Bad update',
                 'date' => '2026-06-11',
                 'time' => '12:00',
@@ -560,17 +560,17 @@ class CalendarWorkflowTest extends TestCase
 
         $this
             ->actingAs($teacherUser)
-            ->postJson("/admin/calendar-events/{$foreignLesson->id}/complete")
+            ->postJson(route('admin.calendar.events.complete', ['id' => $foreignLesson->id]))
             ->assertNotFound();
 
         $this
             ->actingAs($teacherUser)
-            ->postJson("/admin/calendar-events/{$foreignLesson->id}/cancel")
+            ->postJson(route('admin.calendar.events.cancel', ['id' => $foreignLesson->id]))
             ->assertNotFound();
 
         $this
             ->actingAs($teacherUser)
-            ->postJson("/admin/calendar-events/{$foreignLesson->id}/reschedule", [
+            ->postJson(route('admin.calendar.events.reschedule', ['id' => $foreignLesson->id]), [
                 'new_date' => '2026-06-12',
                 'new_time' => '15:00',
                 'initiator' => 'teacher',
