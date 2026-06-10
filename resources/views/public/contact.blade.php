@@ -1,4 +1,4 @@
-@extends('index.layouts.main')
+@extends('public.layouts.main')
 
 @section('content')
     <div class="contact-page py-5">

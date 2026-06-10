@@ -14,7 +14,10 @@
 
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 </head>
-<body class="site-body">
+<body
+    class="site-body"
+    style="--site-pattern: url('{{ asset('images/pattern1.png') }}');"
+>
 
 <header class="site-header">
     <div class="topbar">
@@ -55,7 +58,7 @@
                             Онлайн навчання
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Доступні курси</a></li>
+                            <li><a class="dropdown-item" href="{{ route('courses.index') }}">Доступні курси</a></li>
                             <li><a class="dropdown-item" href="#">Словник</a></li>
                             <li><a class="dropdown-item" href="#">Відео</a></li>
                             <li><a class="dropdown-item" href="#">Оплата</a></li>

@@ -9,6 +9,6 @@ class ShowController extends Controller
 {
     public function __invoke(Post $post)
     {
-        return view('index.posts.show', compact('post'));
+        return view('public.posts.show', compact('post'));
     }
 }

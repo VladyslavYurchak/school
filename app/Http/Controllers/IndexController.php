@@ -26,6 +26,6 @@ class IndexController extends BaseController
         $photos = Photo::all(); // або можна використати інший запит, якщо потрібно обмежити кількість фото
 
         // Повертаємо дані у вигляд
-        return view('index.index', compact('posts', 'events', 'photos'));
+        return view('public.index', compact('posts', 'events', 'photos'));
     }
 }

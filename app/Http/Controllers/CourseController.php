@@ -17,7 +17,7 @@ class CourseController extends Controller
             ->latest()
             ->paginate(12);
 
-        return view('index.courses.index', compact('courses'));
+        return view('public.courses.index', compact('courses'));
     }
 
     public function show(Request $request, Course $course)
@@ -47,7 +47,7 @@ class CourseController extends Controller
             }
         }
 
-        return view('index.courses.show', compact('course', 'hasAccess', 'lessonAccess'));
+        return view('public.courses.show', compact('course', 'hasAccess', 'lessonAccess'));
     }
 
     public function lesson(Request $request, Course $course, Lesson $lesson)
@@ -86,7 +86,7 @@ class CourseController extends Controller
                 ->first();
         }
 
-        return view('index.courses.lesson', compact(
+        return view('public.courses.lesson', compact(
             'course',
             'lesson',
             'lastTestAttempt'

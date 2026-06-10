@@ -1,4 +1,4 @@
-@extends('index.layouts.main')
+@extends('public.layouts.main')
 
 @section('content')
     <div class="container py-4">

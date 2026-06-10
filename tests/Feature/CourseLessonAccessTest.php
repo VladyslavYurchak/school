@@ -44,7 +44,7 @@ class CourseLessonAccessTest extends TestCase
         $this->actingAs($user)
             ->get(route('courses.lessons.show', [$course, $lesson]))
             ->assertOk()
-            ->assertViewIs('index.courses.lesson')
+            ->assertViewIs('public.courses.lesson')
             ->assertSee($lesson->title);
     }
 
@@ -54,7 +54,7 @@ class CourseLessonAccessTest extends TestCase
 
         $this->get(route('courses.lessons.show', [$course, $lesson]))
             ->assertOk()
-            ->assertViewIs('index.courses.lesson')
+            ->assertViewIs('public.courses.lesson')
             ->assertSee($lesson->title);
     }
 

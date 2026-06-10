@@ -1,4 +1,4 @@
-@extends('index.layouts.main')
+@extends('public.layouts.main')
 
 @section('content')
     <div class="container py-4">
@@ -47,6 +47,27 @@
                             <a href="{{ route('student.payments.index') }}" class="btn btn-primary">
                                 Перейти до оплати
                             </a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-3">Мої курси</h4>
+
+                        @if(($courses ?? collect())->count())
+                            <div class="list-group">
+                                @foreach($courses as $course)
+                                    <a href="{{ route('courses.show', $course) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                        <span>{{ $course->title }}</span>
+                                        <span class="badge text-bg-primary">{{ $course->language->name ?? '' }}</span>
+                                    </a>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="mb-0">Оплачених курсів поки немає.</p>
                         @endif
                     </div>
                 </div>

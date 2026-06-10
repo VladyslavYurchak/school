@@ -1,4 +1,4 @@
-@extends('index.layouts.main')
+@extends('public.layouts.main')
 
 @section('content')
     <div class="rules-page py-5">
@@ -51,7 +51,7 @@
                                     data-bs-parent="#schoolRulesAccordion"
                                 >
                                     <div class="rule-content">
-                                        {!! nl2br(e($rule->content)) !!}
+                                        {!! $rule->content !!}
                                     </div>
                                 </div>
                             </div>

@@ -14,7 +14,7 @@ class SchoolRulePageController extends Controller
             ->orderBy('id')
             ->get();
 
-        return view('index.rules.index', compact('rules'));
+        return view('public.rules.index', compact('rules'));
     }
 }
 

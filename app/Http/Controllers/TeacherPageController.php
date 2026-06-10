@@ -15,6 +15,6 @@ class TeacherPageController extends Controller
             ->orderBy('id')
             ->get();
 
-        return view('index.teachers.index', compact('teachers'));
+        return view('public.teachers.index', compact('teachers'));
     }
 }
