@@ -1,0 +1,433 @@
+/* === Course / Lesson admin pages === */
+
+.admin-page {
+    padding: 1.25rem;
+}
+
+.admin-page-shell {
+    max-width: 1320px;
+    margin: 0 auto;
+}
+
+.admin-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(230, 235, 241, 0.9);
+    border-radius: 24px;
+    background:
+        radial-gradient(circle at top left, rgba(90, 195, 164, 0.22), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(163, 201, 226, 0.32), transparent 38%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 252, 0.96));
+    box-shadow: 0 16px 42px rgba(36, 49, 64, 0.08);
+    padding: 1.4rem;
+    margin-bottom: 1.25rem;
+}
+
+.admin-hero::after {
+    content: "";
+    position: absolute;
+    inset: auto -60px -80px auto;
+    width: 220px;
+    height: 220px;
+    border-radius: 999px;
+    background: rgba(90, 195, 164, 0.12);
+    pointer-events: none;
+}
+
+.admin-hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.admin-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.65rem;
+}
+
+.admin-title {
+    margin: 0;
+    color: var(--text-color);
+    font-size: clamp(1.45rem, 2.5vw, 2.15rem);
+    line-height: 1.15;
+    font-weight: 800;
+}
+
+.admin-subtitle {
+    color: var(--muted-text);
+    margin: 0.5rem 0 0;
+    max-width: 760px;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.admin-btn-primary,
+.admin-btn-soft,
+.admin-btn-danger,
+.admin-btn-warning {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border-radius: 14px;
+    border: 0;
+    min-height: 42px;
+    padding: 0.62rem 1rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.admin-btn-primary {
+    color: #fff !important;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    box-shadow: 0 10px 24px rgba(90, 195, 164, 0.28);
+}
+
+.admin-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(90, 195, 164, 0.34);
+}
+
+.admin-btn-soft {
+    color: var(--text-color) !important;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 20px rgba(36, 49, 64, 0.05);
+}
+
+.admin-btn-soft:hover {
+    color: var(--primary-dark) !important;
+    background: var(--primary-light);
+}
+
+.admin-btn-warning {
+    color: #805400 !important;
+    background: #fff3cd;
+}
+
+.admin-btn-danger {
+    color: #b42318 !important;
+    background: #fff1f0;
+}
+
+.admin-panel {
+    border: 1px solid rgba(230, 235, 241, 0.95);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 10px 28px rgba(36, 49, 64, 0.06);
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.admin-panel-header {
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.admin-panel-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-color);
+}
+
+.admin-panel-body {
+    padding: 1.15rem;
+}
+
+.admin-filter-grid {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) auto;
+    gap: 0.85rem;
+    align-items: end;
+}
+
+.admin-field label,
+.admin-form-label {
+    display: block;
+    font-size: 0.83rem;
+    font-weight: 800;
+    color: var(--text-color);
+    margin-bottom: 0.45rem;
+}
+
+.admin-field .form-control,
+.admin-field .form-select,
+.admin-form .form-control,
+.admin-form .form-select {
+    min-height: 46px;
+    border-radius: 14px;
+    border-color: var(--border-color);
+    background-color: #fff;
+    box-shadow: none;
+}
+
+.admin-form textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.admin-field .form-control:focus,
+.admin-field .form-select:focus,
+.admin-form .form-control:focus,
+.admin-form .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.22rem rgba(90, 195, 164, 0.14);
+}
+
+.admin-columns-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.55rem;
+    padding-top: 0.65rem;
+}
+
+.admin-column-check {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: #fff;
+    padding: 0.65rem 0.75rem;
+}
+
+.admin-table-wrap {
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    overflow: auto;
+}
+
+.admin-table {
+    margin-bottom: 0;
+    min-width: 860px;
+}
+
+.admin-table thead th {
+    background: #f7fafc;
+    color: var(--muted-text);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.admin-table tbody td {
+    vertical-align: middle;
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.admin-table tbody tr:hover td {
+    background: #fbfefd;
+}
+
+.admin-course-link {
+    color: var(--text-color);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.admin-course-link:hover {
+    color: var(--primary-dark);
+}
+
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.admin-badge-free {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+.admin-badge-price {
+    background: #eef4ff;
+    color: #3155a4;
+}
+
+.admin-badge-muted {
+    background: #f2f4f7;
+    color: var(--muted-text);
+}
+
+.admin-inline-actions {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+
+.admin-empty-state {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--muted-text);
+}
+
+.admin-empty-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 18px;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 0.85rem;
+}
+
+.admin-lesson-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 1rem;
+    align-items: start;
+}
+
+.admin-lesson-sidebar {
+    position: sticky;
+    top: calc(var(--header-height) + 1rem);
+}
+
+.admin-content-box {
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    background: #fbfcfd;
+    padding: 1rem;
+    color: var(--text-color);
+    line-height: 1.75;
+}
+
+.admin-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin-file-link {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: #fff;
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.admin-file-link:hover {
+    color: var(--primary-dark);
+    background: var(--primary-light);
+}
+
+.admin-test-question {
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    padding: 1rem;
+    background: #fff;
+    margin-bottom: 0.85rem;
+}
+
+.admin-option-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0;
+}
+
+.admin-form-card {
+    max-width: 920px;
+    margin: 0 auto;
+}
+
+.admin-form-section {
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    padding: 1rem;
+    background: #fff;
+    margin-bottom: 1rem;
+}
+
+.admin-form-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 992px) {
+    .admin-page {
+        padding: 0.9rem;
+    }
+
+    .admin-lesson-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-lesson-sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-hero {
+        padding: 1rem;
+        border-radius: 18px;
+    }
+
+    .admin-actions,
+    .admin-form-actions,
+    .admin-inline-actions {
+        width: 100%;
+    }
+
+    .admin-actions > *,
+    .admin-form-actions > *,
+    .admin-inline-actions > *,
+    .admin-inline-actions form,
+    .admin-inline-actions form button {
+        width: 100%;
+    }
+
+    .admin-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-panel-body,
+    .admin-panel-header {
+        padding: 0.9rem;
+    }
+}
