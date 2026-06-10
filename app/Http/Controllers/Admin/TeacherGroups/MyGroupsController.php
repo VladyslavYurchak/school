@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Teacher_groups;
+namespace App\Http\Controllers\Admin\TeacherGroups;
 
 use App\Http\Controllers\Controller;
 use App\Models\Group;
