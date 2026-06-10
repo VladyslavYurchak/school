@@ -26,32 +26,25 @@ class LiqPayCallbackController extends Controller
         }
 
         $privateKey = config('services.liqpay.private_key');
-
-        $expectedSignature = base64_encode(
-            sha1($privateKey . $data . $privateKey, true)
-        );
+        $expectedSignature = base64_encode(sha1($privateKey . $data . $privateKey, true));
 
         if (!hash_equals($expectedSignature, $signature)) {
-            Log::warning('LIQPAY: invalid signature', [
-                'expected' => $expectedSignature,
-                'received' => $signature,
-            ]);
-
+            Log::warning('LIQPAY: invalid signature');
             return response('invalid signature', 400);
         }
 
-        $payload = json_decode(base64_decode($data), true);
+        $liqpayPayload = json_decode(base64_decode($data), true);
 
-        Log::info('LIQPAY PAYLOAD DECODED', $payload ?? []);
+        Log::info('LIQPAY PAYLOAD DECODED', $liqpayPayload ?? []);
 
-        if (!is_array($payload)) {
+        if (!is_array($liqpayPayload)) {
             Log::warning('LIQPAY: invalid payload');
             return response('invalid payload', 400);
         }
 
-        $orderId = $payload['order_id'] ?? null;
-        $status = $payload['status'] ?? null;
-        $liqpayPaymentId = $payload['payment_id'] ?? null;
+        $orderId = $liqpayPayload['order_id'] ?? null;
+        $status = $liqpayPayload['status'] ?? null;
+        $liqpayPaymentId = $liqpayPayload['payment_id'] ?? null;
 
         if (!$orderId) {
             Log::warning('LIQPAY: missing order_id');
@@ -61,35 +54,71 @@ class LiqPayCallbackController extends Controller
         $payment = Payment::where('provider_order_id', $orderId)->first();
 
         if (!$payment) {
-            Log::warning('LIQPAY: payment not found', [
-                'order_id' => $orderId,
-            ]);
-
+            Log::warning('LIQPAY: payment not found', ['order_id' => $orderId]);
             return response('payment not found', 404);
         }
 
-        // Оновлюємо технічні дані платежу в будь-якому разі
+        $paymentPayload = is_array($payment->payload) ? $payment->payload : [];
+        $mergedPayload = array_merge($paymentPayload, ['liqpay' => $liqpayPayload]);
+
         $payment->update([
             'provider_payment_id' => $liqpayPaymentId,
-            'payload' => $payload,
+            'payload' => $mergedPayload,
         ]);
 
-        // Успішні стани
         if (in_array($status, ['success', 'sandbox'], true)) {
-            // Якщо вже paid — просто повертаємо ok, щоб не дублювати логіку
             if ($payment->status === 'paid') {
                 return response('ok');
             }
 
-            DB::transaction(function () use ($payment, $payload) {
+            DB::transaction(function () use ($payment, $mergedPayload) {
                 $payment->update([
                     'status' => 'paid',
                     'paid_at' => now(),
-                    'payload' => $payload,
+                    'payload' => $mergedPayload,
                 ]);
 
-                $paymentPayload = is_array($payment->payload) ? $payment->payload : [];
-                $templateId = $paymentPayload['subscription_template_id'] ?? null;
+                if ($courseId = ($mergedPayload['course_id'] ?? null)) {
+                    $student = $payment->student()->with('user')->first();
+
+                    if (!$student?->user) {
+                        Log::warning('LIQPAY: student user not found for course payment', [
+                            'payment_id' => $payment->id,
+                        ]);
+                        return;
+                    }
+
+                    $student->user->courses()->syncWithoutDetaching([
+                        $courseId => [
+                            'status' => 'paid',
+                            'paid_amount' => $payment->amount,
+                        ],
+                    ]);
+
+                    return;
+                }
+
+                if ($lessonId = ($mergedPayload['lesson_id'] ?? null)) {
+                    $student = $payment->student()->with('user')->first();
+
+                    if (!$student?->user) {
+                        Log::warning('LIQPAY: student user not found for lesson payment', [
+                            'payment_id' => $payment->id,
+                        ]);
+                        return;
+                    }
+
+                    $student->user->lessons()->syncWithoutDetaching([
+                        $lessonId => [
+                            'status'      => 'paid',
+                            'paid_amount' => $payment->amount,
+                        ],
+                    ]);
+
+                    return;
+                }
+
+                $templateId = $mergedPayload['subscription_template_id'] ?? null;
 
                 if (!$templateId) {
                     Log::warning('LIQPAY: subscription_template_id not found in payment payload', [
@@ -139,17 +168,15 @@ class LiqPayCallbackController extends Controller
             return response('ok');
         }
 
-        // Неуспішні стани
         if (in_array($status, ['failure', 'error'], true)) {
             $payment->update([
                 'status' => 'failed',
-                'payload' => $payload,
+                'payload' => $mergedPayload,
             ]);
 
             return response('ok');
         }
 
-        // Інші проміжні стани просто логнемо
         Log::info('LIQPAY: unhandled status', [
             'status' => $status,
             'payment_id' => $payment->id,

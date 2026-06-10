@@ -13,7 +13,7 @@ class SubscriptionTemplateFactory extends Factory
     {
         return [
             'title'            => 'Тариф ' . fake()->word(),
-            'type'             => fake()->randomElement(['individual', 'group', 'pair', 'trial']),
+            'type'             => fake()->randomElement(['individual', 'group', 'pair']),
             'lessons_per_week' => fake()->numberBetween(1, 5),
             'price'            => fake()->numberBetween(1000, 6000),
             // якщо колонки description немає в БД — не чіпаємо її тут
