@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Calendar_teacher;
+namespace App\Http\Controllers\Admin\CalendarTeacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlannedLesson;
