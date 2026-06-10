@@ -1,12 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Teacher_income;
+namespace App\Http\Controllers\Admin\TeacherIncome;
 
 use App\Http\Controllers\Controller;
 use App\Models\LessonLog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Enums\LessonLogStatus;
+use function ksort;
 
 class IndexController extends Controller
 {
@@ -19,8 +21,10 @@ class IndexController extends Controller
 
         $logs = LessonLog::with(['student','group'])
             ->where('teacher_id', $teacher->id)
-            ->whereIn('status', ['completed','charged'])
-            ->whereYear('date', $selectedYear)
+            ->whereIn('status', [
+                LessonLogStatus::Completed->value,
+                LessonLogStatus::Charged->value,
+            ])            ->whereYear('date', $selectedYear)
             ->whereMonth('date', $selectedMonth)
             ->get();
 
