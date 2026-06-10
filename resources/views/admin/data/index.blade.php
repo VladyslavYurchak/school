@@ -65,5 +65,4 @@
 
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-    <script src="{{ asset('admin/data/student-calendar.js') }}"></script>
 @endsection

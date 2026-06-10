@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', function () {
     const modalEl = document.getElementById('studentCalendarModal');
+    if (!modalEl) {
+        return;
+    }
+
     const modal = new bootstrap.Modal(modalEl);
     let calendar;
 
@@ -49,5 +53,4 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
-
 

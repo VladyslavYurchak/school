@@ -114,3 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+window.selectMonth = selectMonth;
+window.cancelPayment = cancelPayment;
+window.setupPaymentToggle = setupPaymentToggle;
+window.submitSinglePayment = submitSinglePayment;

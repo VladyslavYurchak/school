@@ -3,7 +3,6 @@
 @push('styles')
     {{-- Підключення таблиць та календарика --}}
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <link href="{{ asset('admin/students/payment.css') }}?v=1" rel="stylesheet">
 @endpush
 
 @section('styles')
@@ -330,6 +329,4 @@
             }
         });
     </script>
-
-    <script src="{{ asset('admin/students/payment.js') }}"></script>
 @endsection
