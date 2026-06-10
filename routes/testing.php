@@ -19,7 +19,7 @@ Route::prefix('testing')->name('testing.')->group(function () {
 
 Route::prefix('admin/testing')
     ->name('admin.testing.')
-    ->middleware(['auth'])
+    ->middleware(['admin'])
     ->group(function () {
         Route::resource('tests', TestController::class);
         Route::resource('tests.sections', SectionController::class)->shallow();

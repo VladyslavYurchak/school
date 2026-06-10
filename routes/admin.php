@@ -15,3 +15,5 @@ require __DIR__.'/admin/teachers.php';
 require __DIR__.'/admin/photos.php';
 require __DIR__.'/admin/groups.php';
 require __DIR__.'/admin/information.php';
+require __DIR__.'/admin/subscriptions.php';
+require __DIR__.'/admin/data.php';

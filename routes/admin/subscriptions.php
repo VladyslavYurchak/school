@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['teacher'])->group(function () {
+Route::middleware(['admin'])->group(function () {
     Route::prefix('/subscription-templates')->name('admin.subscription-templates.')->group(function () {
         Route::get('/create', \App\Http\Controllers\Admin\SubscriptionTemplate\CreateController::class)->name('create');
         Route::post('/', \App\Http\Controllers\Admin\SubscriptionTemplate\StoreController::class)->name('store');
