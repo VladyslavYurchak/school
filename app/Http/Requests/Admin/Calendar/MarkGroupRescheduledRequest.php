@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin\Calendar;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\PlannedLesson;
 use App\Enums\LessonType;
+use App\Services\Calendar\CalendarAvailabilityService;
 use Carbon\Carbon;
 
 class MarkGroupRescheduledRequest extends FormRequest
@@ -100,19 +101,12 @@ class MarkGroupRescheduledRequest extends FormRequest
                 }
 
                 // тривалість для розрахунку end; за потреби дістань з моделі/конфіга
-                $durationMinutes = (int) ($lesson->duration_minutes ?? 60);
+                $durationMinutes = (int) ($lesson->duration ?? 60);
                 $newEnd = $newStart->copy()->addMinutes($durationMinutes);
 
                 // перевірка перетину інтервалів у межах цієї ж групи
-                $conflict = PlannedLesson::query()
-                    ->where('group_id', $groupId)
-                    ->where('id', '!=', $lessonId)
-                    // A.start < B.end && A.end > B.start
-                    ->where(function ($q) use ($newStart, $newEnd) {
-                        $q->where('start_date', '<', $newEnd)
-                            ->where('end_date',   '>', $newStart);
-                    })
-                    ->exists();
+                $conflict = app(CalendarAvailabilityService::class)
+                    ->groupHasOverlap($groupId, $newStart, $newEnd, $lessonId);
 
                 if ($conflict) {
                     $v->errors()->add('new_date', 'Для цієї групи вже існує інше заняття у вказаний час.');

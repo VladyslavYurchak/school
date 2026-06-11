@@ -28,4 +28,46 @@ class CalendarAvailabilityService
             })
             ->exists();
     }
+
+    public function studentHasOverlap(
+        int $studentId,
+        CarbonInterface $start,
+        CarbonInterface $end,
+        ?int $exceptLessonId = null
+    ): bool {
+        return PlannedLesson::query()
+            ->where('student_id', $studentId)
+            ->when($exceptLessonId, fn ($query) => $query->where('id', '!=', $exceptLessonId))
+            ->whereNotIn('status', [
+                LessonStatus::Cancelled->value,
+                LessonStatus::Rescheduled->value,
+            ])
+            ->where(function ($query) use ($start, $end) {
+                $query
+                    ->where('start_date', '<', $end)
+                    ->where('end_date', '>', $start);
+            })
+            ->exists();
+    }
+
+    public function groupHasOverlap(
+        int $groupId,
+        CarbonInterface $start,
+        CarbonInterface $end,
+        ?int $exceptLessonId = null
+    ): bool {
+        return PlannedLesson::query()
+            ->where('group_id', $groupId)
+            ->when($exceptLessonId, fn ($query) => $query->where('id', '!=', $exceptLessonId))
+            ->whereNotIn('status', [
+                LessonStatus::Cancelled->value,
+                LessonStatus::Rescheduled->value,
+            ])
+            ->where(function ($query) use ($start, $end) {
+                $query
+                    ->where('start_date', '<', $end)
+                    ->where('end_date', '>', $start);
+            })
+            ->exists();
+    }
 }

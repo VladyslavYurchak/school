@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests\Admin\Calendar;
 
-use App\Enums\LessonStatus;
-use App\Models\PlannedLesson;
 use App\Models\Group;
 use App\Models\SubscriptionTemplate;
 use App\Models\Student;
+use App\Services\Calendar\CalendarAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -167,15 +166,10 @@ class StoreEventRequest extends FormRequest
                 return;
             }
 
+            $availability = app(CalendarAvailabilityService::class);
+
             // 3) Анти-даблбукінг по викладачу
-            $hasOverlap = PlannedLesson::query()
-                ->where('teacher_id', $teacherId)
-                ->whereNotIn('status', [LessonStatus::Cancelled->value, LessonStatus::Rescheduled->value]) // переконайтесь, що такі значення є в enum
-                ->where(function ($q) use ($start, $end) {
-                    $q->where('start_date', '<', $end)
-                        ->where('end_date',   '>', $start);
-                })
-                ->exists();
+            $hasOverlap = $availability->teacherHasOverlap((int) $teacherId, $start, $end);
 
             if ($hasOverlap) {
                 $v->errors()->add('start', 'Викладач уже має інше заняття у цей час.');
@@ -189,14 +183,7 @@ class StoreEventRequest extends FormRequest
                     $wStart = (clone $start)->addWeeks($i);
                     $wEnd   = (clone $end)->addWeeks($i);
 
-                    $overlap = PlannedLesson::query()
-                        ->where('teacher_id', $teacherId)
-                        ->whereNotIn('status', [LessonStatus::Cancelled->value, LessonStatus::Rescheduled->value])
-                        ->where(function ($q) use ($wStart, $wEnd) {
-                            $q->where('start_date', '<', $wEnd)
-                                ->where('end_date',   '>', $wStart);
-                        })
-                        ->exists();
+                    $overlap = $availability->teacherHasOverlap((int) $teacherId, $wStart, $wEnd);
 
                     if ($overlap) {
                         $v->errors()->add(

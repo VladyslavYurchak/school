@@ -5,7 +5,7 @@ namespace App\Http\Requests\Admin\Calendar;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\PlannedLesson;
 use App\Enums\LessonType;
-use App\Enums\LessonStatus;
+use App\Services\Calendar\CalendarAvailabilityService;
 use Carbon\Carbon;
 
 class MarkAsRescheduledRequest extends FormRequest
@@ -78,30 +78,26 @@ class MarkAsRescheduledRequest extends FormRequest
 
                 // ПЕРЕВІРКА ПЕРЕТИНУ ІНТЕРВАЛІВ:
                 // існує конфлікт, якщо existing.start < newEnd && existing.end > newStart
-                $teacherBusy = PlannedLesson::query()
-                    ->where('teacher_id', $lesson->teacher_id)
-                    ->where('id', '!=', $lesson->id)
-                    ->whereNotIn('status', [LessonStatus::Cancelled->value, LessonStatus::Rescheduled->value])
-                    ->where(function ($q) use ($newStart, $newEnd) {
-                        $q->where('start_date', '<', $newEnd)
-                            ->where('end_date',   '>', $newStart);
-                    })
-                    ->exists();
+                $availability = app(CalendarAvailabilityService::class);
+
+                $teacherBusy = $availability->teacherHasOverlap(
+                    (int) $lesson->teacher_id,
+                    $newStart,
+                    $newEnd,
+                    (int) $lesson->id
+                );
 
                 if ($teacherBusy) {
                     $v->errors()->add('new_time', 'У викладача вже є інше заняття, що перетинається з цим часом.');
                 }
 
                 if ($lesson->student_id) {
-                    $studentBusy = PlannedLesson::query()
-                        ->where('student_id', $lesson->student_id)
-                        ->where('id', '!=', $lesson->id)
-                        ->whereNotIn('status', [LessonStatus::Cancelled->value, LessonStatus::Rescheduled->value])
-                        ->where(function ($q) use ($newStart, $newEnd) {
-                            $q->where('start_date', '<', $newEnd)
-                                ->where('end_date',   '>', $newStart);
-                        })
-                        ->exists();
+                    $studentBusy = $availability->studentHasOverlap(
+                        (int) $lesson->student_id,
+                        $newStart,
+                        $newEnd,
+                        (int) $lesson->id
+                    );
 
                     if ($studentBusy) {
                         $v->errors()->add('new_time', 'В учня вже є інше заняття, що перетинається з цим часом.');
