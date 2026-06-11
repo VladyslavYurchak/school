@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin\Calendar;
 use App\Models\Group;
 use App\Models\SubscriptionTemplate;
 use App\Models\Student;
+use App\Services\Calendar\CalendarAccessService;
 use App\Services\Calendar\CalendarAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
@@ -163,6 +164,22 @@ class StoreEventRequest extends FormRequest
 
             if (!$teacherId) {
                 $v->errors()->add('teacher_id', 'Не вдалося визначити викладача для заняття.');
+                return;
+            }
+
+            $access = app(CalendarAccessService::class);
+
+            if (in_array($lessonType, ['individual', 'trial'], true)
+                && $this->filled('student_id')
+                && !$access->studentBelongsToTeacher((int) $this->input('student_id'), (int) $teacherId)) {
+                $v->errors()->add('student_id', 'Selected student does not belong to this teacher.');
+                return;
+            }
+
+            if (in_array($lessonType, ['group', 'pair'], true)
+                && $this->filled('group_id')
+                && !$access->groupBelongsToTeacher((int) $this->input('group_id'), (int) $teacherId)) {
+                $v->errors()->add('group_id', 'Selected group does not belong to this teacher.');
                 return;
             }
 

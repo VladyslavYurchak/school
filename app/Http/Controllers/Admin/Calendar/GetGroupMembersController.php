@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Admin\Calendar;
 
 use App\Http\Controllers\Controller;
 use App\Models\Group;
-use Illuminate\Http\Request;
+use App\Services\Calendar\CalendarAccessService;
 
 class GetGroupMembersController extends Controller
 {
-    public function __invoke($groupId)
+    public function __invoke($groupId, CalendarAccessService $access)
     {
-        $group = Group::with('students')->find($groupId);
+        $group = $access
+            ->scopeGroupForUser(Group::with('students')->whereKey($groupId), auth()->user())
+            ->first();
 
         if (!$group) {
             return response()->json(['message' => 'Група не знайдена'], 404);

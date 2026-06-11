@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Calendar;
 
+use App\Services\Calendar\CalendarAccessService;
 use App\Services\Calendar\CalendarAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
@@ -90,6 +91,26 @@ class UpdateEventRequest extends FormRequest
             $end = $start->copy()->addMinutes($duration);
 
             $lessonId = (int) $this->route('id');
+            $lessonType = $this->input('lesson_type');
+            $access = app(CalendarAccessService::class);
+
+            if (!$access->lessonBelongsToTeacher($lessonId, $teacherId)) {
+                return;
+            }
+
+            if (in_array($lessonType, ['individual', 'trial'], true)
+                && $this->filled('student_id')
+                && !$access->studentBelongsToTeacher((int) $this->input('student_id'), (int) $teacherId)) {
+                $v->errors()->add('student_id', 'Selected student does not belong to this teacher.');
+                return;
+            }
+
+            if (in_array($lessonType, ['group', 'pair'], true)
+                && $this->filled('group_id')
+                && !$access->groupBelongsToTeacher((int) $this->input('group_id'), (int) $teacherId)) {
+                $v->errors()->add('group_id', 'Selected group does not belong to this teacher.');
+                return;
+            }
 
             $hasOverlap = app(CalendarAvailabilityService::class)
                 ->teacherHasOverlap($teacherId, $start, $end, $lessonId);
