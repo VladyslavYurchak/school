@@ -2,8 +2,7 @@
 
 namespace App\Http\Requests\Admin\Calendar;
 
-use App\Enums\LessonStatus;
-use App\Models\PlannedLesson;
+use App\Services\Calendar\CalendarAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -92,19 +91,8 @@ class UpdateEventRequest extends FormRequest
 
             $lessonId = (int) $this->route('id');
 
-            $hasOverlap = PlannedLesson::query()
-                ->where('teacher_id', $teacherId)
-                ->where('id', '!=', $lessonId)
-                ->whereNotIn('status', [
-                    LessonStatus::Cancelled->value,
-                    LessonStatus::Rescheduled->value,
-                ])
-                ->where(function ($query) use ($start, $end) {
-                    $query
-                        ->where('start_date', '<', $end)
-                        ->where('end_date', '>', $start);
-                })
-                ->exists();
+            $hasOverlap = app(CalendarAvailabilityService::class)
+                ->teacherHasOverlap($teacherId, $start, $end, $lessonId);
 
             if ($hasOverlap) {
                 $v->errors()->add('date', 'Teacher already has another lesson at this time.');
