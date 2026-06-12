@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Admin\Calendar;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Services\Calendar\CalendarAccessService;
+use Illuminate\Http\JsonResponse;
 
 class GetGroupMembersController extends Controller
 {
-    public function __invoke($groupId, CalendarAccessService $access)
+    public function __invoke($groupId, CalendarAccessService $access): JsonResponse
     {
         $group = $access
             ->scopeGroupForUser(Group::with('students')->whereKey($groupId), auth()->user())
@@ -18,9 +19,7 @@ class GetGroupMembersController extends Controller
             return response()->json(['message' => 'Група не знайдена'], 404);
         }
 
-
         $members = $group->students->map(function ($student) {
-
             return [
                 'id' => $student->id,
                 'first_name' => $student->first_name,
