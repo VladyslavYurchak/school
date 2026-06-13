@@ -78,8 +78,6 @@
             },
 
 
-
-
             eventClick: function(info) {
                 selectedEventId = info.event.id;
                 selectedEventStart = info.event.start;
@@ -347,39 +345,6 @@
                 }
             });
         }
-
-        // --- Функція перевірки учасників групи ---
-
-        function openGroupMembersModal(groupId) {
-            fetch(`/admin/calendar-events/${groupId}/members`)
-                .then(response => response.json())
-                .then(data => {
-                    const list = document.getElementById('groupMembersList');
-                    list.innerHTML = '';
-
-                    if (data.members && data.members.length > 0) {
-                        data.members.forEach(member => {
-                            const li = document.createElement('li');
-                            li.classList.add('list-group-item');
-                            li.textContent = `${member.first_name} ${member.last_name}`;
-                            list.appendChild(li);
-                        });
-                    } else {
-                        list.innerHTML = '<li class="list-group-item">У цій групі немає студентів.</li>';
-                    }
-
-                    // Відкриваємо модалку Bootstrap 5
-                    const modal = new bootstrap.Modal(document.getElementById('groupMembersModal'));
-                    modal.show();
-                })
-                .catch(err => {
-                    alert('Не вдалося завантажити склад групи');
-                    console.error(err);
-                });
-        }
-
-
-
 
         // --- Перемикання типу заняття у формі ---
         const lessonTypeRadios = document.querySelectorAll('input[name="lesson_type"]');

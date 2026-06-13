@@ -80,7 +80,9 @@ class CalendarViewTest extends TestCase
             ->assertSee('function syncLessonTypeFields()', false)
             ->assertSee('function filterGroupsByType(type)', false)
             ->assertSee('radio.addEventListener(\'change\', syncLessonTypeFields);', false)
-            ->assertDontSee('title: data.title', false);
+            ->assertSee('function openGroupModal({lessonId, lessonDate, lessonTime, groupId, members })', false)
+            ->assertDontSee('title: data.title', false)
+            ->assertDontSee('function openGroupMembersModal(groupId)', false);
     }
 
     public function test_teacher_calendar_includes_time_edit_controls(): void

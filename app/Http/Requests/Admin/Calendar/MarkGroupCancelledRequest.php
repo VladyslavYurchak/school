@@ -54,6 +54,13 @@ class MarkGroupCancelledRequest extends FormRequest
         $validator->after(function ($v) {
             $lessonId = (int) $this->input('lesson_id');
             $groupId  = (int) $this->input('group_id');
+            $routeLessonId = (int) $this->route('id');
+
+            if ($routeLessonId && $routeLessonId !== $lessonId) {
+                $v->errors()->add('lesson_id', 'Lesson id does not match the route.');
+
+                return;
+            }
 
             $lesson = PlannedLesson::find($lessonId);
             if (!$lesson) {

@@ -162,6 +162,47 @@ class CalendarWorkflowTest extends TestCase
         $this->assertSame(0, LessonLog::where('lesson_id', $lesson->id)->count());
     }
 
+    public function test_group_reschedule_rejects_mismatched_route_and_body_lesson_ids(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+
+        $group = Group::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+        ]);
+
+        $routeLesson = PlannedLesson::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+            'start_date' => '2026-06-10 09:00:00',
+            'end_date' => '2026-06-10 10:00:00',
+            'status' => LessonStatus::Planned,
+            'lesson_type' => LessonType::Group,
+        ]);
+
+        $bodyLesson = PlannedLesson::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+            'start_date' => '2026-06-11 09:00:00',
+            'end_date' => '2026-06-11 10:00:00',
+            'status' => LessonStatus::Planned,
+            'lesson_type' => LessonType::Group,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-lessons.reschedule', ['id' => $routeLesson->id]), [
+                'group_id' => $group->id,
+                'lesson_id' => $bodyLesson->id,
+                'new_date' => '2026-06-12',
+                'new_time' => '15:30',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['lesson_id']);
+
+        $this->assertSame(LessonStatus::Planned, $routeLesson->fresh()->status);
+        $this->assertSame(LessonStatus::Planned, $bodyLesson->fresh()->status);
+    }
+
     public function test_group_cancel_soft_deletes_target_lesson_and_deletes_only_its_logs(): void
     {
         [$teacherUser, $teacher] = $this->createTeacherUser();
@@ -226,6 +267,47 @@ class CalendarWorkflowTest extends TestCase
         $this->assertSame(0, LessonLog::where('lesson_id', $targetLesson->id)->count());
         $this->assertSame(1, LessonLog::where('lesson_id', $otherLesson->id)->count());
         $this->assertNotSoftDeleted('planned_lessons', ['id' => $otherLesson->id]);
+    }
+
+    public function test_group_cancel_rejects_mismatched_route_and_body_lesson_ids(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+
+        $group = Group::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+        ]);
+
+        $routeLesson = PlannedLesson::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+            'start_date' => '2026-06-10 09:00:00',
+            'end_date' => '2026-06-10 10:00:00',
+            'status' => LessonStatus::Planned,
+            'lesson_type' => LessonType::Group,
+        ]);
+
+        $bodyLesson = PlannedLesson::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+            'start_date' => '2026-06-11 09:00:00',
+            'end_date' => '2026-06-11 10:00:00',
+            'status' => LessonStatus::Planned,
+            'lesson_type' => LessonType::Group,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-lessons.cancel', ['id' => $routeLesson->id]), [
+                'group_id' => $group->id,
+                'lesson_id' => $bodyLesson->id,
+                'date' => '2026-06-11',
+                'time' => '09:00',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['lesson_id']);
+
+        $this->assertSame(LessonStatus::Planned, $routeLesson->fresh()->status);
+        $this->assertSame(LessonStatus::Planned, $bodyLesson->fresh()->status);
     }
 
     public function test_teacher_can_create_individual_lesson_for_their_student(): void
