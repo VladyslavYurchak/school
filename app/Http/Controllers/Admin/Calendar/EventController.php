@@ -17,7 +17,8 @@ final class EventController extends Controller
         $user = $request->user();
 
         // Визначаємо вчителя (user->teacher або admin->teacher)
-        $teacher = $user->teacher ?? $user->admin?->teacher ?? null;
+        $teacher = $user->teacher;
+
         if (!$teacher) {
             return CalendarEventResource::collection(collect());
         }

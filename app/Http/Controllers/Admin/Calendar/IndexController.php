@@ -29,7 +29,8 @@ class IndexController extends Controller
 
         $groups = Group::query()
             ->where('teacher_id', $teacher->id)
-            ->withCount('students')         // зручно показати “N учнів”
+            ->whereHas('students')
+            ->withCount('students')
             ->orderBy('name')
             ->get();
 

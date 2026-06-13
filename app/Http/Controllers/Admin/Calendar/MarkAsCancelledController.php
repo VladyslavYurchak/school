@@ -19,8 +19,23 @@ class MarkAsCancelledController extends Controller
             // беремо урок та одразу блокуємо в транзакції
             $result = DB::transaction(function () use ($id) {
                 /** @var \App\Models\PlannedLesson|null $lesson */
-                $lesson = PlannedLesson::query()
-                    ->whereKey((int)$id)
+
+                $query = PlannedLesson::query()
+                    ->whereKey((int) $id);
+
+                $user = auth()->user();
+
+                if ($user->role === 'teacher') {
+                    $teacherId = optional($user->teacher)->id;
+
+                    if (!$teacherId) {
+                        abort(403);
+                    }
+
+                    $query->where('teacher_id', $teacherId);
+                }
+
+                $lesson = $query
                     ->lockForUpdate()
                     ->first();
 

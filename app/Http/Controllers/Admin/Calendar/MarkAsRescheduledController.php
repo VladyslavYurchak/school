@@ -22,35 +22,51 @@ class MarkAsRescheduledController extends Controller
 
         try {
             $result = DB::transaction(function () use ($id, $data) {
-                /** @var \App\Models\PlannedLesson|null $lesson */
-                $lesson = PlannedLesson::query()
-                    ->whereKey((int)$id)
+                $query = PlannedLesson::query()
+                    ->whereKey((int) $id);
+
+                $user = auth()->user();
+
+                if ($user->role === 'teacher') {
+                    $teacherId = optional($user->teacher)->id;
+
+                    if (!$teacherId) {
+                        abort(403);
+                    }
+
+                    $query->where('teacher_id', $teacherId);
+                }
+
+                $lesson = $query
                     ->lockForUpdate()
                     ->first();
 
                 if (!$lesson) {
-                    return response()->json([
+                    return [
+                        'status'  => Response::HTTP_NOT_FOUND,
                         'success' => false,
                         'message' => 'Заняття з таким ID не знайдено.',
-                    ], Response::HTTP_NOT_FOUND);
+                    ];
                 }
 
-                // цей контролер лише для індивідуальних/пробних
                 if (!is_null($lesson->group_id)) {
-                    return response()->json([
+                    return [
+                        'status'  => Response::HTTP_UNPROCESSABLE_ENTITY,
                         'success' => false,
                         'message' => 'Цей ендпойнт призначений для індивідуальних/пробних. Для груп/пар — використай груповий контролер перенесення.',
-                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                    ];
                 }
 
-                $initiator   = $data['initiator']; // teacher|student|admin
+                $initiator = $user->role === 'teacher'
+                    ? 'teacher'
+                    : $data['initiator'];
+
                 $newDateTime = Carbon::parse($data['new_date'].' '.$data['new_time']);
 
-                // 🔢 Ліміт переносів для студента (2/місяць по новій даті)
                 if ($initiator === 'student' && $lesson->student_id) {
                     $reschedulesThisMonth = PlannedLesson::withTrashed()
                         ->where('student_id', $lesson->student_id)
-                        ->where('status', LessonStatus::Rescheduled->value)
+                        ->where('status', LessonStatus::Rescheduled)
                         ->where('initiator', 'student')
                         ->whereBetween('start_date', [
                             $newDateTime->copy()->startOfMonth(),
@@ -59,33 +75,30 @@ class MarkAsRescheduledController extends Controller
                         ->count();
 
                     if ($reschedulesThisMonth >= 2) {
-                        return response()->json([
+                        return [
+                            'status'  => Response::HTTP_FORBIDDEN,
                             'success' => false,
                             'message' => 'Учень вже використав ліміт на 2 переноси цього місяця.',
-                        ], Response::HTTP_FORBIDDEN);
+                        ];
                     }
                 }
 
                 $oldStart = $lesson->start_date;
 
-                // 📌 Позначаємо старе заняття як перенесене
                 $lesson->update([
-                    'status'    => LessonStatus::Rescheduled->value,
+                    'status'    => LessonStatus::Rescheduled,
                     'initiator' => $initiator,
                 ]);
 
-                // 🧹 Чистимо всі журнали САМЕ цього уроку
                 $deletedLogs = LessonLog::query()
                     ->where('lesson_id', $lesson->id)
                     ->delete();
 
-                // ⏱️ Тривалість
-                $start  = Carbon::parse($lesson->start_date);
-                $end    = Carbon::parse($lesson->end_date);
-                $durMin = $lesson->duration ?? $start->diffInMinutes($end);
-                $durMin = max(15, $durMin);
+                $start = Carbon::parse($lesson->start_date);
+                $end = Carbon::parse($lesson->end_date);
 
-                // 🆕 Створюємо нове заняття (копіюємо корисні поля)
+                $durMin = max(15, $start->diffInMinutes($end));
+
                 PlannedLesson::create([
                     'title'       => $lesson->title,
                     'student_id'  => $lesson->student_id,
@@ -93,11 +106,9 @@ class MarkAsRescheduledController extends Controller
                     'group_id'    => $lesson->group_id,
                     'start_date'  => $newDateTime,
                     'end_date'    => (clone $newDateTime)->addMinutes($durMin),
-                    'status'      => \App\Enums\LessonStatus::Planned->value,      // 👈 скаляр
+                    'status'      => LessonStatus::Planned,
                     'initiator'   => null,
-                    'lesson_type' => $lesson->lesson_type?->value                  // 👈 не об’єкт
-                        ?? \App\Enums\LessonType::Individual->value,
-                    'duration'    => $lesson->duration ?? $durMin,
+                    'lesson_type' => $lesson->lesson_type ?? LessonType::Individual,
                     'notes'       => $lesson->notes,
                 ]);
 
@@ -107,24 +118,28 @@ class MarkAsRescheduledController extends Controller
                     lessonDatetime: $oldStart,
                     newLessonDatetime: $newDateTime,
                     meta: [
-                        'initiator' => $initiator, // student|teacher|admin
+                        'initiator' => $initiator,
                     ]
                 );
 
-                // 🗑️ Soft delete старого (якщо ввімкнено SoftDeletes)
                 $lesson->delete();
 
-                return response()->json([
+                return [
+                    'status'  => Response::HTTP_OK,
                     'success' => true,
                     'message' => 'Заняття перенесено на нову дату.',
                     'meta'    => [
                         'old_lesson_id' => $lesson->id,
                         'deleted_logs'  => $deletedLogs,
                     ],
-                ]);
+                ];
             });
 
-            return $result;
+            return response()->json([
+                'success' => $result['success'],
+                'message' => $result['message'],
+                'meta'    => $result['meta'] ?? null,
+            ], $result['status']);
 
         } catch (\Throwable $e) {
             Log::error('MarkAsRescheduledController error', [

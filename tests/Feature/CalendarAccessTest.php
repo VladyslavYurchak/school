@@ -279,6 +279,63 @@ class CalendarAccessTest extends TestCase
         $this->assertSame(LessonType::Trial, $lesson->lesson_type);
     }
 
+    public function test_teacher_cannot_change_another_teachers_group_lesson(): void
+    {
+        [$teacherUser] = $this->createTeacherUser();
+        [, $otherTeacher] = $this->createTeacherUser();
+
+        $foreignGroup = Group::factory()->group()->create([
+            'teacher_id' => $otherTeacher->id,
+        ]);
+
+        $student = Student::factory()->create([
+            'teacher_id' => $otherTeacher->id,
+            'group_id' => $foreignGroup->id,
+        ]);
+
+        $foreignLesson = PlannedLesson::factory()->group()->create([
+            'teacher_id' => $otherTeacher->id,
+            'group_id' => $foreignGroup->id,
+            'start_date' => '2026-06-11 10:00:00',
+            'end_date' => '2026-06-11 11:00:00',
+            'status' => LessonStatus::Planned,
+            'lesson_type' => LessonType::Group,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-attendance'), [
+                'group_id' => $foreignGroup->id,
+                'lesson_id' => $foreignLesson->id,
+                'date' => '2026-06-11',
+                'time' => '10:00',
+                'present_students' => [$student->id],
+            ])
+            ->assertNotFound();
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-lessons.reschedule', ['id' => $foreignLesson->id]), [
+                'group_id' => $foreignGroup->id,
+                'lesson_id' => $foreignLesson->id,
+                'new_date' => '2026-06-12',
+                'new_time' => '10:00',
+            ])
+            ->assertUnprocessable();
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-lessons.cancel', ['id' => $foreignLesson->id]), [
+                'group_id' => $foreignGroup->id,
+                'lesson_id' => $foreignLesson->id,
+                'date' => '2026-06-11',
+                'time' => '10:00',
+            ])
+            ->assertNotFound();
+
+        $this->assertSame(LessonStatus::Planned, $foreignLesson->fresh()->status);
+    }
+
     public function test_teacher_can_create_pair_lesson_when_all_students_have_pair_subscription(): void
     {
         [$teacherUser, $teacher] = $this->createTeacherUser();

@@ -6,10 +6,10 @@ namespace App\Http\Controllers\Admin\Calendar;
 
 use App\Actions\Lessons\CancelGroupLessonAction;
 use App\Enums\LessonStatus;
+use App\Exceptions\Domain\LessonNotFound;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Calendar\MarkGroupCancelledRequest;
 use App\Services\LessonActionLogger;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -20,7 +20,15 @@ final class MarkGroupCancelledController extends Controller
         CancelGroupLessonAction $action
     ): JsonResponse {
         $data   = $request->validated();
-        $result = $action->handle((int)$data['lesson_id'], (int)$data['group_id']);
+
+        try {
+            $result = $action->handle((int)$data['lesson_id'], (int)$data['group_id']);
+        } catch (LessonNotFound $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->status());
+        }
 
         $lesson = $result['lesson'];
 

@@ -38,26 +38,40 @@ final class RescheduleGroupLessonService
     public function handle(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            /** @var PlannedLesson|null $lesson */
-            $lesson = PlannedLesson::query()
-                ->whereKey((int)$data['lesson_id'])
+
+            $user = auth()->user();
+
+            $groupQuery = Group::query()
+                ->whereKey((int) $data['group_id']);
+
+            $lessonQuery = PlannedLesson::query()
+                ->whereKey((int) $data['lesson_id'])
+                ->where('group_id', (int) $data['group_id']);
+
+            if ($user->role === 'teacher') {
+                $teacherId = optional($user->teacher)->id;
+
+                if (!$teacherId) {
+                    abort(403);
+                }
+
+                $groupQuery->where('teacher_id', $teacherId);
+                $lessonQuery->where('teacher_id', $teacherId);
+            }
+
+            $group = $groupQuery->first();
+
+            if (!$group) {
+                return $this->fail(Response::HTTP_UNPROCESSABLE_ENTITY, 'Групу не знайдено або недоступна.');
+            }
+
+            $lesson = $lessonQuery
                 ->lockForUpdate()
                 ->first();
 
             if (!$lesson) {
-                return $this->fail(Response::HTTP_NOT_FOUND, 'Урок із таким ID не знайдено.');
+                return $this->fail(Response::HTTP_NOT_FOUND, 'Урок із таким ID не знайдено або недоступний.');
             }
-
-            /** @var Group|null $group */
-            $group = Group::query()->find((int)$data['group_id']);
-            if (!$group) {
-                return $this->fail(Response::HTTP_UNPROCESSABLE_ENTITY, 'Групу не знайдено.');
-            }
-
-            if ((int)$lesson->group_id !== (int)$group->id) {
-                return $this->fail(Response::HTTP_UNPROCESSABLE_ENTITY, 'Урок не належить зазначеній групі.');
-            }
-
             // 2) Нова дата/час
             $newStart = CarbonImmutable::createFromFormat('Y-m-d H:i', $data['new_date'].' '.$data['new_time'])
                 ->seconds(0);
