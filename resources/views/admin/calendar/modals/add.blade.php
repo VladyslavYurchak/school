@@ -64,7 +64,12 @@
                         <select class="form-select" id="eventGroup" name="group_id">
                             <option value="" disabled selected>Оберіть групу</option>
                             @foreach($groups as $group)
-                                <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                <option
+                                    value="{{ $group->id }}"
+                                    data-type="{{ $group->type }}"
+                                >
+                                    {{ $group->name }} ({{ $group->students_count }} учн.)
+                                </option>
                             @endforeach
                         </select>
                     </div>

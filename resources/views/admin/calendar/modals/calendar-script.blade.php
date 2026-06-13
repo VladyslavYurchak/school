@@ -144,7 +144,6 @@
 
             // Формуємо payload
             const payload = {
-                title: data.title,
                 start: formatDateTimeLocal(start),
                 end: formatDateTimeLocal(end),
                 duration: data.duration,
@@ -186,6 +185,7 @@
                 if (response.success) {
                     calendar.refetchEvents();
                     addEventForm.reset();
+                    syncLessonTypeFields();
                     addEventModal.hide();
                 } else {
                     alert(response.message || 'Сталася помилка при додаванні заняття');
@@ -322,22 +322,43 @@
         const groupSelectWrapper = document.getElementById('groupSelectContainer');
 
 
-        lessonTypeRadios.forEach(radio => {
-            radio.addEventListener('change', e => {
-                const type = e.target.value;
-                studentSelectWrapper.classList.toggle('d-none', type !== 'individual');
-                groupSelectWrapper.classList.toggle('d-none', !(type === 'group' || type === 'pair'));
+        const groupSelect = document.getElementById('eventGroup');
+        const studentSelect = document.getElementById('eventStudent');
+
+        function filterGroupsByType(type) {
+            [...groupSelect.options].forEach(option => {
+                if (!option.value) return;
+
+                const groupType = option.dataset.type;
+
+                option.hidden = groupType !== type;
+                option.disabled = groupType !== type;
             });
+
+            groupSelect.value = '';
+        }
+
+        function syncLessonTypeFields() {
+            const checkedLessonType = document.querySelector('input[name="lesson_type"]:checked');
+            const type = checkedLessonType ? checkedLessonType.value : 'individual';
+
+            studentSelectWrapper.classList.toggle('d-none', type !== 'individual');
+            groupSelectWrapper.classList.toggle('d-none', !(type === 'group' || type === 'pair'));
+
+            if (type === 'group' || type === 'pair') {
+                studentSelect.value = '';
+                filterGroupsByType(type);
+            } else {
+                groupSelect.value = '';
+            }
+        }
+
+        lessonTypeRadios.forEach(radio => {
+            radio.addEventListener('change', syncLessonTypeFields);
         });
 
 
 // Викликаємо зміну при завантаженні, щоб встановити правильний стан
-        document.querySelector('input[name="lesson_type"]:checked').dispatchEvent(new Event('change'));
-
-
-
-        // За замовчуванням показуємо студентів
-        studentSelectWrapper.classList.remove('d-none');
-        groupSelectWrapper.classList.add('d-none');
+        syncLessonTypeFields();
     });
 </script>
