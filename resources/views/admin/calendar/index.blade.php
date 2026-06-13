@@ -9,6 +9,7 @@
 
     @include('admin.calendar.modals.add')
     @include('admin.calendar.modals.manage')
+    @include('admin.calendar.modals.edit')
     @include('admin.calendar.modals.reschedule')
     @include('admin.calendar.modals.group-members')
 

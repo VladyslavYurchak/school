@@ -83,6 +83,26 @@ class CalendarViewTest extends TestCase
             ->assertDontSee('title: data.title', false);
     }
 
+    public function test_teacher_calendar_includes_time_edit_controls(): void
+    {
+        [$teacherUser] = $this->createTeacherUser();
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->get(route('admin.calendar.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('id="editEventModal"', false)
+            ->assertSee('id="editEventDate"', false)
+            ->assertSee('id="editEventTime"', false)
+            ->assertSee('id="editEventDuration"', false)
+            ->assertSee('editEventForm.addEventListener(\'submit\'', false)
+            ->assertSee('method: \'PUT\'', false)
+            ->assertSee('`/admin/calendar-events/${selectedEventId}`', false)
+            ->assertDontSee('Редагування ще в розробці', false);
+    }
+
     private function createTeacherUser(): array
     {
         $user = User::factory()->create(['role' => 'teacher']);

@@ -3,14 +3,41 @@
         const calendarEl = document.getElementById('calendar');
         const addEventModal = new bootstrap.Modal(document.getElementById('addEventModal'));
         const manageEventModal = new bootstrap.Modal(document.getElementById('manageEventModal'));
+        const editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
 
         const addEventForm = document.getElementById('addEventForm');
+        const editEventForm = document.getElementById('editEventForm');
 
         // Змінна для перенесення уроків
         const rescheduleModal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
         const rescheduleForm = document.getElementById('rescheduleForm');
 
         let selectedEventId = null;
+        let selectedEventStart = null;
+        let selectedEventEnd = null;
+
+        function formatDateInput(date) {
+            return [
+                date.getFullYear(),
+                String(date.getMonth() + 1).padStart(2, '0'),
+                String(date.getDate()).padStart(2, '0')
+            ].join('-');
+        }
+
+        function formatTimeInput(date) {
+            return [
+                String(date.getHours()).padStart(2, '0'),
+                String(date.getMinutes()).padStart(2, '0')
+            ].join(':');
+        }
+
+        function minutesBetween(start, end) {
+            if (!start || !end) {
+                return 60;
+            }
+
+            return Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000));
+        }
 
         window.calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
@@ -55,6 +82,8 @@
 
             eventClick: function(info) {
                 selectedEventId = info.event.id;
+                selectedEventStart = info.event.start;
+                selectedEventEnd = info.event.end;
 
                 const groupId = info.event.extendedProps.group_id;
                 const members = info.event.extendedProps.members || [];
@@ -226,9 +255,45 @@
         });
 
 
-        // --- Редагування (поки alert) ---
+        // --- Редагування часу заняття ---
         document.getElementById('editEvent').addEventListener('click', function () {
-            alert('Редагування ще в розробці');
+            if (!selectedEventStart) {
+                alert('Не вдалося визначити час заняття');
+                return;
+            }
+
+            document.getElementById('editEventDate').value = formatDateInput(selectedEventStart);
+            document.getElementById('editEventTime').value = formatTimeInput(selectedEventStart);
+            document.getElementById('editEventDuration').value = minutesBetween(selectedEventStart, selectedEventEnd);
+
+            manageEventModal.hide();
+            editEventModal.show();
+        });
+
+        editEventForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            fetch(`/admin/calendar-events/${selectedEventId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    date: document.getElementById('editEventDate').value,
+                    time: document.getElementById('editEventTime').value,
+                    duration: document.getElementById('editEventDuration').value
+                })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    calendar.refetchEvents();
+                    editEventModal.hide();
+                    alert('Заняття оновлено');
+                } else {
+                    alert(data.message || 'Помилка оновлення заняття');
+                }
+            });
         });
 
         // --- Перенесення заняття ---
