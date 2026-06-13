@@ -60,7 +60,7 @@ class CalendarAccessTest extends TestCase
         $this->assertSame(0, PlannedLesson::where('teacher_id', $teacher->id)->count());
     }
 
-    public function test_teacher_cannot_update_their_lesson_to_another_teachers_student(): void
+    public function test_teacher_update_ignores_attempt_to_change_student(): void
     {
         [$teacherUser, $teacher] = $this->createTeacherUser();
         [, $otherTeacher] = $this->createTeacherUser();
@@ -92,13 +92,17 @@ class CalendarAccessTest extends TestCase
                 'lesson_type' => LessonType::Individual->value,
                 'student_id' => $foreignStudent->id,
             ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['student_id']);
+            ->assertOk()
+            ->assertJson(['success' => true]);
 
-        $this->assertSame($ownStudent->id, $lesson->fresh()->student_id);
+        $lesson->refresh();
+
+        $this->assertSame($ownStudent->id, $lesson->student_id);
+        $this->assertSame(LessonType::Individual, $lesson->lesson_type);
+        $this->assertSame('2026-06-11 12:00:00', $lesson->start_date->format('Y-m-d H:i:s'));
     }
 
-    public function test_teacher_cannot_update_their_lesson_to_another_teachers_group(): void
+    public function test_teacher_update_ignores_attempt_to_change_group_or_type(): void
     {
         [$teacherUser, $teacher] = $this->createTeacherUser();
         [, $otherTeacher] = $this->createTeacherUser();
@@ -131,14 +135,15 @@ class CalendarAccessTest extends TestCase
                 'lesson_type' => LessonType::Group->value,
                 'group_id' => $foreignGroup->id,
             ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['group_id']);
+            ->assertOk()
+            ->assertJson(['success' => true]);
 
         $lesson->refresh();
 
         $this->assertSame($ownStudent->id, $lesson->student_id);
         $this->assertNull($lesson->group_id);
         $this->assertSame(LessonType::Individual, $lesson->lesson_type);
+        $this->assertSame('2026-06-11 12:00:00', $lesson->start_date->format('Y-m-d H:i:s'));
     }
 
     public function test_teacher_can_create_group_lesson_when_all_students_have_group_subscription(): void
@@ -202,6 +207,76 @@ class CalendarAccessTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['group_id']);
+    }
+
+    public function test_teacher_can_create_lesson_with_matching_subscription_template(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        $template = SubscriptionTemplate::factory()->create(['type' => 'individual']);
+
+        $student = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+            'subscription_id' => $template->id,
+        ]);
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.store'), [
+                'start' => '2026-06-11 13:00:00',
+                'duration' => 60,
+                'lesson_type' => LessonType::Individual->value,
+                'student_id' => $student->id,
+                'subscription_template_id' => $template->id,
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertJson(['success' => true]);
+    }
+
+    public function test_teacher_cannot_create_lesson_with_mismatched_subscription_template(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        $template = SubscriptionTemplate::factory()->create(['type' => 'group']);
+
+        $student = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.store'), [
+                'start' => '2026-06-11 13:00:00',
+                'duration' => 60,
+                'lesson_type' => LessonType::Individual->value,
+                'student_id' => $student->id,
+                'subscription_template_id' => $template->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['subscription_template_id']);
+    }
+
+    public function test_teacher_can_create_trial_lesson_without_student_or_subscription(): void
+    {
+        [$teacherUser] = $this->createTeacherUser();
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.store'), [
+                'start' => '2026-06-11 15:00:00',
+                'duration' => 45,
+                'lesson_type' => LessonType::Trial->value,
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $lesson = PlannedLesson::findOrFail($response->json('event.id'));
+
+        $this->assertNull($lesson->student_id);
+        $this->assertNull($lesson->group_id);
+        $this->assertSame(LessonType::Trial, $lesson->lesson_type);
     }
 
     public function test_teacher_can_create_pair_lesson_when_all_students_have_pair_subscription(): void

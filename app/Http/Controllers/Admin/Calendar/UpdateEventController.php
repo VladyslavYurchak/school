@@ -13,18 +13,21 @@ class UpdateEventController extends Controller
     {
         $data = $request->validated();
 
+        $teacher = auth()->user()->teacher;
+        if (!$teacher) {
+            abort(403, 'Доступ заборонено: ви не викладач');
+        }
         $start = Carbon::parse($data['date'] . ' ' . $data['time']);
         $end = (clone $start)->addMinutes($data['duration'] ?? 60);
 
-        $lesson = PlannedLesson::findOrFail($id);
+
+        $lesson = PlannedLesson::where('id', $id)
+            ->where('teacher_id', $teacher->id)
+            ->firstOrFail();
+
         $lesson->update([
-            'title'       => $data['title'],
             'start_date'  => $start,
             'end_date'    => $end,
-            'student_id'  => $data['student_id'] ?? null,
-            'group_id'    => $data['group_id'] ?? null,
-            'notes'       => $data['notes'] ?? null,
-            'lesson_type' => $data['lesson_type'],
         ]);
 
         return response()->json(['success' => true]);

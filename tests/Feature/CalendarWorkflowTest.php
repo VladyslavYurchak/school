@@ -325,7 +325,7 @@ class CalendarWorkflowTest extends TestCase
         $this->assertSame(1, PlannedLesson::where('teacher_id', $teacher->id)->count());
     }
 
-    public function test_teacher_can_update_their_own_individual_lesson(): void
+    public function test_teacher_can_update_only_time_for_their_own_lesson(): void
     {
         [$teacherUser, $teacher] = $this->createTeacherUser();
 
@@ -336,6 +336,8 @@ class CalendarWorkflowTest extends TestCase
         $lesson = PlannedLesson::factory()->individual()->create([
             'teacher_id' => $teacher->id,
             'student_id' => $student->id,
+            'title' => 'Original lesson',
+            'notes' => 'Original notes',
             'start_date' => '2026-06-10 10:00:00',
             'end_date' => '2026-06-10 11:00:00',
             'lesson_type' => LessonType::Individual,
@@ -357,10 +359,13 @@ class CalendarWorkflowTest extends TestCase
 
         $lesson->refresh();
 
-        $this->assertSame('Updated lesson', $lesson->title);
+        $this->assertSame('Original lesson', $lesson->title);
         $this->assertSame('2026-06-11 12:30:00', $lesson->start_date->format('Y-m-d H:i:s'));
         $this->assertSame('2026-06-11 13:15:00', $lesson->end_date->format('Y-m-d H:i:s'));
-        $this->assertSame('Updated notes', $lesson->notes);
+        $this->assertSame($student->id, $lesson->student_id);
+        $this->assertNull($lesson->group_id);
+        $this->assertSame(LessonType::Individual, $lesson->lesson_type);
+        $this->assertSame('Original notes', $lesson->notes);
     }
 
     public function test_teacher_cannot_update_lesson_to_overlap_their_other_lesson(): void
