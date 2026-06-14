@@ -198,7 +198,7 @@
             }
         });
 
-        /*** 🟥 Кнопка "Скасовано" — логіка ще не реалізована ***/
+        /*** 🟥 Кнопка "Скасовано" ***/
         document.getElementById('markCancelledBtn').addEventListener('click', async () => {
             if (!confirm('Ви впевнені, що хочете скасувати заняття для цієї групи?')) return;
 

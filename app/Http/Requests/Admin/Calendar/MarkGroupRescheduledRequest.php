@@ -12,7 +12,7 @@ class MarkGroupRescheduledRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // TODO: додай перевірку ролей за потреби
+        return true;
     }
 
     public function rules(): array
