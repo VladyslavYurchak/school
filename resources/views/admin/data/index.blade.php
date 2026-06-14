@@ -41,6 +41,11 @@
                         💰 Місячний дохід
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab" aria-controls="payments" aria-selected="false">
+                        Оплати
+                    </button>
+                </li>
             </ul>
         </div>
 
@@ -54,6 +59,10 @@
 
             <div class="tab-pane fade pt-4" id="income" role="tabpanel" aria-labelledby="income-tab">
                 @include('admin.data.partials.income-table')
+            </div>
+
+            <div class="tab-pane fade pt-4" id="payments" role="tabpanel" aria-labelledby="payments-tab">
+                @include('admin.data.partials.payment-lists')
             </div>
         </div>
     </div>

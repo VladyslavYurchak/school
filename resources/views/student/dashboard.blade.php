@@ -1,6 +1,35 @@
 @extends('public.layouts.main')
 
 @section('content')
+    @php
+        $subscriptionStatusLabels = [
+            'pending' => 'Очікує оплати',
+            'active' => 'Активний',
+            'expired' => 'Завершений',
+            'cancelled' => 'Скасований',
+        ];
+
+        $paymentTypeLabels = [
+            'subscription' => 'Абонемент',
+            'single' => 'Разова оплата',
+            'balance' => 'Поповнення балансу',
+        ];
+
+        $paymentStatusLabels = [
+            'pending' => 'Очікує оплати',
+            'paid' => 'Оплачено',
+            'failed' => 'Неуспішно',
+            'refunded' => 'Повернено',
+        ];
+
+        $lessonTypeLabels = [
+            'individual' => 'Індивідуальне',
+            'group' => 'Групове',
+            'pair' => 'Парне',
+            'trial' => 'Пробне',
+        ];
+    @endphp
+
     <div class="container py-4">
         <h1 class="mb-4">Кабінет учня</h1>
 
@@ -32,7 +61,7 @@
                                 <strong>Абонемент:</strong>
                                 {{ $subscription->subscriptionTemplate->title ?? 'Поразова оплата' }}
                             </p>
-                            <p class="mb-2"><strong>Статус:</strong> {{ $subscription->status }}</p>
+                            <p class="mb-2"><strong>Статус:</strong> {{ $subscriptionStatusLabels[$subscription->status] ?? $subscription->status }}</p>
                             <p class="mb-2"><strong>Період:</strong> {{ $subscription->start_date->format('d.m.Y') }} — {{ $subscription->end_date->format('d.m.Y') }}</p>
                             <p class="mb-2"><strong>Всього занять:</strong> {{ $subscription->lessons_total }}</p>
                             <p class="mb-2"><strong>Використано:</strong> {{ $subscription->lessons_used }}</p>
@@ -93,8 +122,8 @@
                                     @foreach($lessonLogs as $log)
                                         <tr>
                                             <td>{{ \Carbon\Carbon::parse($log->date)->format('d.m.Y') }}</td>
-                                            <td>{{ $log->lesson_type ?? '—' }}</td>
-                                            <td>{{ $log->status ?? '—' }}</td>
+                                            <td>{{ $lessonTypeLabels[$log->lesson_type] ?? ($log->lesson_type ?? '—') }}</td>
+                                            <td>{{ $paymentStatusLabels[$log->status] ?? ($log->status ?? '—') }}</td>
                                             <td>{{ $log->comment ?? '—' }}</td>
                                         </tr>
                                     @endforeach
@@ -130,8 +159,8 @@
                                         <tr>
                                             <td>{{ optional($payment->paid_at)->format('d.m.Y H:i') ?: $payment->created_at->format('d.m.Y H:i') }}</td>
                                             <td>{{ number_format($payment->amount, 2, ',', ' ') }} {{ $payment->currency }}</td>
-                                            <td>{{ $payment->type }}</td>
-                                            <td>{{ $payment->status }}</td>
+                                            <td>{{ $paymentTypeLabels[$payment->type] ?? $payment->type }}</td>
+                                            <td>{{ $paymentStatusLabels[$payment->status] ?? $payment->status }}</td>
                                             <td>{{ $payment->description ?: '—' }}</td>
                                         </tr>
                                     @endforeach

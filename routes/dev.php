@@ -2,6 +2,7 @@
 
 use App\Enums\LessonStatus;
 use App\Enums\LessonType;
+use App\Models\Payment;
 use App\Models\Group;
 use App\Models\PlannedLesson;
 use App\Models\Student;
@@ -25,6 +26,7 @@ Route::get('/dev/login-teacher', function () {
             'email_verified_at' => now(),
         ]
     );
+    $teacherUser->forceFill(['email_verified_at' => now()])->save();
 
     $teacher = Teacher::updateOrCreate(
         ['user_id' => $teacherUser->id],
@@ -102,6 +104,124 @@ Route::get('/dev/login-teacher', function () {
 
     return redirect()->route('admin.calendar.index');
 })->name('dev.login-teacher');
+
+Route::get('/dev/login-student', function () {
+    abort_unless(app()->environment('local'), 404);
+
+    $studentUser = User::updateOrCreate(
+        ['email' => 'dev.student@school.test'],
+        [
+            'name' => 'Dev Student',
+            'password' => Hash::make('password'),
+            'role' => 'student',
+            'email_verified_at' => now(),
+        ]
+    );
+    $studentUser->forceFill(['email_verified_at' => now()])->save();
+
+    $teacherUser = User::updateOrCreate(
+        ['email' => 'dev.student.teacher@school.test'],
+        [
+            'name' => 'Dev Student Teacher',
+            'password' => Hash::make('password'),
+            'role' => 'teacher',
+            'email_verified_at' => now(),
+        ]
+    );
+    $teacherUser->forceFill(['email_verified_at' => now()])->save();
+
+    $teacher = Teacher::updateOrCreate(
+        ['user_id' => $teacherUser->id],
+        [
+            'first_name' => 'Dev',
+            'last_name' => 'Student Teacher',
+            'email' => 'dev.student.teacher@school.test',
+            'phone' => '+380000000003',
+            'lesson_price' => 700,
+            'group_lesson_price' => 900,
+            'pair_lesson_price' => 800,
+            'trial_lesson_price' => 300,
+            'is_active' => true,
+        ]
+    );
+
+    $template = devSubscriptionTemplate('Dev Student Individual', LessonType::Individual->value, 2800);
+
+    $student = Student::updateOrCreate(
+        ['email' => 'dev.student@school.test'],
+        [
+            'user_id' => $studentUser->id,
+            'first_name' => 'Dev',
+            'last_name' => 'Student',
+            'phone' => '+380000000004',
+            'teacher_id' => $teacher->id,
+            'subscription_id' => $template->id,
+            'remaining_lessons' => 8,
+            'remaining_group_lessons' => 0,
+            'is_active' => true,
+            'start_date' => now()->toDateString(),
+        ]
+    );
+
+    $monthStart = now()->startOfMonth();
+    $monthEnd = now()->endOfMonth();
+
+    $monoPayment = Payment::updateOrCreate(
+        ['provider_order_id' => 'dev-student-subscription-order'],
+        [
+            'student_id' => $student->id,
+            'amount' => $template->price,
+            'currency' => 'UAH',
+            'status' => 'paid',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'dev-student-subscription-invoice',
+            'description' => 'Dev subscription payment',
+            'paid_at' => now(),
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => now()->format('Y-m'),
+            ],
+        ]
+    );
+
+    $student->subscriptions()->updateOrCreate(
+        [
+            'subscription_template_id' => $template->id,
+            'start_date' => $monthStart->toDateString(),
+            'end_date' => $monthEnd->toDateString(),
+            'type' => 'subscription',
+        ],
+        [
+            'payment_id' => $monoPayment->id,
+            'price' => $template->price,
+            'status' => 'active',
+            'lessons_total' => $template->lessons_per_week * 4,
+            'lessons_used' => 1,
+            'paid_at' => now(),
+        ]
+    );
+
+    Payment::updateOrCreate(
+        ['provider_order_id' => 'dev-student-course-order'],
+        [
+            'student_id' => $student->id,
+            'amount' => 900,
+            'currency' => 'UAH',
+            'status' => 'paid',
+            'type' => 'single',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'dev-student-course-invoice',
+            'description' => 'Dev course payment',
+            'paid_at' => now()->subDays(2),
+            'payload' => ['course_id' => 1, 'user_id' => $studentUser->id],
+        ]
+    );
+
+    Auth::login($studentUser);
+
+    return redirect()->route('student.dashboard');
+})->name('dev.login-student');
 
 function devSubscriptionTemplate(string $title, string $type, int $price): SubscriptionTemplate
 {

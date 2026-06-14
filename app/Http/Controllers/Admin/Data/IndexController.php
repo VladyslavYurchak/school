@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Data;
 
 use App\Http\Controllers\Controller;
 use App\Models\LessonLog;
+use App\Models\Payment;
 use App\Models\Student;
 use App\Models\StudentSubscription;
 use Carbon\Carbon;
@@ -62,6 +63,30 @@ class IndexController extends Controller
         // ✅ отримуємо готове зведення з сервіс
         $report = $svc->build($selectedYear, $selectedMonth);
 
+        $schoolPayments = StudentSubscription::query()
+            ->with(['student.teacher', 'subscriptionTemplate', 'payment'])
+            ->where('status', 'active')
+            ->whereYear('start_date', $selectedYear)
+            ->whereMonth('start_date', $selectedMonth)
+            ->orderByDesc('paid_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $onlineProductPayments = Payment::query()
+            ->with('student')
+            ->where('status', 'paid')
+            ->whereYear('paid_at', $selectedYear)
+            ->whereMonth('paid_at', $selectedMonth)
+            ->orderByDesc('paid_at')
+            ->orderByDesc('id')
+            ->get()
+            ->filter(function (Payment $payment) {
+                $payload = is_array($payment->payload) ? $payment->payload : [];
+
+                return isset($payload['course_id']) || isset($payload['lesson_id']);
+            })
+            ->values();
+
         return view('admin.data.index', [
             'students'              => $students,
             'singlePaymentsCount'   => $singlePaymentsCount,
@@ -74,6 +99,10 @@ class IndexController extends Controller
             'selectedYear'          => $selectedYear,
             'reports'       => $report['rows'],
             'reportTotals'  => $report['totals'],
+            'schoolPayments' => $schoolPayments,
+            'schoolPaymentsTotal' => (float) $schoolPayments->sum('price'),
+            'onlineProductPayments' => $onlineProductPayments,
+            'onlineProductPaymentsTotal' => (float) $onlineProductPayments->sum('amount'),
         ]);
     }
 }

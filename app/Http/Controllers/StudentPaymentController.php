@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
+use App\Models\Lesson;
 use App\Models\Payment;
 use App\Models\SubscriptionTemplate;
+use App\Services\MonoPayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use LiqPay;
 
 class StudentPaymentController extends Controller
 {
@@ -19,7 +21,7 @@ class StudentPaymentController extends Controller
 
         $student = $user->student()->with('subscriptionTemplate')->first();
 
-        abort_if(!$student, 404, 'Студента не знайдено.');
+        abort_if(!$student, 404, 'Student was not found.');
 
         return view('student.payments.index', [
             'student' => $student,
@@ -27,47 +29,59 @@ class StudentPaymentController extends Controller
         ]);
     }
 
-    public function checkout(Request $request, Payment $payment)
+    public function checkout(Request $request, Payment $payment, MonoPayService $monoPay)
     {
         $user = $request->user();
+
         abort_unless($user && $user->isStudent(), 403);
 
         $student = $user->student;
+
         abort_if(!$student || $student->id !== $payment->student_id, 403);
-        abort_if($payment->status !== 'pending', 422, 'Цей платіж уже оброблено.');
+        abort_if($payment->status !== 'pending', 422, 'This payment has already been processed.');
 
         $payload = $payment->payload ?? [];
-        $templateId = $payload['subscription_template_id'] ?? null;
-        abort_if(!$templateId, 422, 'Не знайдено шаблон абонемента.');
 
-        $template = SubscriptionTemplate::findOrFail($templateId);
+        $template = null;
+        $course = null;
+        $lesson = null;
 
-        $liqpay = new LiqPay(
-            config('services.liqpay.public_key'),
-            config('services.liqpay.private_key')
-        );
-
-        $params = [
-            'version' => 3,
-            'action' => 'pay',
-            'amount' => $payment->amount,
-            'currency' => 'UAH',
-            'description' => $payment->description,
-            'order_id' => $payment->provider_order_id,
-            'language' => 'uk',
-            'result_url' => route('student.payments.result'),
-            'server_url' => 'https://geology-imitate-recent.ngrok-free.dev/liqpay/callback',
-        ];
-
-        if (config('services.liqpay.sandbox')) {
-            $params['sandbox'] = '1';
+        if ($templateId = ($payload['subscription_template_id'] ?? null)) {
+            $template = SubscriptionTemplate::findOrFail($templateId);
         }
 
-        $form = $liqpay->cnb_form($params);
+        if ($courseId = ($payload['course_id'] ?? null)) {
+            $course = Course::findOrFail($courseId);
+        }
 
-        return view('student.payments.checkout', compact('payment', 'template', 'form'));
+        if ($lessonId = ($payload['lesson_id'] ?? null)) {
+            $lesson = Lesson::findOrFail($lessonId);
+        }
+
+        abort_if(!$template && !$course && !$lesson, 422, 'Payment item was not found.');
+
+        $existingMono = $payload['mono_invoice'] ?? null;
+
+        if (
+            $payment->provider_payment_id &&
+            is_array($existingMono) &&
+            !empty($existingMono['pageUrl'])
+        ) {
+            return redirect()->away($existingMono['pageUrl']);
+        }
+
+        $invoice = $monoPay->createInvoice($payment);
+
+        $payment->update([
+            'provider' => 'monopay',
+            'provider_payment_id' => $invoice['invoiceId'] ?? null,
+            'payload' => array_merge($payload, [
+                'mono_invoice' => $invoice,
+            ]),
+        ]);
+
+        return redirect()->away($invoice['pageUrl']);
     }
-
 
     public function store(Request $request): RedirectResponse
     {
@@ -75,10 +89,14 @@ class StudentPaymentController extends Controller
 
         abort_unless($user && $user->isStudent(), 403);
 
+        $data = $request->validate([
+            'subscription_month' => ['required', 'date_format:Y-m'],
+        ]);
+
         $student = $user->student()->with('subscriptionTemplate')->first();
 
-        abort_if(!$student, 404, 'Студента не знайдено.');
-        abort_if(!$student->subscriptionTemplate, 422, 'Для вас не закріплено абонемент.');
+        abort_if(!$student, 404, 'Student was not found.');
+        abort_if(!$student->subscriptionTemplate, 422, 'No subscription is assigned to you.');
 
         $template = $student->subscriptionTemplate;
 
@@ -88,11 +106,12 @@ class StudentPaymentController extends Controller
             'currency' => 'UAH',
             'status' => 'pending',
             'type' => 'subscription',
-            'provider' => 'liqpay',
+            'provider' => 'monopay',
             'provider_order_id' => (string) Str::uuid(),
             'description' => 'Оплата абонемента: ' . $template->title,
             'payload' => [
                 'subscription_template_id' => $template->id,
+                'subscription_month' => $data['subscription_month'],
             ],
         ]);
 
@@ -103,7 +122,6 @@ class StudentPaymentController extends Controller
     {
         return redirect()
             ->route('student.dashboard')
-            ->with('success', 'Якщо оплата була успішною, вона скоро відобразиться в кабінеті.');
+            ->with('success', 'Якщо оплата пройшла успішно, вона скоро з’явиться у вашому кабінеті.');
     }
-
 }

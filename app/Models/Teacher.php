@@ -49,55 +49,10 @@ class Teacher extends Model
         return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
     }
 
-    /**
-     * Повертає кількість індивідуальних і групових занять за місяць.
-     * Індивідуальні: логи типів ['individual','trial'] (1 лог = 1 урок)
-     * Групові: рахуємо КІЛЬКІСТЬ УРОКІВ, а не логів -> distinct за lesson_id (fallback на group/date/time, якщо lesson_id відсутній)
-     */
-    public function getMonthLessonCounts(int $year, int $month): array
-    {
-        $base = $this->lessonLogs()
-            ->whereYear('date', $year)
-            ->whereMonth('date', $month)
-            ->whereIn('status', ['completed', 'charged']);
 
-        $individualCount = (clone $base)
-            ->whereIn('lesson_type', ['individual', 'trial'])
-            ->count();
-
-        // Групові уроки: distinct по lesson_id (може бути кілька логів на один урок)
-        $groupDistinctByLessonId = (clone $base)
-            ->whereIn('lesson_type', ['group', 'pair'])
-            ->whereNotNull('lesson_id')
-            ->distinct()
-            ->count('lesson_id');
-
-        // Fallback, якщо старі логи без lesson_id
-        if ($groupDistinctByLessonId === 0) {
-            $groupDistinctByLessonId = (clone $base)
-                ->whereIn('lesson_type', ['group', 'pair'])
-                ->get()
-                ->groupBy(function ($log) {
-                    $timeStr = \Carbon\Carbon::parse($log->time)->format('H:i');
-                    return $log->group_id . '|' . $log->date . '|' . $timeStr;
-                })->count();
-        }
-
-        return [
-            'individual' => $individualCount,
-            'group'      => $groupDistinctByLessonId,
-        ];
-    }
-
-    /**
-     * МІСЯЧНА ЗАРПЛАТА викладача (сума snapshot-полів, а не поточні ціни!)
-     */
     public function getMonthSalary(int $year, int $month): float
     {
-        return (float) $this->lessonLogs()
-            ->whereYear('date', $year)
-            ->whereMonth('date', $month)
-            ->whereIn('status', ['completed', 'charged'])
+        return (float) $this->monthLogsBase($year, $month)
             ->sum('teacher_payout_amount');
     }
 
@@ -116,7 +71,10 @@ class Teacher extends Model
         return $this->lessonLogs()
             ->whereYear('date', $year)
             ->whereMonth('date', $month)
-            ->whereIn('status', [LessonLogStatus::Completed->value, LessonLogStatus::Charged->value]);
+            ->whereIn('status', [
+                LessonLogStatus::Completed->value,
+                LessonLogStatus::Charged->value
+            ]);
     }
 
     /** К-сть занять за МІСЯЦЬ окремо: individual, trial, group, pair. */
@@ -154,15 +112,18 @@ class Teacher extends Model
             ->whereNotNull('lesson_id')
             ->distinct()
             ->count('lesson_id');
-        if ($byLessonId > 0) {
-            return $byLessonId;
-        }
 
-        $logs = $query->get();
-        return $logs->groupBy(function ($log) {
-            $timeStr = Carbon::parse($log->time)->format('H:i');
-            return ($log->group_id ?? 'no-group') . '|' . $log->date . '|' . $timeStr;
-        })->count();
+        $withoutLessonId = (clone $query)
+            ->whereNull('lesson_id')
+            ->get()
+            ->groupBy(function ($log) {
+                $timeStr = Carbon::parse($log->time)->format('H:i');
+
+                return ($log->group_id ?? 'no-group') . '|' . $log->date . '|' . $timeStr;
+            })
+            ->count();
+
+        return $byLessonId + $withoutLessonId;
     }
 
     /** Суми snapshot-виплат (зарплати) за МІСЯЦЬ окремо: individual, trial, group, pair. */
@@ -210,10 +171,9 @@ class Teacher extends Model
                 $q->where('teacher_id', $this->id);
             })
             // підписки, що стосуються цього місяця
-            ->where(function ($q) use ($year, $month) {
-                $q->whereYear('start_date', $year)->whereMonth('start_date', $month)
-                    ->orWhereYear('end_date', $year)->whereMonth('end_date', $month);
-            })
+            ->whereYear('start_date', $year)
+            ->whereMonth('start_date', $month)
+            ->where('status', 'active')
             // тип оплати: абонемент або поразова
             ->whereIn('type', ['subscription', 'single']);
 

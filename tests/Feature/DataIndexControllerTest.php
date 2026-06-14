@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\LessonLog;
+use App\Models\Payment;
 use App\Models\Student;
 use App\Models\StudentSubscription;
+use App\Models\SubscriptionTemplate;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -210,5 +212,108 @@ class DataIndexControllerTest extends TestCase
 
         $response->assertViewHas('reports');
         $response->assertViewHas('reportTotals');
+    }
+
+    public function test_data_index_shows_separate_school_and_online_payment_lists_for_selected_period(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'teacher']);
+        $teacher = Teacher::factory()->create(['user_id' => $teacherUser->id]);
+        $student = Student::factory()->create(['teacher_id' => $teacher->id]);
+
+        $template = SubscriptionTemplate::factory()->create([
+            'type' => 'individual',
+            'price' => 3000,
+        ]);
+
+        $schoolPayment = StudentSubscription::factory()->create([
+            'student_id' => $student->id,
+            'subscription_template_id' => $template->id,
+            'type' => 'subscription',
+            'status' => 'active',
+            'price' => 3000,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+            'paid_at' => '2026-06-01 10:00:00',
+        ]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $student->id,
+            'subscription_template_id' => $template->id,
+            'type' => 'subscription',
+            'status' => 'cancelled',
+            'price' => 9999,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+            'paid_at' => '2026-06-01 10:00:00',
+        ]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $student->id,
+            'subscription_template_id' => $template->id,
+            'type' => 'subscription',
+            'status' => 'active',
+            'price' => 7777,
+            'start_date' => '2026-07-01',
+            'end_date' => '2026-07-31',
+            'paid_at' => '2026-07-01 10:00:00',
+        ]);
+
+        $coursePayment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 900,
+            'currency' => 'UAH',
+            'status' => 'paid',
+            'type' => 'single',
+            'provider' => 'monopay',
+            'provider_order_id' => 'course-order',
+            'description' => 'Course payment',
+            'paid_at' => '2026-06-05 12:00:00',
+            'payload' => ['course_id' => 10],
+        ]);
+
+        Payment::create([
+            'student_id' => $student->id,
+            'amount' => 500,
+            'currency' => 'UAH',
+            'status' => 'failed',
+            'type' => 'single',
+            'provider' => 'monopay',
+            'provider_order_id' => 'failed-order',
+            'paid_at' => '2026-06-05 12:00:00',
+            'payload' => ['lesson_id' => 20],
+        ]);
+
+        Payment::create([
+            'student_id' => $student->id,
+            'amount' => 1200,
+            'currency' => 'UAH',
+            'status' => 'paid',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_order_id' => 'subscription-order',
+            'paid_at' => '2026-06-05 12:00:00',
+            'payload' => ['subscription_template_id' => $template->id],
+        ]);
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->get(route('admin.data.index', [
+                'month' => 6,
+                'year' => 2026,
+            ]));
+
+        $response->assertOk();
+
+        $response->assertViewHas('schoolPayments', function ($payments) use ($schoolPayment) {
+            return $payments->pluck('id')->all() === [$schoolPayment->id];
+        });
+
+        $response->assertViewHas('schoolPaymentsTotal', 3000.0);
+
+        $response->assertViewHas('onlineProductPayments', function ($payments) use ($coursePayment) {
+            return $payments->pluck('id')->all() === [$coursePayment->id];
+        });
+
+        $response->assertViewHas('onlineProductPaymentsTotal', 900.0);
     }
 }

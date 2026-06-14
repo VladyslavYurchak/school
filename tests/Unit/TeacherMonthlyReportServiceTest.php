@@ -3,6 +3,9 @@
 namespace Tests\Unit;
 
 use App\Models\LessonLog;
+use App\Models\Student;
+use App\Models\StudentSubscription;
+use App\Models\SubscriptionTemplate;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Services\Data\TeacherMonthlyReportService;
@@ -181,5 +184,141 @@ class TeacherMonthlyReportServiceTest extends TestCase
 
         // Загальний прибуток
         $this->assertEquals($row['profit_total'], $totals['profit_total']);
+    }
+
+    public function test_build_counts_only_active_subscription_revenue_and_keeps_payment_types_separate(): void
+    {
+        $year = 2026;
+        $month = 6;
+
+        $teacher = Teacher::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'teacher'])->id,
+        ]);
+
+        $individualTemplate = SubscriptionTemplate::factory()->create([
+            'type' => 'individual',
+            'price' => 3000,
+        ]);
+
+        $groupTemplate = SubscriptionTemplate::factory()->create([
+            'type' => 'group',
+            'price' => 2200,
+        ]);
+
+        $pairTemplate = SubscriptionTemplate::factory()->create([
+            'type' => 'pair',
+            'price' => 2600,
+        ]);
+
+        $individualStudent = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+            'subscription_id' => $individualTemplate->id,
+        ]);
+
+        $groupStudent = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+            'subscription_id' => $groupTemplate->id,
+        ]);
+
+        $pairStudent = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+            'subscription_id' => $pairTemplate->id,
+        ]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $individualStudent->id,
+            'subscription_template_id' => $individualTemplate->id,
+            'type' => 'subscription',
+            'status' => 'active',
+            'price' => 3000,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+        ]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $individualStudent->id,
+            'subscription_template_id' => $individualTemplate->id,
+            'type' => 'subscription',
+            'status' => 'cancelled',
+            'price' => 9999,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+        ]);
+
+        StudentSubscription::factory()->single()->create([
+            'student_id' => $individualStudent->id,
+            'status' => 'active',
+            'price' => 700,
+            'start_date' => '2026-06-10',
+            'end_date' => '2026-06-10',
+        ]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $groupStudent->id,
+            'subscription_template_id' => $groupTemplate->id,
+            'type' => 'subscription',
+            'status' => 'active',
+            'price' => 2200,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+        ]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $pairStudent->id,
+            'subscription_template_id' => $pairTemplate->id,
+            'type' => 'subscription',
+            'status' => 'active',
+            'price' => 2600,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+        ]);
+
+        $result = (new TeacherMonthlyReportService())->build($year, $month);
+        $row = $result['rows'][0];
+
+        $this->assertEquals(3700.0, $row['rev_individual']);
+        $this->assertEquals(2200.0, $row['rev_group']);
+        $this->assertEquals(2600.0, $row['rev_pair']);
+        $this->assertEquals(0.0, $row['rev_trial']);
+    }
+
+    public function test_build_counts_charged_lessons_as_teacher_salary_and_trial_as_cost_without_revenue(): void
+    {
+        $teacher = Teacher::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'teacher'])->id,
+        ]);
+
+        LessonLog::factory()->create([
+            'teacher_id' => $teacher->id,
+            'lesson_type' => 'individual',
+            'status' => 'charged',
+            'date' => '2026-06-12',
+            'teacher_payout_amount' => 500,
+        ]);
+
+        LessonLog::factory()->create([
+            'teacher_id' => $teacher->id,
+            'lesson_type' => 'trial',
+            'status' => 'completed',
+            'date' => '2026-06-13',
+            'teacher_payout_amount' => 300,
+        ]);
+
+        LessonLog::factory()->create([
+            'teacher_id' => $teacher->id,
+            'lesson_type' => 'individual',
+            'status' => 'cancelled',
+            'date' => '2026-06-14',
+            'teacher_payout_amount' => 999,
+        ]);
+
+        $result = (new TeacherMonthlyReportService())->build(2026, 6);
+        $row = $result['rows'][0];
+
+        $this->assertEquals(800.0, $row['salary_total']);
+        $this->assertEquals(500.0, $row['cost_individual']);
+        $this->assertEquals(300.0, $row['cost_trial']);
+        $this->assertEquals(0.0, $row['rev_trial']);
+        $this->assertEquals(-300.0, $row['inc_trial']);
     }
 }
