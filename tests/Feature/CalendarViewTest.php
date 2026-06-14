@@ -80,7 +80,7 @@ class CalendarViewTest extends TestCase
             ->assertSee('function syncLessonTypeFields()', false)
             ->assertSee('function filterGroupsByType(type)', false)
             ->assertSee('radio.addEventListener(\'change\', syncLessonTypeFields);', false)
-            ->assertSee('function openGroupModal({lessonId, lessonDate, lessonTime, groupId, members })', false)
+            ->assertSee('function openGroupModal({ lessonId, lessonDate, lessonTime, groupId, members })', false)
             ->assertDontSee('title: data.title', false)
             ->assertDontSee('function openGroupMembersModal(groupId)', false);
     }
@@ -119,10 +119,11 @@ class CalendarViewTest extends TestCase
             ->assertSee('id="markCompletedBtn"', false)
             ->assertSee('id="attendanceFormList"', false)
             ->assertSee('id="attendanceCheckboxes"', false)
-            ->assertSee('document.getElementById(\'markCompletedBtn\').addEventListener(\'click\'', false)
-            ->assertSee('document.getElementById(\'attendanceFormList\').addEventListener(\'submit\'', false)
-            ->assertSee('fetch(\'/admin/calendar/group-attendance\'', false)
-            ->assertSee('present_students: presentStudents', false)
+            ->assertSee('document.getElementById(\'markCompletedBtn\').addEventListener(\'click\', showAttendanceForm)', false)
+            ->assertSee('document.getElementById(\'attendanceFormList\').addEventListener(\'submit\', saveGroupAttendance)', false)
+            ->assertSee('postJson(\'/admin/calendar/group-attendance\'', false)
+            ->assertSee('present_students: selectedStudentIds()', false)
+            ->assertSee('function refreshCalendar()', false)
             ->assertSee('window.calendar.refetchEvents()', false);
     }
 
@@ -141,11 +142,11 @@ class CalendarViewTest extends TestCase
             ->assertSee('id="groupRescheduleLessonId"', false)
             ->assertSee('id="groupNewDate"', false)
             ->assertSee('id="groupNewTime"', false)
-            ->assertSee('markGroupRescheduledBtn.addEventListener(\'click\'', false)
-            ->assertSee('groupRescheduleForm.addEventListener(\'submit\'', false)
+            ->assertSee('document.getElementById(\'markGroupRescheduledBtn\').addEventListener(\'click\', openGroupRescheduleModal)', false)
+            ->assertSee('document.getElementById(\'groupRescheduleForm\').addEventListener(\'submit\', saveGroupReschedule)', false)
             ->assertSee('`/admin/calendar/group-lessons/${lessonId}/reschedule`', false)
-            ->assertSee('new_date: newDate', false)
-            ->assertSee('new_time: newTime', false);
+            ->assertSee('new_date: valueOf(\'groupNewDate\')', false)
+            ->assertSee('new_time: valueOf(\'groupNewTime\')', false);
     }
 
     public function test_teacher_calendar_includes_group_cancel_controls(): void
@@ -159,12 +160,12 @@ class CalendarViewTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('id="markCancelledBtn"', false)
-            ->assertSee('document.getElementById(\'markCancelledBtn\').addEventListener(\'click\'', false)
+            ->assertSee('document.getElementById(\'markCancelledBtn\').addEventListener(\'click\', cancelGroupLesson)', false)
             ->assertSee('confirm(', false)
             ->assertSee('`/admin/calendar/group-lessons/${lessonId}/cancel`', false)
             ->assertSee('X-Requested-With', false)
             ->assertSee('lesson_id: lessonId', false)
-            ->assertSee('group_id: groupId', false)
+            ->assertSee('group_id: currentGroupId()', false)
             ->assertSee('window.calendar.refetchEvents()', false);
     }
 

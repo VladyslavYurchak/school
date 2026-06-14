@@ -1,16 +1,14 @@
 <script>
-
-
-    function openGroupModal({lessonId, lessonDate, lessonTime, groupId, members }) {
-
-        document.getElementById('lessonId').value = lessonId;
-        document.getElementById('lessonDate').value = lessonDate;
-        document.getElementById('lessonTime').value = lessonTime;
+    function openGroupModal({ lessonId, lessonDate, lessonTime, groupId, members }) {
+        setValue('lessonId', lessonId);
+        setValue('lessonDate', lessonDate);
+        setValue('lessonTime', lessonTime);
+        setValue('groupRescheduleLessonId', lessonId);
 
         const membersList = document.getElementById('groupMembersList');
         membersList.dataset.groupId = groupId;
-
         membersList.innerHTML = '';
+
         members.forEach(member => {
             const li = document.createElement('li');
             li.classList.add('list-group-item');
@@ -19,255 +17,211 @@
             membersList.appendChild(li);
         });
 
-        // Встановлюємо data-lesson-id для кнопки переносу
-        const markGroupRescheduledBtn = document.getElementById('markGroupRescheduledBtn');
-        if (markGroupRescheduledBtn) {
-            markGroupRescheduledBtn.setAttribute('data-lesson-id', lessonId);
-        }
-
-        const modalEl = document.getElementById('groupMembersModal');
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-
         document.getElementById('attendanceForm').classList.add('d-none');
+        showModal('groupMembersModal');
     }
 
-
-
     document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('markCompletedBtn').addEventListener('click', showAttendanceForm);
+        document.getElementById('attendanceFormList').addEventListener('submit', saveGroupAttendance);
+        document.getElementById('markGroupRescheduledBtn').addEventListener('click', openGroupRescheduleModal);
+        document.getElementById('groupRescheduleForm').addEventListener('submit', saveGroupReschedule);
+        document.getElementById('markCancelledBtn').addEventListener('click', cancelGroupLesson);
+    });
 
-        /*** ✅ Обробка кнопки "Проведено" (відкрити чекбокси) ***/
-        document.getElementById('markCompletedBtn').addEventListener('click', () => {
-            const membersList = document.getElementById('groupMembersList');
-            const checkboxesContainer = document.getElementById('attendanceCheckboxes');
-            checkboxesContainer.innerHTML = '';
+    function showAttendanceForm() {
+        const checkboxesContainer = document.getElementById('attendanceCheckboxes');
+        checkboxesContainer.innerHTML = '';
 
-            membersList.querySelectorAll('li').forEach(li => {
-                const studentId = li.dataset.id;
-                const studentName = li.textContent;
+        getGroupMemberItems().forEach(li => {
+            const studentId = li.dataset.id;
+            const studentName = li.textContent;
+            const item = document.createElement('div');
 
-                const item = document.createElement('div');
-                item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+            item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+            item.innerHTML = `
+                <span>${studentName}</span>
+                <input class="form-check-input" type="checkbox" name="students[]" value="${studentId}" id="student-${studentId}">
+            `;
 
-                item.innerHTML = `
-                    <span>${studentName}</span>
-                    <input class="form-check-input" type="checkbox" name="students[]" value="${studentId}" id="student-${studentId}">
-                `;
+            checkboxesContainer.appendChild(item);
+        });
 
-                checkboxesContainer.appendChild(item);
+        document.getElementById('attendanceForm').classList.remove('d-none');
+    }
+
+    async function saveGroupAttendance(e) {
+        e.preventDefault();
+
+        try {
+            const data = await postJson('/admin/calendar/group-attendance', {
+                group_id: currentGroupId(),
+                lesson_id: currentLessonId(),
+                date: valueOf('lessonDate'),
+                time: valueOf('lessonTime'),
+                present_students: selectedStudentIds()
             });
 
-            document.getElementById('attendanceForm').classList.remove('d-none');
-        });
-
-        /*** ✅ Обробка відправки присутності ***/
-        document.getElementById('attendanceFormList').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const checkedBoxes = document.querySelectorAll('#attendanceCheckboxes input[type="checkbox"]:checked');
-            const presentStudents = Array.from(checkedBoxes).map(cb => cb.value);
-
-            const groupId = document.getElementById('groupMembersList').dataset.groupId;
-            const lessonId = document.getElementById('lessonId').value;
-            const date = document.getElementById('lessonDate').value;
-            const time = document.getElementById('lessonTime').value;
-
-
-            try {
-
-                const response = await fetch('/admin/calendar/group-attendance', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        group_id: groupId,
-                        lesson_id: lessonId,
-                        date: date,
-                        time: time,
-                        present_students: presentStudents
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alert('Відвідуваність збережена!');
-                    bootstrap.Modal.getInstance(document.getElementById('groupMembersModal')).hide();
-
-                    if (window.calendar && typeof window.calendar.refetchEvents === 'function') {
-                        window.calendar.refetchEvents();
-                    }
-                } else {
-                    alert(data.message || 'Сталася помилка');
-                }
-            } catch (error) {
-                console.error('Помилка збереження відвідуваності:', error);
-                alert('Помилка збереження відвідуваності');
-            }
-        });
-
-            /*** 🔁 Кнопка "Перенести" відкриває модалку переносу (для групи) ***/
-        /*** 🔄 Відкрити модалку переносу заняття ***/
-        const markGroupRescheduledBtn = document.getElementById('markGroupRescheduledBtn');
-        markGroupRescheduledBtn.addEventListener('click', () => {
-            const lessonId = document.getElementById('lessonId').value;
-            const lessonDate = document.getElementById('lessonDate').value;
-            const lessonTime = document.getElementById('lessonTime').value;
-
-            // Записуємо oldDate/Time у data-атрибути модалки
-            const rescheduleModalEl = document.getElementById('groupRescheduleModal');
-            rescheduleModalEl.dataset.oldDate = lessonDate;
-            rescheduleModalEl.dataset.oldTime = lessonTime;
-
-            // Передаємо ID у приховане поле
-            document.getElementById('groupRescheduleLessonId').value = lessonId;
-            document.getElementById('groupNewDate').value = lessonDate;
-            document.getElementById('groupNewTime').value = lessonTime;
-
-            // Ховаємо попередню модалку
-            const groupModalEl = document.getElementById('groupMembersModal');
-            const groupModal = bootstrap.Modal.getInstance(groupModalEl);
-            if (groupModal) groupModal.hide();
-
-            // Показуємо форму переносу
-            const rescheduleModal = new bootstrap.Modal(rescheduleModalEl);
-            rescheduleModal.show();
-        });
-
-
-        /*** 🕓 Обробка форми переносу групи ***/
-        const groupRescheduleForm = document.getElementById('groupRescheduleForm');
-        groupRescheduleForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const lessonId = document.getElementById('groupRescheduleLessonId').value;
-            const newDate = document.getElementById('groupNewDate').value;
-            const newTime = document.getElementById('groupNewTime').value;
-
-            const modalEl = document.getElementById('groupRescheduleModal');
-            const oldDate = modalEl.dataset.oldDate;
-            const oldTime = modalEl.dataset.oldTime;
-
-            const groupId = document.getElementById('groupMembersList').dataset.groupId;
-
-            try {
-                const response = await fetch(`/admin/calendar/group-lessons/${lessonId}/reschedule`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        lesson_id: lessonId,
-                        group_id: groupId,
-                        new_date: newDate,
-                        new_time: newTime,
-                        date: oldDate,
-                        time: oldTime
-                    })
-                });
-
-                const text = await response.text();
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    console.error('Помилка парсингу JSON:', e);
-                    alert('Сервер повернув некоректний JSON');
-                    return;
-                }
-
-                if (data.success) {
-                    alert('Групове заняття перенесено успішно!');
-                    bootstrap.Modal.getInstance(modalEl).hide();
-
-                    if (window.calendar && typeof window.calendar.refetchEvents === 'function') {
-                        window.calendar.refetchEvents();
-                    } else {
-                        console.warn('calendar ще не готова');
-                    }
-                } else {
-                    alert(data.message || 'Сталася помилка');
-                }
-            } catch (error) {
-                console.error('Помилка при перенесенні групового заняття:', error);
-                alert('Помилка при перенесенні групового заняття');
-            }
-        });
-
-        /*** 🟥 Кнопка "Скасовано" ***/
-        document.getElementById('markCancelledBtn').addEventListener('click', async () => {
-            if (!confirm('Ви впевнені, що хочете скасувати заняття для цієї групи?')) return;
-
-            const groupId = document.getElementById('groupMembersList').dataset.groupId;
-            const lessonId = document.getElementById('lessonId').value;
-            const date = document.getElementById('lessonDate').value;
-            const time = document.getElementById('lessonTime').value;
-
-            if (!lessonId) {
-                alert('Помилка: lessonId не визначено');
+            if (!data.success) {
+                alert(data.message || 'Сталася помилка');
                 return;
             }
 
+            alert('Відвідуваність збережена!');
+            hideModal('groupMembersModal');
+            refreshCalendar();
+        } catch (error) {
+            handleRequestError(error, 'Помилка збереження відвідуваності');
+        }
+    }
 
-            try {
-                const response = await fetch(`/admin/calendar/group-lessons/${lessonId}/cancel`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json',                 // ← важливо
-                        'X-Requested-With': 'XMLHttpRequest'          // ← важливо
-                    },
-                    body: JSON.stringify({
-                        lesson_id: lessonId,
-                        group_id: groupId,
-                        date: date,
-                        time: time
-                    })
-                });
+    function openGroupRescheduleModal() {
+        const lessonDate = valueOf('lessonDate');
+        const lessonTime = valueOf('lessonTime');
+        const modalEl = document.getElementById('groupRescheduleModal');
 
-                // Перевірка типу відповіді — чи це дійсно JSON
-                const contentType = response.headers.get('content-type') || '';
-                if (!contentType.includes('application/json')) {
-                    const text = await response.text();
-                    console.error('Очікував JSON, але отримав HTML або інший тип:', text.slice(0, 300));
-                    alert('Сервер повернув не JSON. Можливо, сталася помилка або редірект.');
-                    return;
-                }
+        modalEl.dataset.oldDate = lessonDate;
+        modalEl.dataset.oldTime = lessonTime;
 
-                const data = await response.json();
+        setValue('groupRescheduleLessonId', currentLessonId());
+        setValue('groupNewDate', lessonDate);
+        setValue('groupNewTime', lessonTime);
 
-                if (!response.ok) {
-                    console.error('Сервер повернув помилку:', response.status, data);
-                    alert(data.message || 'Сталася помилка на сервері');
-                    return;
-                }
+        hideModal('groupMembersModal');
+        showModal('groupRescheduleModal');
+    }
 
-                if (data.success) {
-                    alert('Заняття скасовано!');
-                    const modal = document.getElementById('groupMembersModal');
-                    if (modal) {
-                        const instance = bootstrap.Modal.getInstance(modal);
-                        if (instance) instance.hide();
-                    }
+    async function saveGroupReschedule(e) {
+        e.preventDefault();
 
-                    if (window.calendar && typeof window.calendar.refetchEvents === 'function') {
-                        window.calendar.refetchEvents();
-                    }
-                } else {
-                    alert(data.message || 'Сталася помилка');
-                }
-            } catch (error) {
-                console.error('Помилка при скасуванні заняття:', error);
-                alert('Помилка при скасуванні заняття');
+        const lessonId = valueOf('groupRescheduleLessonId');
+        const modalEl = document.getElementById('groupRescheduleModal');
+
+        try {
+            const data = await postJson(`/admin/calendar/group-lessons/${lessonId}/reschedule`, {
+                lesson_id: lessonId,
+                group_id: currentGroupId(),
+                new_date: valueOf('groupNewDate'),
+                new_time: valueOf('groupNewTime'),
+                date: modalEl.dataset.oldDate,
+                time: modalEl.dataset.oldTime
+            });
+
+            if (!data.success) {
+                alert(data.message || 'Сталася помилка');
+                return;
             }
 
+            alert('Групове заняття перенесено успішно!');
+            hideModal('groupRescheduleModal');
+            refreshCalendar();
+        } catch (error) {
+            handleRequestError(error, 'Помилка при перенесенні групового заняття');
+        }
+    }
 
+    async function cancelGroupLesson() {
+        if (!confirm('Ви впевнені, що хочете скасувати заняття для цієї групи?')) {
+            return;
+        }
+
+        const lessonId = currentLessonId();
+
+        if (!lessonId) {
+            alert('Помилка: lessonId не визначено');
+            return;
+        }
+
+        try {
+            const data = await postJson(`/admin/calendar/group-lessons/${lessonId}/cancel`, {
+                lesson_id: lessonId,
+                group_id: currentGroupId(),
+                date: valueOf('lessonDate'),
+                time: valueOf('lessonTime')
+            }, {
+                'X-Requested-With': 'XMLHttpRequest'
+            });
+
+            if (!data.success) {
+                alert(data.message || 'Сталася помилка');
+                return;
+            }
+
+            alert('Заняття скасовано!');
+            hideModal('groupMembersModal');
+            refreshCalendar();
+        } catch (error) {
+            handleRequestError(error, 'Помилка при скасуванні заняття');
+        }
+    }
+
+    async function postJson(url, payload, extraHeaders = {}) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                ...extraHeaders
+            },
+            body: JSON.stringify(payload)
         });
 
-    });
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : {};
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Request failed');
+        }
+
+        return data;
+    }
+
+    function handleRequestError(error, fallbackMessage) {
+        console.error(fallbackMessage, error);
+        alert(error.message || fallbackMessage);
+    }
+
+    function refreshCalendar() {
+        if (window.calendar && typeof window.calendar.refetchEvents === 'function') {
+            window.calendar.refetchEvents();
+        }
+    }
+
+    function showModal(id) {
+        new bootstrap.Modal(document.getElementById(id)).show();
+    }
+
+    function hideModal(id) {
+        const modal = bootstrap.Modal.getInstance(document.getElementById(id));
+
+        if (modal) {
+            modal.hide();
+        }
+    }
+
+    function currentGroupId() {
+        return document.getElementById('groupMembersList').dataset.groupId;
+    }
+
+    function currentLessonId() {
+        return valueOf('lessonId');
+    }
+
+    function selectedStudentIds() {
+        return Array.from(document.querySelectorAll('#attendanceCheckboxes input[type="checkbox"]:checked'))
+            .map(cb => cb.value);
+    }
+
+    function getGroupMemberItems() {
+        return document.getElementById('groupMembersList').querySelectorAll('li');
+    }
+
+    function valueOf(id) {
+        return document.getElementById(id).value;
+    }
+
+    function setValue(id, value) {
+        document.getElementById(id).value = value;
+    }
 </script>
