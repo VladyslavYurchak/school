@@ -105,6 +105,69 @@ class CalendarViewTest extends TestCase
             ->assertDontSee('Редагування ще в розробці', false);
     }
 
+    public function test_teacher_calendar_includes_group_attendance_controls(): void
+    {
+        [$teacherUser] = $this->createTeacherUser();
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->get(route('admin.calendar.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('id="groupMembersModal"', false)
+            ->assertSee('id="markCompletedBtn"', false)
+            ->assertSee('id="attendanceFormList"', false)
+            ->assertSee('id="attendanceCheckboxes"', false)
+            ->assertSee('document.getElementById(\'markCompletedBtn\').addEventListener(\'click\'', false)
+            ->assertSee('document.getElementById(\'attendanceFormList\').addEventListener(\'submit\'', false)
+            ->assertSee('fetch(\'/admin/calendar/group-attendance\'', false)
+            ->assertSee('present_students: presentStudents', false)
+            ->assertSee('window.calendar.refetchEvents()', false);
+    }
+
+    public function test_teacher_calendar_includes_group_reschedule_controls(): void
+    {
+        [$teacherUser] = $this->createTeacherUser();
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->get(route('admin.calendar.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('id="groupRescheduleModal"', false)
+            ->assertSee('id="groupRescheduleForm"', false)
+            ->assertSee('id="groupRescheduleLessonId"', false)
+            ->assertSee('id="groupNewDate"', false)
+            ->assertSee('id="groupNewTime"', false)
+            ->assertSee('markGroupRescheduledBtn.addEventListener(\'click\'', false)
+            ->assertSee('groupRescheduleForm.addEventListener(\'submit\'', false)
+            ->assertSee('`/admin/calendar/group-lessons/${lessonId}/reschedule`', false)
+            ->assertSee('new_date: newDate', false)
+            ->assertSee('new_time: newTime', false);
+    }
+
+    public function test_teacher_calendar_includes_group_cancel_controls(): void
+    {
+        [$teacherUser] = $this->createTeacherUser();
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->get(route('admin.calendar.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('id="markCancelledBtn"', false)
+            ->assertSee('document.getElementById(\'markCancelledBtn\').addEventListener(\'click\'', false)
+            ->assertSee('confirm(', false)
+            ->assertSee('`/admin/calendar/group-lessons/${lessonId}/cancel`', false)
+            ->assertSee('X-Requested-With', false)
+            ->assertSee('lesson_id: lessonId', false)
+            ->assertSee('group_id: groupId', false)
+            ->assertSee('window.calendar.refetchEvents()', false);
+    }
+
     private function createTeacherUser(): array
     {
         $user = User::factory()->create(['role' => 'teacher']);
