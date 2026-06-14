@@ -57,11 +57,7 @@
                 const formattedDate = clickedDate.toISOString().slice(0, 10);
                 document.getElementById('eventDate').value = formattedDate;
 
-                // Витягуємо час у форматі hh:mm
-                const hours = clickedDate.getHours().toString().padStart(2, '0');
-                const minutes = clickedDate.getMinutes().toString().padStart(2, '0');
-                const formattedTime = `${hours}:${minutes}`;
-                document.getElementById('eventTime').value = formattedTime;
+                document.getElementById('eventTime').value = '09:00';
 
                 addEventModal.show();
             },

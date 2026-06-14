@@ -81,6 +81,7 @@ class CalendarViewTest extends TestCase
             ->assertSee('function filterGroupsByType(type)', false)
             ->assertSee('radio.addEventListener(\'change\', syncLessonTypeFields);', false)
             ->assertSee('function openGroupModal({ lessonId, lessonDate, lessonTime, groupId, members })', false)
+            ->assertSee('document.getElementById(\'eventTime\').value = \'09:00\';', false)
             ->assertDontSee('title: data.title', false)
             ->assertDontSee('function openGroupMembersModal(groupId)', false);
     }

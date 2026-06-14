@@ -6,3 +6,7 @@ require __DIR__.'/teacher.php';
 require __DIR__.'/student.php';
 require __DIR__.'/testing.php';
 require __DIR__.'/webhooks.php';
+
+if (app()->environment('local')) {
+    require __DIR__.'/dev.php';
+}
