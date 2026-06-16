@@ -16,6 +16,9 @@ class LessonPaymentController extends Controller
         $user = $request->user();
 
         abort_unless($user, 403);
+        $lesson->loadMissing('course');
+
+        abort_unless($lesson->course?->is_published, 404);
         abort_unless($lesson->is_published, 404);
 
         if ($lesson->isAvailableFor($user)) {
