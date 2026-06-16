@@ -11,22 +11,25 @@ class DeleteFileController extends Controller
     public function __invoke(Lesson $lesson, string $filename)
     {
         $decodedFilename = urldecode($filename);
-        $fullPath = 'main_media/' . $decodedFilename;
+        $files = is_array($lesson->media_files)
+            ? $lesson->media_files
+            : json_decode($lesson->media_files, true) ?? [];
 
-        $files = is_array($lesson->media_files) ? $lesson->media_files : json_decode($lesson->media_files, true) ?? [];
+        $storedPath = in_array($decodedFilename, $files, true)
+            ? $decodedFilename
+            : 'main_media/' . $decodedFilename;
 
-        if (!in_array($fullPath, $files)) {
-            return back()->with('error', 'Файл не знайдено.');
+        if (!in_array($storedPath, $files, true)) {
+            return back()->with('error', 'File was not found.');
         }
 
-        if (Storage::disk('public')->exists($fullPath)) {
-            Storage::disk('public')->delete($fullPath);
-        }
+        Storage::disk('public')->delete($storedPath);
 
-        $lesson->media_files = array_values(array_filter($files, fn($f) => $f !== $fullPath));
+        $lesson->media_files = array_values(
+            array_filter($files, fn ($file) => $file !== $storedPath)
+        );
         $lesson->save();
 
-        return back()->with('success', 'Файл успішно видалено.');
+        return back()->with('success', 'File deleted.');
     }
-
 }

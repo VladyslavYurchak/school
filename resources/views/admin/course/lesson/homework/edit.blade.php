@@ -30,7 +30,7 @@
                                         📎 {{ basename($file) }}
                                     </a>
                                     <button type="button" class="btn btn-sm btn-outline-danger ms-2"
-                                            onclick="deleteFile('{{ route('admin.course.lesson.homework.file.delete', ['lesson' => $lesson->id, 'filename' => urlencode(basename($file))]) }}')">
+                                            onclick="deleteFile('{{ route('admin.course.lesson.homework.file.delete', ['lesson' => $lesson->id, 'filename' => urlencode($file)]) }}')">
                                         🗑️
                                     </button>
                                 </div>
@@ -46,7 +46,13 @@
 
                     <div class="mb-4">
                         <label for="homework_text" class="form-label fw-semibold text-dark">📝 Текст домашнього завдання</label>
-                        <textarea name="homework_text" id="homework_text" class="form-control rounded shadow-sm" rows="4">{{ old('homework_text', $lesson->homework_text) }}</textarea>
+                        <textarea
+                            name="homework_text"
+                            id="homework_editor"
+                            class="form-control rounded shadow-sm"
+                            rows="4"
+                        >{{ old('homework_text', $lesson->homework_text) }}
+                        </textarea>
                     </div>
 
                     <div class="mb-4">
@@ -113,5 +119,36 @@
             document.body.appendChild(form);
             form.submit();
         }
+    </script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const editorConfig = {
+                toolbar: [
+                    'heading',
+                    '|',
+                    'bold',
+                    'italic',
+                    'link',
+                    'bulletedList',
+                    'numberedList',
+                    'blockQuote',
+                    '|',
+                    'undo',
+                    'redo'
+                ]
+            };
+
+            const homeworkEditor = document.querySelector('#homework_editor');
+
+            if (homeworkEditor) {
+                ClassicEditor
+                    .create(homeworkEditor, editorConfig)
+                    .catch(error => {
+                        console.error(error);
+                    });
+            }
+        });
     </script>
 @endsection

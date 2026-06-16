@@ -11,14 +11,12 @@ class DestroyController extends Controller
     public function __invoke(Lesson $lesson)
     {
         // 1. Видалити файли домашнього завдання з файлової системи
-        if ($lesson->homework_files) {
-            $files = $lesson->homework_files;
+        $disk = Storage::disk('public');
 
-            if (is_array($files)) {
-                foreach ($files as $file) {
-                    if (Storage::exists($file)) {
-                        Storage::delete($file);
-                    }
+        if ($lesson->homework_files && is_array($lesson->homework_files)) {
+            foreach ($lesson->homework_files as $file) {
+                if ($disk->exists($file)) {
+                    $disk->delete($file);
                 }
             }
         }

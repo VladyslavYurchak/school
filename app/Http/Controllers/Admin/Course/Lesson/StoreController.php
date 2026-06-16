@@ -22,8 +22,13 @@ class StoreController extends Controller
             'video_url' => 'nullable|url',
             'homework_text' => 'nullable|string',
             'homework_video_url' => 'nullable|url',
-            'media_files.*' => 'file|mimes:jpg,jpeg,png,mp3,mp4,mov,avi,wmv,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar|max:20480',
-            'homework_file.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx,ppt,pptx|max:20480',
+
+            'position' => 'nullable|integer|min:0',
+            'price' => 'nullable|numeric|min:0',
+            'is_published' => 'nullable|boolean',
+
+            'media_files.*' => 'file|mimes:pdf,jpg,jpeg,png,mp3,wav,ogg,m4a,doc,docx,ppt,pptx,txt|max:51200',
+            'homework_file.*' => 'file|mimes:pdf,jpg,jpeg,png,mp3,wav,ogg,m4a,doc,docx,ppt,pptx,txt|max:51200',
             'tests' => 'nullable|array',
             'tests.*.question' => 'required|string|max:255',
             'tests.*.answers' => [
@@ -35,6 +40,7 @@ class StoreController extends Controller
                     $nonEmpty = array_filter($value, function ($v) {
                         return trim($v) !== '';
                     });
+
                     if (count($nonEmpty) < 3) {
                         $fail("Кожен тест повинен містити хоча б три заповнені варіанти відповіді.");
                     }
@@ -60,6 +66,10 @@ class StoreController extends Controller
                 'video_url' => $validatedData['video_url'] ?? null,
                 'homework_text' => $validatedData['homework_text'] ?? null,
                 'homework_video_url' => $validatedData['homework_video_url'] ?? null,
+
+                'position' => $validatedData['position'] ?? 0,
+                'price' => !empty($validatedData['price']) ? $validatedData['price'] : null,
+                'is_published' => $request->boolean('is_published', true),
             ]);
 
             // Обробка медіафайлів

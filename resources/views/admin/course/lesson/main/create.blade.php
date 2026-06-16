@@ -16,8 +16,13 @@
                     @method('PUT')
 
                     <div class="mb-4">
-                        <label for="content" class="form-label fw-bold">Основний зміст</label>
-                        <textarea name="content" id="content" rows="5" class="form-control shadow-sm">{{ old('content', $lesson->content) }}</textarea>
+                        <label for="content_editor" class="form-label fw-bold">Основний зміст</label>
+
+                        <textarea
+                            name="content"
+                            id="content_editor"
+                            class="form-control"
+                        >{{ old('content', $lesson->content) }}</textarea>
                     </div>
 
                     <div class="mb-4">
@@ -44,7 +49,10 @@
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-outline-danger"
-                                            onclick="deleteFile('{{ route('admin.course.lesson.main.file.delete', ['lesson' => $lesson->id, 'filename' => basename($file)]) }}')"
+                                            onclick="deleteFile('{{ route('admin.course.lesson.main.file.delete', [
+                                            'lesson' => $lesson->id,
+                                            'filename' => urlencode($file)
+                                        ]) }}')"
                                         >
                                             Видалити
                                         </button>
@@ -127,4 +135,42 @@
             form.submit();
         }
     </script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const editorConfig = {
+                toolbar: [
+                    'heading',
+                    '|',
+                    'bold',
+                    'italic',
+                    'link',
+                    'bulletedList',
+                    'numberedList',
+                    'blockQuote',
+                    '|',
+                    'undo',
+                    'redo'
+                ]
+            };
+
+            if (document.querySelector('#content_editor')) {
+                ClassicEditor
+                    .create(document.querySelector('#content_editor'), editorConfig)
+                    .catch(error => {
+                        console.error(error);
+                    });
+            }
+
+            if (document.querySelector('#homework_editor')) {
+                ClassicEditor
+                    .create(document.querySelector('#homework_editor'), editorConfig)
+                    .catch(error => {
+                        console.error(error);
+                    });
+            }
+        });
+    </script>
+
 @endsection

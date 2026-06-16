@@ -13,9 +13,9 @@ class StoreController extends Controller
     {
         $data = $request->validate([
             'content' => 'nullable|string',
-            'audio_file' => 'nullable|file|mimes:mp3,wav,ogg|max:10240',
+            'audio_file' => 'nullable|file|mimes:mp3,wav,ogg,m4a|max:51200',
             'video_url' => 'nullable|url',
-            'media_files.*' => 'nullable|file|max:10240',
+            'media_files.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png,mp3,wav,ogg,m4a,doc,docx,ppt,pptx,txt|max:51200',
         ]);
 
         // Нормалізація YouTube-лінки в embed

@@ -11,23 +11,24 @@ class DeleteFileController extends Controller
     public function __invoke(Lesson $lesson, string $filename)
     {
         $decodedFilename = urldecode($filename);
-        $fullFilename = 'homework_files/' . $decodedFilename;
 
-        $files = is_array($lesson->homework_files)
-            ? $lesson->homework_files
-            : json_decode($lesson->homework_files, true) ?? [];
+        // беремо масив як є
+        $files = $lesson->homework_files ?? [];
 
-        if (!in_array($fullFilename, $files)) {
+        if (!in_array($decodedFilename, $files)) {
             return back()->with('error', 'Файл не знайдено серед прикріплених.');
         }
 
-        // Ось тут треба саме $fullFilename!
-        if (Storage::disk('public')->exists($fullFilename)) {
-            Storage::disk('public')->delete($fullFilename);
-        }
+        $disk = Storage::disk('public');
 
-        // Видаляємо зі списку
-        $lesson->homework_files = array_values(array_filter($files, fn ($file) => $file !== $fullFilename));
+        // видаляємо файл (без exists — не потрібно)
+        $disk->delete($decodedFilename);
+
+        // видаляємо з масиву
+        $lesson->homework_files = array_values(
+            array_filter($files, fn ($file) => $file !== $decodedFilename)
+        );
+
         $lesson->save();
 
         return back()->with('success', 'Файл успішно видалено.');

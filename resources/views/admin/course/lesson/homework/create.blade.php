@@ -12,12 +12,15 @@
             <div class="card-body">
                 <form action="{{ route('admin.course.lesson.homework.store', $lesson->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
-                    @method(isset($lesson->homework_text) ? 'PUT' : 'POST')
 
                     <!-- Текст -->
                     <div class="mb-4">
                         <label for="homework_text" class="form-label fw-semibold">Текст домашнього завдання</label>
-                        <textarea name="homework_text" id="homework_text" rows="5" class="form-control border-secondary">{{ old('homework_text', $lesson->homework_text) }}</textarea>
+                        <textarea
+                            name="homework_text"
+                            id="homework_editor"
+                            class="form-control"
+                        >{{ old('homework_text') }}</textarea>
                     </div>
 
                     <!-- Файли -->
@@ -25,13 +28,13 @@
                         <label for="homework_files" class="form-label fw-semibold">Додати файли</label>
                         <input type="file" name="homework_files[]" id="homework_files" class="form-control border-secondary" multiple>
 
-                        @if($lesson->homework_files)
+                        @if(!empty($lesson->homework_files))
                             <p class="mt-3 fw-semibold">Завантажені файли:</p>
                             <div class="d-flex flex-wrap gap-2">
-                                @foreach(json_decode($lesson->homework_files, true) as $file)
-                                    <a href="{{ asset('storage/homework_files/' . $file) }}" target="_blank"
+                                @foreach(($lesson->homework_files ?? []) as $file)
+                                    <a href="{{ asset('storage/' . $file) }}" target="_blank"
                                        class="badge bg-light text-dark border px-3 py-2">
-                                        📎 {{ $file }}
+                                        📎 {{ basename($file) }}
                                     </a>
                                 @endforeach
                             </div>
@@ -69,4 +72,42 @@
             border-radius: 6px;
         }
     </style>
+
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const editorConfig = {
+                toolbar: [
+                    'heading',
+                    '|',
+                    'bold',
+                    'italic',
+                    'link',
+                    'bulletedList',
+                    'numberedList',
+                    'blockQuote',
+                    '|',
+                    'undo',
+                    'redo'
+                ]
+            };
+
+            if (document.querySelector('#content_editor')) {
+                ClassicEditor
+                    .create(document.querySelector('#content_editor'), editorConfig)
+                    .catch(error => {
+                        console.error(error);
+                    });
+            }
+
+            if (document.querySelector('#homework_editor')) {
+                ClassicEditor
+                    .create(document.querySelector('#homework_editor'), editorConfig)
+                    .catch(error => {
+                        console.error(error);
+                    });
+            }
+        });
+    </script>
 @endsection
