@@ -29,6 +29,7 @@ class StudentDashboardController extends Controller
             'subscription' => $student->activeSubscription,
             'payments' => $student->payments,
             'lessonLogs' => $student->lessonLogs,
+            'courses' => $user->courses()->with('language')->wherePivot('status', 'paid')->get(),
         ]);
     }
 }

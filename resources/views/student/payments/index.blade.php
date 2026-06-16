@@ -12,6 +12,18 @@
     <div class="container py-4">
         <h1 class="mb-4">Оплата</h1>
 
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
+
+        @if($errors->any())
+            <div class="alert alert-danger">{{ $errors->first() }}</div>
+        @endif
+
         <div class="card">
             <div class="card-body">
 
@@ -25,18 +37,21 @@
 
                     <form action="{{ route('student.payments.store') }}" method="POST">
                         @csrf
-                        <input type="hidden" name="subscription_template_id" value="{{ $template->id }}">
 
                         <div class="mb-3">
                             <label for="subscription_month" class="form-label">Місяць оплати</label>
-                            <input
-                                type="month"
+                            <select
                                 id="subscription_month"
                                 name="subscription_month"
-                                class="form-control"
-                                value="{{ now()->format('Y-m') }}"
+                                class="form-select"
                                 required
                             >
+                                @foreach($allowedPaymentMonths ?? [] as $paymentMonth)
+                                    <option value="{{ $paymentMonth['value'] }}" @selected($paymentMonth['value'] === ($defaultPaymentMonth ?? now()->format('Y-m')))>
+                                        {{ $paymentMonth['label'] }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <button type="submit" class="btn btn-primary">

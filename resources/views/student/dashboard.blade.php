@@ -63,10 +63,6 @@
                             </p>
                             <p class="mb-2"><strong>Статус:</strong> {{ $subscriptionStatusLabels[$subscription->status] ?? $subscription->status }}</p>
                             <p class="mb-2"><strong>Період:</strong> {{ $subscription->start_date->format('d.m.Y') }} — {{ $subscription->end_date->format('d.m.Y') }}</p>
-                            <p class="mb-2"><strong>Всього занять:</strong> {{ $subscription->lessons_total }}</p>
-                            <p class="mb-2"><strong>Використано:</strong> {{ $subscription->lessons_used }}</p>
-                            <p class="mb-3"><strong>Залишилось:</strong> {{ $subscription->lessons_remaining }}</p>
-
                             <a href="{{ route('student.payments.index') }}" class="btn btn-primary">
                                 Оплатити абонемент
                             </a>
