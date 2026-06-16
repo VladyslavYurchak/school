@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin\Course\Lesson\Test;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LessonTestRequest;
 use App\Models\Lesson;
-use App\Models\LessonTest;
 use Illuminate\Support\Facades\DB;
 
 class StoreController extends Controller
@@ -17,21 +16,17 @@ class StoreController extends Controller
         $lesson = Lesson::findOrFail($lessonId);
         $maxPosition = $lesson->tests()->max('position') ?? 0;
 
-//        $test = LessonTest::create([
-//            'lesson_id' => $lessonId,
-//            'question' => $validated['question'],
-//        ]);
-
-        DB::transaction(function () use ($lesson, $validated, $maxPosition) {
+        DB::transaction(function () use ($request, $lesson, $validated, $maxPosition) {
             $test = $lesson->tests()->create([
                 'question' => $validated['question'],
                 'position' => $maxPosition + 1,
+                'is_multiple_choice' => $request->isMultipleChoice(),
             ]);
 
-            foreach ($validated['options']['new'] ?? [] as $data) {
+            foreach ($request->filledOptions() as $data) {
                 $test->options()->create([
                     'option_text' => $data['option_text'],
-                    'is_correct' => !empty($data['is_correct']),
+                    'is_correct' => $data['is_correct'],
                 ]);
             }
         });

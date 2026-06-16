@@ -4,9 +4,9 @@
     <main class="app-main">
         <div class="card shadow-lg border-0">
             <div class="card-header bg-white d-flex align-items-center">
-                <h3 class="fw-bold text-dark mb-0">Edit test</h3>
+                <h3 class="fw-bold text-dark mb-0">Редагувати тест</h3>
                 <a href="{{ route('admin.course.lesson.test.create', $lesson->id) }}" class="btn btn-outline-secondary btn-sm ms-auto">
-                    Back
+                    Назад
                 </a>
             </div>
 
@@ -14,7 +14,7 @@
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрити"></button>
                     </div>
                 @endif
 
@@ -23,7 +23,7 @@
                     @method('PATCH')
 
                     <div class="mb-3">
-                        <label for="question" class="form-label fw-bold">Question</label>
+                        <label for="question" class="form-label fw-bold">Питання</label>
                         <textarea name="question" id="question" class="form-control shadow-sm" rows="3">{{ old('question', $test->question) }}</textarea>
                         @if ($errors->has('question'))
                             <div class="alert alert-danger mt-2 shadow-sm rounded">
@@ -32,8 +32,8 @@
                         @endif
                     </div>
 
-                    <h5 class="mb-1 fw-bold">Answers</h5>
-                    <div class="form-text mb-3">Minimum 3 answers, maximum 5. Mark one or more correct answers.</div>
+                    <h5 class="mb-1 fw-bold">Варіанти відповідей</h5>
+                    <div class="form-text mb-3">Мінімум 3 відповіді, максимум 5. Позначте одну або кілька правильних.</div>
 
                     @php
                         $oldExistingOptions = old('options.existing');
@@ -57,12 +57,12 @@
                                            class="form-check-input"
                                            name="options[existing][{{ $option->id }}][is_correct]"
                                            value="1" {{ $isChecked ? 'checked' : '' }}>
-                                    <label class="form-check-label">Correct</label>
+                                    <label class="form-check-label">Правильна</label>
                                 </div>
                                 <button type="button"
                                         class="btn btn-danger btn-sm shadow-sm remove-option"
                                         data-id="{{ $option->id }}">
-                                    Remove
+                                    Видалити
                                 </button>
                             </div>
                         @endforeach
@@ -79,12 +79,12 @@
                                            class="form-check-input"
                                            name="options[new][{{ $index }}][is_correct]"
                                            value="1" {{ !empty($option['is_correct']) ? 'checked' : '' }}>
-                                    <label class="form-check-label">Correct</label>
+                                    <label class="form-check-label">Правильна</label>
                                 </div>
                                 <button type="button"
                                         class="btn btn-danger btn-sm shadow-sm remove-option"
                                         data-id="">
-                                    Remove
+                                    Видалити
                                 </button>
                             </div>
                         @endforeach
@@ -92,7 +92,7 @@
 
                     <div class="my-3">
                         <button type="button" class="btn btn-success shadow-sm" id="add-option">
-                            Add answer
+                            Додати відповідь
                         </button>
                     </div>
 
@@ -105,7 +105,7 @@
                     @endif
 
                     <button type="submit" class="btn btn-primary shadow-sm">
-                        Save
+                        Зберегти
                     </button>
                 </form>
             </div>
@@ -139,7 +139,7 @@
                 }
 
                 if (optionItems().length <= 3) {
-                    alert('A test must have at least 3 answers.');
+                    alert('У тесті має бути щонайменше 3 відповіді.');
                     updateControls();
                     return;
                 }
@@ -175,7 +175,7 @@
 
             addOptionButton.addEventListener('click', function () {
                 if (optionItems().length >= 5) {
-                    alert('A test can have no more than 5 answers.');
+                    alert('У тесті може бути не більше 5 відповідей.');
                     updateControls();
                     return;
                 }
@@ -186,19 +186,19 @@
                         <input type="text"
                                name="options[new][${index}][option_text]"
                                class="form-control w-50 shadow-sm"
-                               placeholder="New answer"
+                               placeholder="Нова відповідь"
                                maxlength="1000">
                         <div class="form-check ms-2">
                             <input type="checkbox"
                                    class="form-check-input"
                                    name="options[new][${index}][is_correct]"
                                    value="1">
-                            <label class="form-check-label">Correct</label>
+                            <label class="form-check-label">Правильна</label>
                         </div>
                         <button type="button"
                                 class="btn btn-danger btn-sm shadow-sm remove-option"
                                 data-id="">
-                            Remove
+                            Видалити
                         </button>
                     </div>`;
 

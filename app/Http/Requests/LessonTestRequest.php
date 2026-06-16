@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Arr;
 
 class LessonTestRequest extends FormRequest
 {
@@ -17,30 +16,35 @@ class LessonTestRequest extends FormRequest
         return [
             'question' => 'required|string|max:1000',
             'options' => 'required|array',
+            'options.existing' => 'sometimes|array',
+            'options.new' => 'sometimes|array',
+            'options.existing.*.option_text' => 'nullable|string|max:1000',
+            'options.existing.*.is_correct' => 'nullable|boolean',
+            'options.new.*.option_text' => 'nullable|string|max:1000',
+            'options.new.*.is_correct' => 'nullable|boolean',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'options.required' => 'Поле варіантів обов’язкове.',
-            'options.array' => 'Варіанти мають бути у вигляді списку.',
-            'question.required' => 'Поле запитання є обов’язковим.',
+            'options.required' => 'Варіанти відповідей обовʼязкові.',
+            'options.array' => 'Варіанти відповідей мають бути списком.',
+            'question.required' => 'Поле запитання обовʼязкове.',
         ];
     }
 
     protected function prepareForValidation(): void
     {
-        // Очищаємо options.new від пустих
-        $filtered = array_filter(
+        $newOptions = array_filter(
             $this->input('options.new', []),
-            fn($option) => !empty($option['option_text'])
+            fn ($option) => trim((string) ($option['option_text'] ?? '')) !== ''
         );
 
         $this->merge([
             'options' => [
                 'existing' => $this->input('options.existing', []),
-                'new' => array_values($filtered),
+                'new' => array_values($newOptions),
             ],
         ]);
     }
@@ -48,31 +52,66 @@ class LessonTestRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $allOptions = $this->input('options.existing', []) + $this->input('options.new', []);
-
-            $filledOptions = array_filter($allOptions, function ($option) {
-                return !empty($option['option_text']);
-            });
-
-            if (count($filledOptions) < 3) {
-                $validator->errors()->add('options', 'Потрібно ввести щонайменше 3 заповнені варіанти відповіді.');
-            }
-
-            if (count($filledOptions) > 5) {
-                $validator->errors()->add('options', 'Можна додати максимум 5 варіантів відповіді.');
-            }
-
-            $hasCorrect = false;
-            foreach ($filledOptions as $option) {
-                if (!empty($option['is_correct'])) {
-                    $hasCorrect = true;
+            foreach ($this->input('options.existing', []) as $option) {
+                if (trim((string) ($option['option_text'] ?? '')) === '') {
+                    $validator->errors()->add(
+                        'options',
+                        'Кожна наявна відповідь повинна мати текст. Видаліть відповідь, якщо вона більше не потрібна.'
+                    );
                     break;
                 }
             }
 
-            if (!$hasCorrect) {
-                $validator->errors()->add('options', 'Має бути хоча б одна правильна відповідь.');
+            $filledOptions = $this->filledOptions();
+
+            if (count($filledOptions) < 3) {
+                $validator->errors()->add('options', 'Додайте щонайменше 3 заповнені варіанти відповіді.');
+            }
+
+            if (count($filledOptions) > 5) {
+                $validator->errors()->add('options', 'Додайте не більше 5 варіантів відповіді.');
+            }
+
+            if ($this->correctAnswersCount() < 1) {
+                $validator->errors()->add('options', 'Позначте щонайменше одну правильну відповідь.');
             }
         });
+    }
+
+    public function filledOptions(): array
+    {
+        $options = [];
+
+        foreach (['existing', 'new'] as $group) {
+            foreach ($this->input("options.{$group}", []) as $key => $option) {
+                $text = trim((string) ($option['option_text'] ?? ''));
+
+                if ($text === '') {
+                    continue;
+                }
+
+                $options[] = [
+                    'group' => $group,
+                    'key' => $key,
+                    'option_text' => $text,
+                    'is_correct' => filter_var($option['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                ];
+            }
+        }
+
+        return $options;
+    }
+
+    public function correctAnswersCount(): int
+    {
+        return count(array_filter(
+            $this->filledOptions(),
+            fn (array $option) => $option['is_correct']
+        ));
+    }
+
+    public function isMultipleChoice(): bool
+    {
+        return $this->correctAnswersCount() > 1;
     }
 }

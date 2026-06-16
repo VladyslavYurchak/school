@@ -13,35 +13,39 @@ class UpdateController extends Controller
     public function __invoke(LessonTestRequest $request, $lessonId, $testId)
     {
         $test = LessonTest::findOrFail($testId);
+        abort_unless((int) $test->lesson_id === (int) $lessonId, 404);
 
-        // Оновлюємо запитання
-        $test->update(['question' => $request->validated()['question']]);
+        $validated = $request->validated();
 
-        DB::transaction(function () use ($request, $test) {
-            // Оновлення існуючих варіантів
-            foreach ($request->input('options.existing', []) as $optionId => $data) {
-                $option = LessonTestOption::find($optionId);
-                if ($option && $option->lesson_test_id === $test->id) {
-                    $option->update([
-                        'option_text' => $data['option_text'] ?? '',
-                        'is_correct' => isset($data['is_correct']) && $data['is_correct'],
-                    ]);
+        DB::transaction(function () use ($request, $test, $validated) {
+            $test->update([
+                'question' => $validated['question'],
+                'is_multiple_choice' => $request->isMultipleChoice(),
+            ]);
+
+            foreach ($request->filledOptions() as $data) {
+                if ($data['group'] === 'existing') {
+                    $option = LessonTestOption::find($data['key']);
+
+                    if ($option && $option->lesson_test_id === $test->id) {
+                        $option->update([
+                            'option_text' => $data['option_text'],
+                            'is_correct' => $data['is_correct'],
+                        ]);
+                    }
+
+                    continue;
                 }
-            }
 
-            // Додавання нових варіантів
-            foreach ($request->input('options.new', []) as $data) {
-                if (!empty($data['option_text'])) {
-                    $test->options()->create([
-                        'option_text' => $data['option_text'],
-                        'is_correct' => isset($data['is_correct']) && $data['is_correct'],
-                    ]);
-                }
+                $test->options()->create([
+                    'option_text' => $data['option_text'],
+                    'is_correct' => $data['is_correct'],
+                ]);
             }
         });
 
         return redirect()
-            ->route('admin.course.lesson.test.create', [$test->lesson_id, $test->id])
+            ->route('admin.course.lesson.test.create', ['lesson' => $test->lesson_id])
             ->with('success', 'Тест оновлено.');
     }
 }

@@ -49,7 +49,7 @@ class LessonTestAdminTest extends TestCase
         $this->get(route('admin.course.lesson.test.create', $lesson))
             ->assertOk()
             ->assertViewIs('admin.course.lesson.test.create')
-            ->assertSee('Minimum 3 answers');
+            ->assertSee('Мінімум 3 відповіді');
     }
 
     public function test_lesson_test_edit_page_renders(): void
@@ -71,7 +71,7 @@ class LessonTestAdminTest extends TestCase
         $this->get(route('admin.course.lesson.test.edit', [$lesson, $test]))
             ->assertOk()
             ->assertViewIs('admin.course.lesson.test.edit')
-            ->assertSee('Minimum 3 answers');
+            ->assertSee('Мінімум 3 відповіді');
     }
 
     public function test_lesson_test_allows_no_more_than_five_answers(): void
@@ -88,6 +88,24 @@ class LessonTestAdminTest extends TestCase
                     ['option_text' => 'D'],
                     ['option_text' => 'E'],
                     ['option_text' => 'F'],
+                ],
+            ],
+        ])->assertSessionHasErrors('options');
+
+        $this->assertDatabaseCount('lesson_tests', 0);
+    }
+
+    public function test_lesson_test_requires_at_least_one_correct_answer(): void
+    {
+        $lesson = $this->createLesson();
+
+        $this->post(route('admin.course.lesson.test.store', $lesson), [
+            'question' => 'Choose the correct answer',
+            'options' => [
+                'new' => [
+                    ['option_text' => 'A'],
+                    ['option_text' => 'B'],
+                    ['option_text' => 'C'],
                 ],
             ],
         ])->assertSessionHasErrors('options');
@@ -162,6 +180,71 @@ class LessonTestAdminTest extends TestCase
         $this->assertDatabaseHas('lesson_test_options', [
             'id' => $correctOption->id,
             'is_correct' => true,
+        ]);
+    }
+
+    public function test_update_recalculates_multiple_choice_status_and_updates_options(): void
+    {
+        $lesson = $this->createLesson();
+        $test = LessonTest::create([
+            'lesson_id' => $lesson->id,
+            'question' => 'Choose the correct answer',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+
+        $optionA = $test->options()->create(['option_text' => 'A', 'is_correct' => true]);
+        $optionB = $test->options()->create(['option_text' => 'B', 'is_correct' => false]);
+        $optionC = $test->options()->create(['option_text' => 'C', 'is_correct' => false]);
+
+        $this->patch(route('admin.course.lesson.test.update', [$lesson, $test]), [
+            'question' => 'Choose every correct answer',
+            'options' => [
+                'existing' => [
+                    $optionA->id => ['option_text' => 'Updated A', 'is_correct' => '1'],
+                    $optionB->id => ['option_text' => 'Updated B', 'is_correct' => '1'],
+                    $optionC->id => ['option_text' => 'Updated C'],
+                ],
+            ],
+        ])->assertRedirect(route('admin.course.lesson.test.create', ['lesson' => $lesson->id]));
+
+        $test->refresh();
+
+        $this->assertTrue($test->is_multiple_choice);
+        $this->assertDatabaseHas('lesson_test_options', [
+            'id' => $optionA->id,
+            'option_text' => 'Updated A',
+            'is_correct' => true,
+        ]);
+        $this->assertDatabaseHas('lesson_test_options', [
+            'id' => $optionB->id,
+            'option_text' => 'Updated B',
+            'is_correct' => true,
+        ]);
+    }
+
+    public function test_deleting_correct_option_recalculates_multiple_choice_status(): void
+    {
+        $lesson = $this->createLesson();
+        $test = LessonTest::create([
+            'lesson_id' => $lesson->id,
+            'question' => 'Choose every correct answer',
+            'position' => 1,
+            'is_multiple_choice' => true,
+        ]);
+
+        $test->options()->create(['option_text' => 'A', 'is_correct' => true]);
+        $correctOptionToDelete = $test->options()->create(['option_text' => 'B', 'is_correct' => true]);
+        $test->options()->create(['option_text' => 'C', 'is_correct' => false]);
+        $test->options()->create(['option_text' => 'D', 'is_correct' => false]);
+
+        $this->deleteJson(route('admin.course.lesson.test.option.destroy', $correctOptionToDelete))
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertFalse($test->fresh()->is_multiple_choice);
+        $this->assertDatabaseMissing('lesson_test_options', [
+            'id' => $correctOptionToDelete->id,
         ]);
     }
 

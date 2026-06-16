@@ -1,26 +1,35 @@
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('test-options.js завантажено');
-
     const addOptionButton = document.getElementById('add-option');
     const optionsContainer = document.querySelector('.options-container');
 
-    if (!addOptionButton) {
-        console.warn("Кнопка '#add-option' не знайдена");
-        return;
-    }
-
-    if (!optionsContainer) {
-        console.warn("Контейнер '.options-container' не знайдено");
+    if (!addOptionButton || !optionsContainer) {
         return;
     }
 
     let optionIndex = optionsContainer.querySelectorAll('[data-index]').length;
 
-    addOptionButton.addEventListener('click', function () {
-        const currentOptions = optionsContainer.querySelectorAll('.option-row').length;
+    function optionRows() {
+        return Array.from(optionsContainer.querySelectorAll('.option-row'));
+    }
 
-        if (currentOptions >= 5) {
-            alert('Максимум 5 варіантів відповідей.');
+    function updateControls() {
+        const count = optionRows().length;
+
+        optionRows().forEach(optionRow => {
+            const removeButton = optionRow.querySelector('.remove-option');
+
+            if (removeButton) {
+                removeButton.disabled = count <= 3;
+            }
+        });
+
+        addOptionButton.disabled = count >= 5;
+    }
+
+    addOptionButton.addEventListener('click', function () {
+        if (optionRows().length >= 5) {
+            alert('У тесті може бути не більше 5 відповідей.');
+            updateControls();
             return;
         }
 
@@ -30,7 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     type="text"
                     name="options[new][${optionIndex}][option_text]"
                     class="form-control me-2 option-input"
-                    placeholder="Новий варіант"
+                    placeholder="Нова відповідь"
+                    maxlength="1000"
                 />
                 <label class="custom-checkbox">
                     <input type="checkbox" name="options[new][${optionIndex}][is_correct]" value="1">
@@ -48,16 +58,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
         optionsContainer.insertAdjacentHTML('beforeend', newOptionHTML);
         optionIndex++;
+        updateControls();
     });
 
-    optionsContainer.addEventListener('click', function (e) {
-        if (e.target.classList.contains('remove-option')) {
-            const index = e.target.dataset.index;
-            const optionElement = optionsContainer.querySelector(`[data-index="${index}"]`);
-
-            if (optionElement) {
-                optionElement.remove();
-            }
+    optionsContainer.addEventListener('click', function (event) {
+        if (!event.target.classList.contains('remove-option')) {
+            return;
         }
+
+        if (optionRows().length <= 3) {
+            alert('У тесті має бути щонайменше 3 відповіді.');
+            updateControls();
+            return;
+        }
+
+        event.target.closest('.option-row')?.remove();
+        updateControls();
     });
+
+    updateControls();
 });
