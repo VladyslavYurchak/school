@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class SubscriptionTemplate extends Model
 {
@@ -15,6 +15,11 @@ class SubscriptionTemplate extends Model
         'lessons_per_week',
         'price',
         'is_active',
+        'description',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     public function studentSubscriptions()
@@ -22,7 +27,6 @@ class SubscriptionTemplate extends Model
         return $this->hasMany(StudentSubscription::class, 'subscription_template_id');
     }
 
-    // лишай тільки якщо реально ще використовуєш students.subscription_id
     public function students()
     {
         return $this->hasMany(Student::class, 'subscription_id');

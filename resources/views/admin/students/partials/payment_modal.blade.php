@@ -5,7 +5,14 @@
         <form id="paymentForm{{ $student->id }}" method="POST"
               action="{{ route('admin.students.subscriptions.store', $student->id) }}">
             @csrf
-            <input type="hidden" name="subscription_template_id" value="{{ $student->subscription_id ?? '' }}">
+            @if($student->subscription_id)
+                <input type="hidden" name="subscription_template_id" value="{{ $student->subscription_id }}">
+            @else
+                <div class="alert alert-warning mb-3">
+                    <strong>Увага:</strong> для цього учня не обрано абонемент.
+                    Спочатку відкрийте редагування учня і виберіть абонемент, інакше оплату абонементу неможливо провести.
+                </div>
+            @endif
             <input type="hidden" name="month" id="selectedMonthInput{{ $student->id }}" required>
 
             <div class="modal-content shadow-lg border-0 rounded-3">
