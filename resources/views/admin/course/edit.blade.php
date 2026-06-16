@@ -57,6 +57,21 @@
                                required>
                     </div>
 
+                    <div class="form-check mb-3">
+                        <input type="hidden" name="is_published" value="0">
+                        <input
+                            type="checkbox"
+                            name="is_published"
+                            id="is_published"
+                            value="1"
+                            class="form-check-input"
+                            @checked(old('is_published', $course->is_published))
+                        >
+                        <label for="is_published" class="form-check-label">
+                            Опублікований
+                        </label>
+                    </div>
+
                     <div class="d-flex justify-content-end">
                         <a href="{{ route('admin.course.index') }}" class="btn btn-outline-secondary me-2">Скасувати</a>
                         <button type="submit" class="btn btn-primary">Оновити курс</button>

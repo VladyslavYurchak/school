@@ -11,14 +11,46 @@ class Course extends Model
 
     protected $fillable = [
         'title',
+        'description',
         'language_id',
         'price',
-        'is_published'
+        'is_published',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
+        'price' => 'decimal:2',
     ];
+
+    public function isPaid(): bool
+    {
+        return (float) $this->price > 0;
+    }
+
+    public function isFree(): bool
+    {
+        return !$this->isPaid();
+    }
+
+    public function isAvailableFor(?User $user): bool
+    {
+        if ($this->isFree()) {
+            return true;
+        }
+
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->isAdmin() || $user->isTeacher()) {
+            return true;
+        }
+
+        return $this->users()
+            ->where('users.id', $user->id)
+            ->wherePivot('status', 'paid')
+            ->exists();
+    }
 
     public function language()
     {

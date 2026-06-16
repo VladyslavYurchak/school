@@ -45,6 +45,47 @@ class AdminCourseLessonStructureTest extends TestCase
         $this->assertFieldInsideForm($html, 'is_published', $formStart, $formEnd);
     }
 
+    public function test_admin_course_create_form_submits_price_description_and_publish_status(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $html = $this
+            ->actingAs($admin)
+            ->get(route('admin.course.create'))
+            ->assertOk()
+            ->getContent();
+
+        $formStart = strpos($html, '<form');
+        $formEnd = strpos($html, '</form>', $formStart);
+
+        $this->assertNotFalse($formStart);
+        $this->assertNotFalse($formEnd);
+        $this->assertFieldInsideForm($html, 'description', $formStart, $formEnd);
+        $this->assertFieldInsideForm($html, 'price', $formStart, $formEnd);
+        $this->assertFieldInsideForm($html, 'is_published', $formStart, $formEnd);
+    }
+
+    public function test_admin_course_edit_form_submits_price_description_and_publish_status(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse(['price' => 900, 'is_published' => true]);
+
+        $html = $this
+            ->actingAs($admin)
+            ->get(route('admin.course.edit', $course))
+            ->assertOk()
+            ->getContent();
+
+        $formStart = strpos($html, '<form');
+        $formEnd = strpos($html, '</form>', $formStart);
+
+        $this->assertNotFalse($formStart);
+        $this->assertNotFalse($formEnd);
+        $this->assertFieldInsideForm($html, 'description', $formStart, $formEnd);
+        $this->assertFieldInsideForm($html, 'price', $formStart, $formEnd);
+        $this->assertFieldInsideForm($html, 'is_published', $formStart, $formEnd);
+    }
+
     public function test_admin_can_create_paid_unpublished_lesson_with_position(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -67,6 +108,123 @@ class AdminCourseLessonStructureTest extends TestCase
             'title' => 'Draft paid lesson',
             'position' => 7,
             'price' => 350,
+            'is_published' => false,
+        ]);
+    }
+
+    public function test_admin_can_create_published_paid_course_with_description(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $language = Language::create(['name' => 'Polish']);
+
+        $this
+            ->actingAs($admin)
+            ->post(route('admin.course.store'), [
+                'title' => 'Polish A1',
+                'description' => 'Beginner Polish course',
+                'language_id' => $language->id,
+                'price' => 1200,
+                'is_published' => '1',
+            ])
+            ->assertRedirect(route('admin.course.index'));
+
+        $this->assertDatabaseHas('courses', [
+            'title' => 'Polish A1',
+            'description' => 'Beginner Polish course',
+            'language_id' => $language->id,
+            'price' => 1200,
+            'is_published' => true,
+        ]);
+    }
+
+    public function test_admin_can_update_course_and_unpublish_it(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse(['price' => 1000, 'is_published' => true]);
+
+        $this
+            ->actingAs($admin)
+            ->put(route('admin.course.update', $course), [
+                'title' => 'Updated English A1',
+                'description' => 'Updated course description',
+                'language_id' => $course->language_id,
+                'price' => 0,
+                'is_published' => '0',
+            ])
+            ->assertRedirect(route('admin.course.index'));
+
+        $this->assertDatabaseHas('courses', [
+            'id' => $course->id,
+            'title' => 'Updated English A1',
+            'description' => 'Updated course description',
+            'price' => 0,
+            'is_published' => false,
+        ]);
+    }
+
+    public function test_admin_lesson_edit_form_contains_paid_and_publish_controls(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+        $lesson = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Editable lesson',
+            'description' => 'Editable description',
+            'lesson_type' => 'Reading',
+            'position' => 3,
+            'price' => 250,
+            'is_published' => true,
+        ]);
+
+        $html = $this
+            ->actingAs($admin)
+            ->get(route('admin.course.lesson.edit', $lesson))
+            ->assertOk()
+            ->getContent();
+
+        $formStart = strpos($html, '<form');
+        $formEnd = strpos($html, '</form>', $formStart);
+
+        $this->assertNotFalse($formStart);
+        $this->assertNotFalse($formEnd);
+        $this->assertFieldInsideForm($html, 'position', $formStart, $formEnd);
+        $this->assertFieldInsideForm($html, 'price', $formStart, $formEnd);
+        $this->assertFieldInsideForm($html, 'is_published', $formStart, $formEnd);
+    }
+
+    public function test_admin_can_update_lesson_price_position_and_publish_status(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+        $lesson = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Editable lesson',
+            'description' => 'Editable description',
+            'lesson_type' => 'Reading',
+            'position' => 3,
+            'price' => 250,
+            'is_published' => true,
+        ]);
+
+        $this
+            ->actingAs($admin)
+            ->put(route('admin.course.lesson.update', $lesson), [
+                'lesson_type' => 'Grammar',
+                'title' => 'Updated lesson',
+                'description' => 'Updated description',
+                'position' => 8,
+                'price' => 0,
+                'is_published' => '0',
+            ])
+            ->assertRedirect(route('admin.course.show', $course));
+
+        $this->assertDatabaseHas('lessons', [
+            'id' => $lesson->id,
+            'lesson_type' => 'Grammar',
+            'title' => 'Updated lesson',
+            'description' => 'Updated description',
+            'position' => 8,
+            'price' => null,
             'is_published' => false,
         ]);
     }
@@ -121,7 +279,7 @@ class AdminCourseLessonStructureTest extends TestCase
 
     private function assertFieldInsideForm(string $html, string $field, int $formStart, int $formEnd): void
     {
-        $fieldPosition = strpos($html, 'name="'.$field.'"');
+        $fieldPosition = strpos($html, 'name="'.$field.'"', $formStart);
 
         $this->assertNotFalse($fieldPosition, "Field [{$field}] was not found.");
         $this->assertGreaterThan($formStart, $fieldPosition, "Field [{$field}] is before the form.");

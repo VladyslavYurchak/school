@@ -34,6 +34,33 @@
                     </div>
 
                     <!-- Кнопки -->
+                    <div class="mb-3">
+                        <label for="price" class="form-label fw-semibold">Ціна (грн)</label>
+                        <input type="number"
+                               class="form-control border-secondary"
+                               id="price"
+                               name="price"
+                               value="{{ old('price', 0) }}"
+                               min="0"
+                               step="0.01"
+                               required>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input type="hidden" name="is_published" value="0">
+                        <input
+                            type="checkbox"
+                            name="is_published"
+                            id="is_published"
+                            value="1"
+                            class="form-check-input"
+                            @checked(old('is_published', false))
+                        >
+                        <label for="is_published" class="form-check-label">
+                            Опублікувати курс
+                        </label>
+                    </div>
+
                     <div class="d-flex justify-content-end">
                         <a href="{{ route('admin.course.index') }}" class="btn btn-outline-secondary me-2">Скасувати</a>
                         <button type="submit" class="btn btn-outline-dark">Створити курс</button>
