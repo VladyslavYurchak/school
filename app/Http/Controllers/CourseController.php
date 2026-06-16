@@ -12,7 +12,9 @@ class CourseController extends Controller
     {
         $courses = Course::query()
             ->with('language')
-            ->withCount('lessons')
+            ->withCount([
+                'lessons' => fn ($query) => $query->where('is_published', true),
+            ])
             ->where('is_published', true)
             ->latest()
             ->paginate(12);
@@ -22,11 +24,14 @@ class CourseController extends Controller
 
     public function show(Request $request, Course $course)
     {
-        abort_unless($course->is_published || $request->user()?->isAdmin(), 404);
-
-        $course->load(['language', 'lessons']);
-
         $user = $request->user();
+        $isAdmin = (bool) $user?->isAdmin();
+
+        abort_unless($course->is_published || $isAdmin, 404);
+
+        $course->load('language');
+        $course->setRelation('lessons', $this->visibleLessons($course, $isAdmin));
+
         $hasAccess = $course->isAvailableFor($user);
 
         // Для кожного уроку — чи є окремий доступ
@@ -52,10 +57,12 @@ class CourseController extends Controller
 
     public function lesson(Request $request, Course $course, Lesson $lesson)
     {
-        abort_unless($course->is_published || $request->user()?->isAdmin(), 404);
-        abort_unless($lesson->course_id === $course->id, 404);
-
         $user = $request->user();
+        $isAdmin = (bool) $user?->isAdmin();
+
+        abort_unless($course->is_published || $isAdmin, 404);
+        abort_unless($lesson->course_id === $course->id, 404);
+        abort_unless($lesson->is_published || $isAdmin, 404);
 
         if (!$lesson->isAvailableFor($user)) {
             if (!$user) {
@@ -74,7 +81,8 @@ class CourseController extends Controller
                 ->with('error', 'Оплатіть курс, щоб відкрити уроки.');
         }
 
-        $lesson->load(['course.lessons', 'tests.options']);
+        $course->setRelation('lessons', $this->visibleLessons($course, $isAdmin));
+        $lesson->load('tests.options');
 
         $lastTestAttempt = null;
 
@@ -91,5 +99,12 @@ class CourseController extends Controller
             'lesson',
             'lastTestAttempt'
         ));
+    }
+
+    private function visibleLessons(Course $course, bool $includeDrafts)
+    {
+        return $course->lessons()
+            ->when(!$includeDrafts, fn ($query) => $query->where('is_published', true))
+            ->get();
     }
 }
