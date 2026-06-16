@@ -17,6 +17,10 @@ class LessonTest extends Model
         'correct_answer',
     ];
 
+    protected $casts = [
+        'is_multiple_choice' => 'boolean',
+    ];
+
     /**
      * Відношення до моделі Lesson
      */

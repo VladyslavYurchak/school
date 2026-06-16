@@ -223,6 +223,120 @@ Route::get('/dev/login-student', function () {
     return redirect()->route('student.dashboard');
 })->name('dev.login-student');
 
+Route::get('/dev/login-admin', function () {
+    abort_unless(app()->environment('local'), 404);
+
+    $adminUser = User::updateOrCreate(
+        ['email' => 'dev.admin@school.test'],
+        [
+            'name' => 'Dev Admin',
+            'password' => Hash::make('password'),
+            'role' => 'admin',
+            'email_verified_at' => now(),
+        ]
+    );
+    $adminUser->forceFill(['email_verified_at' => now()])->save();
+
+    $teacherUser = User::updateOrCreate(
+        ['email' => 'dev.admin.teacher@school.test'],
+        [
+            'name' => 'Dev Admin Teacher',
+            'password' => Hash::make('password'),
+            'role' => 'teacher',
+            'email_verified_at' => now(),
+        ]
+    );
+    $teacherUser->forceFill(['email_verified_at' => now()])->save();
+
+    $teacher = Teacher::updateOrCreate(
+        ['user_id' => $teacherUser->id],
+        [
+            'first_name' => 'Dev',
+            'last_name' => 'Admin Teacher',
+            'email' => 'dev.admin.teacher@school.test',
+            'phone' => '+380000000005',
+            'lesson_price' => 700,
+            'group_lesson_price' => 900,
+            'pair_lesson_price' => 800,
+            'trial_lesson_price' => 300,
+            'is_active' => true,
+        ]
+    );
+
+    $template = devSubscriptionTemplate('Dev Admin Individual', LessonType::Individual->value, 3200);
+
+    $student = Student::updateOrCreate(
+        ['email' => 'dev.admin.student@school.test'],
+        [
+            'first_name' => 'Dev',
+            'last_name' => 'Admin Student',
+            'phone' => '+380000000006',
+            'teacher_id' => $teacher->id,
+            'subscription_id' => $template->id,
+            'remaining_lessons' => 8,
+            'remaining_group_lessons' => 0,
+            'is_active' => true,
+            'start_date' => now()->toDateString(),
+        ]
+    );
+
+    $subscriptionPayment = Payment::updateOrCreate(
+        ['provider_order_id' => 'dev-admin-subscription-order'],
+        [
+            'student_id' => $student->id,
+            'amount' => $template->price,
+            'currency' => 'UAH',
+            'status' => 'paid',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'dev-admin-subscription-invoice',
+            'description' => 'Dev admin subscription payment',
+            'paid_at' => now(),
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => now()->format('Y-m'),
+            ],
+        ]
+    );
+
+    $student->subscriptions()->updateOrCreate(
+        [
+            'subscription_template_id' => $template->id,
+            'start_date' => now()->startOfMonth()->toDateString(),
+            'end_date' => now()->endOfMonth()->toDateString(),
+            'type' => 'subscription',
+        ],
+        [
+            'payment_id' => $subscriptionPayment->id,
+            'price' => $template->price,
+            'status' => 'active',
+            'lessons_total' => $template->lessons_per_week * 4,
+            'lessons_used' => 2,
+            'paid_at' => now(),
+        ]
+    );
+
+    Payment::updateOrCreate(
+        ['provider_order_id' => 'dev-admin-course-order'],
+        [
+            'student_id' => $student->id,
+            'amount' => 1100,
+            'currency' => 'UAH',
+            'status' => 'paid',
+            'type' => 'single',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'dev-admin-course-invoice',
+            'description' => 'Dev admin course payment',
+            'paid_at' => now()->subDay(),
+            'payload' => ['course_id' => 1],
+        ]
+    );
+
+    Auth::login($adminUser);
+
+    return redirect()->route('admin.data.index');
+})->name('dev.login-admin');
+
 function devSubscriptionTemplate(string $title, string $type, int $price): SubscriptionTemplate
 {
     return SubscriptionTemplate::updateOrCreate(

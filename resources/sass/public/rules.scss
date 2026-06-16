@@ -123,7 +123,45 @@
     font-size: 16px;
     line-height: 1.85;
     color: #4b5563;
-    white-space: pre-line;
+}
+
+.rule-content p {
+    margin-bottom: 12px;
+}
+
+.rule-content ul,
+.rule-content ol {
+    padding-left: 22px;
+    margin-bottom: 14px;
+}
+
+.rule-content li {
+    margin-bottom: 6px;
+}
+
+.rule-content strong,
+.rule-content b {
+    font-weight: 700;
+    color: #111827;
+}
+
+.rule-content em,
+.rule-content i {
+    font-style: italic;
+}
+
+.rule-content h2,
+.rule-content h3,
+.rule-content h4 {
+    margin-top: 18px;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.rule-content a {
+    color: #2f7f79;
+    text-decoration: underline;
 }
 
 @media (max-width: 991.98px) {

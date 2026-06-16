@@ -15,6 +15,10 @@ class LessonTestOption extends Model
         'is_correct',
     ];
 
+    protected $casts = [
+        'is_correct' => 'boolean',
+    ];
+
     /**
      * Відношення до моделі LessonTest
      */

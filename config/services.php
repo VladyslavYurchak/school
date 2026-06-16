@@ -18,10 +18,9 @@ return [
         'token' => env('POSTMARK_TOKEN'),
     ],
 
-    'liqpay' => [
-        'public_key' => env('LIQPAY_PUBLIC_KEY'),
-        'private_key' => env('LIQPAY_PRIVATE_KEY'),
-        'sandbox' => env('LIQPAY_SANDBOX', true),
+    'monopay' => [
+        'token' => env('MONOPAY_TOKEN'),
+        'webhook_url' => env('MONOPAY_WEBHOOK_URL'),
     ],
 
     'ses' => [

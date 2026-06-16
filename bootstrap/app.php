@@ -14,7 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminPanelMiddleware::class,
             'teacher' => \App\Http\Middleware\IsTeacher::class,
+        ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'monopay/webhook',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

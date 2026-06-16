@@ -18,6 +18,7 @@
         <div class="col-md-12">
             <label class="form-label">Текст правила</label>
             <textarea name="content"
+                      id="content-editor"
                       class="form-control"
                       rows="8">{{ old('content', $schoolRule->content ?? '') }}</textarea>
         </div>
@@ -46,3 +47,35 @@
         </div>
     </div>
 </form>
+
+@push('scripts')
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const editorElement = document.querySelector('#content-editor');
+
+            if (editorElement) {
+                ClassicEditor
+                    .create(editorElement, {
+                        toolbar: [
+                            'heading',
+                            '|',
+                            'bold',
+                            'italic',
+                            'link',
+                            'bulletedList',
+                            'numberedList',
+                            '|',
+                            'blockQuote',
+                            'undo',
+                            'redo'
+                        ]
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    });
+            }
+        });
+    </script>
+@endpush

@@ -4,17 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Data;
 
-use App\Models\LessonLog;
 use App\Models\Teacher;
-use Carbon\Carbon;
 
 class TeacherMonthlyReportService
 {
     public function build(int $year, int $month): array
     {
-        $monthStart = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
-        $monthEnd   = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
-
         $teachers = Teacher::query()->orderBy('id')->get();
 
         $rows = [];
@@ -31,22 +26,16 @@ class TeacherMonthlyReportService
         ];
 
         foreach ($teachers as $teacher) {
-            $logs = LessonLog::query()
-                ->where('teacher_id', $teacher->id)
-                ->whereBetween('date', [$monthStart, $monthEnd])
-                ->whereIn('status', ['completed', 'charged'])
-                ->get();
-
             // КІЛЬКОСТІ + ЗП
-            $counts  = $teacher->getMonthLessonCountsDetailed($year, $month);
-            $sumCost = fn(string $type): float => (float) $logs->where('lesson_type', $type)->sum('teacher_payout_amount');
+            $counts = $teacher->getMonthLessonCountsDetailed($year, $month);
+            $costs  = $teacher->getMonthCostsByType($year, $month);
 
-            $cntInd  = $counts['individual'];  // індивідуальні — 1 лог = 1 урок (ок)
-            $cntTr   = $counts['trial'];       // пробні — 1 лог = 1 урок (ок)
-            $cntGrp  = $counts['group'];       // ✅ DISTINCT по lesson_id або fallback
-            $cntPair = $counts['pair'];        // ✅ DISTINCT по lesson_id або fallback
+            $cntInd  = $counts['individual'];
+            $cntTr   = $counts['trial'];
+            $cntGrp  = $counts['group'];
+            $cntPair = $counts['pair'];
 
-            $salary  = (float) $logs->sum('teacher_payout_amount');
+            $salary = $teacher->getMonthSalary($year, $month);
 
             // 💰 ДОХОДИ ЛИШЕ З ПІДПИСОК
             $revInd  = $teacher->getSubscriptionSumByLessonTypes(['individual'], $year, $month);
@@ -55,10 +44,10 @@ class TeacherMonthlyReportService
             $revTr   = 0.0; // якщо будуть платні пробні — тут підставиш своє джерело
 
             // СОБІВАРТІСТЬ (виплати викладачу з логів)
-            $costInd  = $sumCost('individual');
-            $costTr   = $sumCost('trial');
-            $costGrp  = $sumCost('group');
-            $costPair = $sumCost('pair');
+            $costInd  = $costs['individual'];
+            $costTr   = $costs['trial'];
+            $costGrp  = $costs['group'];
+            $costPair = $costs['pair'];
 
             // ПРИБУТОК
             $incInd  = $revInd  - $costInd;

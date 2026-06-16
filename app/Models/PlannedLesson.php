@@ -1,15 +1,17 @@
 <?php
+
 namespace App\Models;
 
+use App\Enums\LessonStatus;
+use App\Enums\LessonType;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PlannedLesson extends Model
 {
-    use SoftDeletes;
-    use HasFactory;
-
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -21,16 +23,14 @@ class PlannedLesson extends Model
         'status',
         'notes',
         'initiator',
-        'lesson_type'
+        'lesson_type',
     ];
 
-    // app/Models/PlannedLesson.php
-    // App/Models/PlannedLesson.php
     protected $casts = [
-        'start_date'  => 'immutable_datetime',
-        'end_date'    => 'immutable_datetime',
-        'status'      => \App\Enums\LessonStatus::class,
-        'lesson_type' => \App\Enums\LessonType::class,
+        'start_date' => 'immutable_datetime',
+        'end_date' => 'immutable_datetime',
+        'status' => LessonStatus::class,
+        'lesson_type' => LessonType::class,
     ];
 
     public function getDurationAttribute(): ?int
@@ -38,7 +38,7 @@ class PlannedLesson extends Model
         if (!$this->start_date || !$this->end_date) {
             return null;
         }
-        // обидва — Carbon завдяки $casts
+
         return $this->start_date->diffInMinutes($this->end_date);
     }
 
@@ -49,7 +49,7 @@ class PlannedLesson extends Model
 
     public function student()
     {
-        return $this->belongsTo(\App\Models\Student::class); // ✅ не User
+        return $this->belongsTo(Student::class);
     }
 
     public function group()
@@ -59,14 +59,21 @@ class PlannedLesson extends Model
 
     public function logs()
     {
-        return $this->hasMany(\App\Models\LessonLog::class, 'lesson_id');
+        return $this->hasMany(LessonLog::class, 'lesson_id');
     }
 
-    public function scopeIntersects($query, \Carbon\CarbonInterface $start, \Carbon\CarbonInterface $end)
+    public function scopeIntersects($query, CarbonInterface $start, CarbonInterface $end)
     {
-        // [start_date, COALESCE(end_date, start_date)] intersects [start, end)
         return $query
             ->where('start_date', '<', $end)
-            ->whereRaw('COALESCE(end_date, start_date) >= ?', [$start]);
+            ->where(function ($query) use ($start) {
+                $query->where(function ($query) use ($start) {
+                    $query->whereNotNull('end_date')
+                        ->where('end_date', '>', $start);
+                })->orWhere(function ($query) use ($start) {
+                    $query->whereNull('end_date')
+                        ->where('start_date', '>=', $start);
+                });
+            });
     }
 }

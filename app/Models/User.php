@@ -21,7 +21,7 @@ class User extends Authenticatable implements MustVerifyEmail // ⬅️ дода
         'name',
         'email',
         'password',
-        // 'role', // якщо маєте це поле і масово присвоюєте — розкоментуйте
+        'role'
     ];
 
     /**
@@ -45,6 +45,13 @@ class User extends Authenticatable implements MustVerifyEmail // ⬅️ дода
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function lessons()
+    {
+        return $this->belongsToMany(Lesson::class, 'user_lesson')
+            ->withPivot('status', 'paid_amount')
+            ->withTimestamps();
     }
 
     public function isAdmin(): bool

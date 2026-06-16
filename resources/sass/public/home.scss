@@ -1,6 +1,8 @@
 .home-page {
-    background: #f8fafc;
+    background: transparent;
     color: #1f2937;
+    position: relative;
+    z-index: 1;
 }
 
 .home-page .container {
@@ -28,15 +30,6 @@
         radial-gradient(circle at top left, rgba(87, 183, 171, 0.18), transparent 35%),
         radial-gradient(circle at bottom right, rgba(87, 183, 171, 0.12), transparent 30%),
         linear-gradient(135deg, #ffffff 0%, #f4fbfa 50%, #e8f7f4 100%);
-}
-
-.hero-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-repeat: repeat;
-    opacity: 0.05;
-    z-index: 0;
 }
 
 
