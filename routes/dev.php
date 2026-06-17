@@ -2,8 +2,13 @@
 
 use App\Enums\LessonStatus;
 use App\Enums\LessonType;
+use App\Models\Course;
 use App\Models\Payment;
 use App\Models\Group;
+use App\Models\Language;
+use App\Models\Lesson;
+use App\Models\LessonTest;
+use App\Models\LessonTestOption;
 use App\Models\PlannedLesson;
 use App\Models\Student;
 use App\Models\SubscriptionTemplate;
@@ -202,6 +207,26 @@ Route::get('/dev/login-student', function () {
         ]
     );
 
+    [$course, $separateLesson] = devStudentOnlineLearningContent();
+
+    $studentUser->courses()->syncWithoutDetaching([
+        $course->id => [
+            'status' => 'paid',
+            'paid_amount' => 900,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ],
+    ]);
+
+    $studentUser->lessons()->syncWithoutDetaching([
+        $separateLesson->id => [
+            'status' => 'paid',
+            'paid_amount' => 250,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ],
+    ]);
+
     Payment::updateOrCreate(
         ['provider_order_id' => 'dev-student-course-order'],
         [
@@ -214,7 +239,23 @@ Route::get('/dev/login-student', function () {
             'provider_payment_id' => 'dev-student-course-invoice',
             'description' => 'Dev course payment',
             'paid_at' => now()->subDays(2),
-            'payload' => ['course_id' => 1, 'user_id' => $studentUser->id],
+            'payload' => ['course_id' => $course->id, 'user_id' => $studentUser->id],
+        ]
+    );
+
+    Payment::updateOrCreate(
+        ['provider_order_id' => 'dev-student-separate-lesson-order'],
+        [
+            'student_id' => $student->id,
+            'amount' => 250,
+            'currency' => 'UAH',
+            'status' => 'paid',
+            'type' => 'single',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'dev-student-separate-lesson-invoice',
+            'description' => 'Dev separate lesson payment',
+            'paid_at' => now()->subDay(),
+            'payload' => ['lesson_id' => $separateLesson->id, 'user_id' => $studentUser->id],
         ]
     );
 
@@ -399,4 +440,137 @@ function devLesson(
             'notes' => 'Created by /dev/login-teacher',
         ]
     );
+}
+
+function devStudentOnlineLearningContent(): array
+{
+    $language = Language::updateOrCreate(['name' => 'English']);
+
+    $course = Course::updateOrCreate(
+        ['title' => 'Dev English A1 Course'],
+        [
+            'description' => 'A small dev course for checking student lessons, homework, files, and tests.',
+            'language_id' => $language->id,
+            'price' => 900,
+            'is_published' => true,
+        ]
+    );
+
+    $lessonOne = devOnlineLesson($course, [
+        'title' => 'Dev Lesson 1: Greetings',
+        'position' => 1,
+        'price' => null,
+        'description' => 'Learn basic greetings and short introductions.',
+        'content' => '<p><strong>Goal:</strong> greet people and introduce yourself.</p><p>Hello, my name is Anna. Nice to meet you.</p>',
+        'homework_text' => '<p>Write 5 short sentences about yourself.</p>',
+        'video_url' => 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        'homework_video_url' => 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    ]);
+
+    devLessonTest($lessonOne, 1, 'Choose the greeting.', [
+        ['Hello', true],
+        ['Table', false],
+        ['Window', false],
+    ]);
+
+    devLessonTest($lessonOne, 2, 'Choose all polite phrases.', [
+        ['Nice to meet you', true],
+        ['Thank you', true],
+        ['Blue pencil', false],
+    ]);
+
+    devOnlineLesson($course, [
+        'title' => 'Dev Lesson 2: Numbers',
+        'position' => 2,
+        'price' => null,
+        'description' => 'Practice numbers from 1 to 20.',
+        'content' => '<p>Count from one to twenty and use numbers in short answers.</p>',
+        'homework_text' => '<p>Record yourself counting from 1 to 20.</p>',
+    ]);
+
+    devOnlineLesson($course, [
+        'title' => 'Dev Lesson 3: Draft Hidden Lesson',
+        'position' => 3,
+        'price' => null,
+        'description' => 'This lesson should not appear publicly.',
+        'content' => '<p>Draft content.</p>',
+        'is_published' => false,
+    ]);
+
+    $separateCourse = Course::updateOrCreate(
+        ['title' => 'Dev Separate Lessons'],
+        [
+            'description' => 'A dev course where the student owns one separate lesson.',
+            'language_id' => $language->id,
+            'price' => 1500,
+            'is_published' => true,
+        ]
+    );
+
+    $separateLesson = devOnlineLesson($separateCourse, [
+        'title' => 'Dev Separate Lesson: Travel Words',
+        'position' => 1,
+        'price' => 250,
+        'description' => 'A separately purchased lesson for dashboard checks.',
+        'content' => '<p>Useful words: ticket, station, airport, hotel.</p>',
+        'homework_text' => '<p>Make 4 sentences with travel words.</p>',
+    ]);
+
+    devLessonTest($separateLesson, 1, 'Which word is about travel?', [
+        ['Airport', true],
+        ['Spoon', false],
+        ['Chair', false],
+    ]);
+
+    return [$course, $separateLesson];
+}
+
+function devOnlineLesson(Course $course, array $data): Lesson
+{
+    return Lesson::updateOrCreate(
+        [
+            'course_id' => $course->id,
+            'title' => $data['title'],
+        ],
+        [
+            'description' => $data['description'] ?? null,
+            'content' => $data['content'] ?? null,
+            'lesson_type' => $data['lesson_type'] ?? 'online',
+            'position' => $data['position'],
+            'price' => $data['price'] ?? null,
+            'video_url' => $data['video_url'] ?? null,
+            'homework_text' => $data['homework_text'] ?? null,
+            'homework_video_url' => $data['homework_video_url'] ?? null,
+            'media_files' => $data['media_files'] ?? [],
+            'homework_files' => $data['homework_files'] ?? [],
+            'is_published' => $data['is_published'] ?? true,
+        ]
+    );
+}
+
+function devLessonTest(Lesson $lesson, int $position, string $question, array $options): LessonTest
+{
+    $test = LessonTest::updateOrCreate(
+        [
+            'lesson_id' => $lesson->id,
+            'position' => $position,
+        ],
+        [
+            'question' => $question,
+            'is_multiple_choice' => collect($options)->where(1, true)->count() > 1,
+            'correct_answer' => null,
+        ]
+    );
+
+    $test->options()->delete();
+
+    foreach ($options as [$optionText, $isCorrect]) {
+        LessonTestOption::create([
+            'lesson_test_id' => $test->id,
+            'option_text' => $optionText,
+            'is_correct' => $isCorrect,
+        ]);
+    }
+
+    return $test;
 }

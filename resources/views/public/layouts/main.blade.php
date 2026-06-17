@@ -87,8 +87,6 @@
                                 {{ Auth::user()->name }}
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="#">Профіль</a></li>
-
                                 @if(Auth::user()->role === 'admin')
                                     <li><a class="dropdown-item" href="{{ route('admin.index') }}">Кабінет адміністратора</a></li>
                                 @endif

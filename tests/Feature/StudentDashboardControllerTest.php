@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Course;
 use App\Models\Language;
 use App\Models\Lesson;
+use App\Models\LessonLog;
 use App\Models\Student;
 use App\Models\StudentSubscription;
 use App\Models\SubscriptionTemplate;
@@ -43,13 +44,23 @@ class StudentDashboardControllerTest extends TestCase
             'price' => 2800,
         ]);
 
+        LessonLog::factory()->create([
+            'student_id' => $student->id,
+            'lesson_type' => 'individual',
+            'status' => 'completed',
+            'date' => '2026-06-10',
+        ]);
+
         $this
             ->actingAs($user)
             ->get(route('student.dashboard'))
             ->assertOk()
             ->assertSee('Dev Individual')
             ->assertSee('Активний')
+            ->assertSee('Продовжити абонемент')
             ->assertSee('01.06.2026')
+            ->assertSee('Проведено')
+            ->assertDontSee('completed')
             ->assertDontSee('Всього занять')
             ->assertDontSee('Використано')
             ->assertDontSee('Залишилось');

@@ -22,6 +22,14 @@
             'refunded' => 'Повернено',
         ];
 
+        $lessonLogStatusLabels = [
+            'completed' => 'Проведено',
+            'charged' => 'Зараховано',
+            'cancelled' => 'Скасовано',
+            'rescheduled' => 'Перенесено',
+            'absent' => 'Відсутній',
+        ];
+
         $lessonTypeLabels = [
             'individual' => 'Індивідуальне',
             'group' => 'Групове',
@@ -64,7 +72,7 @@
                             <p class="mb-2"><strong>Статус:</strong> {{ $subscriptionStatusLabels[$subscription->status] ?? $subscription->status }}</p>
                             <p class="mb-2"><strong>Період:</strong> {{ $subscription->start_date->format('d.m.Y') }} — {{ $subscription->end_date->format('d.m.Y') }}</p>
                             <a href="{{ route('student.payments.index') }}" class="btn btn-primary">
-                                Оплатити абонемент
+                                Продовжити абонемент
                             </a>
                         @else
                             <p class="mb-3">Активного абонемента немає.</p>
@@ -140,7 +148,7 @@
                                         <tr>
                                             <td>{{ \Carbon\Carbon::parse($log->date)->format('d.m.Y') }}</td>
                                             <td>{{ $lessonTypeLabels[$log->lesson_type] ?? ($log->lesson_type ?? '—') }}</td>
-                                            <td>{{ $paymentStatusLabels[$log->status] ?? ($log->status ?? '—') }}</td>
+                                            <td>{{ $lessonLogStatusLabels[$log->status] ?? ($log->status ?? '—') }}</td>
                                             <td>{{ $log->comment ?? '—' }}</td>
                                         </tr>
                                     @endforeach

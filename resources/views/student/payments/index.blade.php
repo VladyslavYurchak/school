@@ -40,6 +40,10 @@
 
                         <div class="mb-3">
                             <label for="subscription_month" class="form-label">Місяць оплати</label>
+                            <p class="form-text mb-2">
+                                Ви можете оплатити поточний місяць, 2 попередні або 2 наступні місяці.
+                                Уже оплачені місяці не створюються повторно.
+                            </p>
                             <select
                                 id="subscription_month"
                                 name="subscription_month"

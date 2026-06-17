@@ -50,6 +50,7 @@ class StudentPaymentControllerTest extends TestCase
             ->assertSee('value="2026-10"', false)
             ->assertSee('value="2026-09" selected', false)
             ->assertSee('вересень 2026')
+            ->assertSee('Ви можете оплатити поточний місяць')
             ->assertDontSee('name="subscription_template_id"', false);
     }
 
