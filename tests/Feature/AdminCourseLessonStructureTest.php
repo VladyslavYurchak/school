@@ -212,6 +212,8 @@ class AdminCourseLessonStructureTest extends TestCase
             ->get(route('admin.course.show', $course))
             ->assertOk()
             ->assertSee($lesson->title)
+            ->assertSee(route('admin.course.lesson.edit', $lesson), false)
+            ->assertSee('Ред. урок')
             ->assertSee('Ред. дом.завд.');
     }
 

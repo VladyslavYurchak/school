@@ -39,6 +39,11 @@
                                 <a href="{{ route('admin.course.lesson.show', $lesson->id) }}"
                                    class="btn btn-outline-dark btn-sm me-1">👁️</a>
 
+                                <a href="{{ route('admin.course.lesson.edit', $lesson->id) }}"
+                                   class="btn btn-outline-primary btn-sm me-1">
+                                    Ред. урок
+                                </a>
+
                                 {{-- Основна частина --}}
                                 <a href="{{ route('admin.course.lesson.main.create', $lesson->id) }}"
                                    class="btn {{ !empty($lesson->content) ? 'btn-outline-secondary' : 'btn-outline-success' }} btn-sm me-1">
