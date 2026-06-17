@@ -58,7 +58,23 @@ class CourseLessonAccessTest extends TestCase
             ->assertSee($lesson->title);
     }
 
-    private function createCourseWithLesson(array $courseAttributes = []): array
+    public function test_free_lesson_inside_paid_course_is_publicly_available(): void
+    {
+        [$course, $lesson] = $this->createCourseWithLesson(['price' => 500], ['price' => 0]);
+
+        $this
+            ->get(route('courses.show', $course))
+            ->assertOk()
+            ->assertSee('Відкрити', false);
+
+        $this
+            ->get(route('courses.lessons.show', [$course, $lesson]))
+            ->assertOk()
+            ->assertViewIs('public.courses.lesson')
+            ->assertSee($lesson->title);
+    }
+
+    private function createCourseWithLesson(array $courseAttributes = [], array $lessonAttributes = []): array
     {
         $language = Language::create(['name' => 'English']);
 
@@ -70,13 +86,13 @@ class CourseLessonAccessTest extends TestCase
             'is_published' => true,
         ], $courseAttributes));
 
-        $lesson = Lesson::create([
+        $lesson = Lesson::create(array_merge([
             'course_id' => $course->id,
             'title' => 'First lesson',
             'description' => 'Lesson description',
             'content' => 'Lesson content',
             'position' => 1,
-        ]);
+        ], $lessonAttributes));
 
         return [$course, $lesson];
     }

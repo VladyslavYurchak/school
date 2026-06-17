@@ -87,7 +87,7 @@
                                         Відкрити →
                                     </a>
 
-                                @elseif($lesson->price && auth()->check())
+                                @elseif($lesson->isPaid() && auth()->check())
                                     <form action="{{ route('lessons.buy', $lesson) }}" method="POST" class="mb-0">
                                         @csrf
                                         <button type="submit" class="course-lesson-btn course-lesson-btn--buy">
@@ -95,7 +95,7 @@
                                         </button>
                                     </form>
 
-                                @elseif($lesson->price && !auth()->check())
+                                @elseif($lesson->isPaid() && !auth()->check())
                                     <a href="{{ route('login') }}" class="course-lesson-btn course-lesson-btn--buy">
                                         {{ number_format($lesson->price, 0, ',', ' ') }} грн
                                     </a>

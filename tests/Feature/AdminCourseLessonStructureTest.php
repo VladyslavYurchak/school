@@ -249,7 +249,7 @@ class AdminCourseLessonStructureTest extends TestCase
             'title' => 'Updated lesson',
             'description' => 'Updated description',
             'position' => 8,
-            'price' => null,
+            'price' => 0,
             'is_published' => false,
         ]);
     }

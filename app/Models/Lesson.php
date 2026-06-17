@@ -52,8 +52,27 @@ class Lesson extends Model
             ->withTimestamps();
     }
 
+    public function hasSeparatePrice(): bool
+    {
+        return $this->price !== null;
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->hasSeparatePrice() && (float) $this->price > 0;
+    }
+
+    public function isFree(): bool
+    {
+        return $this->hasSeparatePrice() && (float) $this->price <= 0;
+    }
+
     public function isAvailableFor(?User $user): bool
     {
+        if ($this->isFree()) {
+            return true;
+        }
+
         if ($this->course->isAvailableFor($user)) {
             return true;
         }

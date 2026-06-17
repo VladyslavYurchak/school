@@ -68,7 +68,7 @@ class StoreController extends Controller
                 'homework_video_url' => $validatedData['homework_video_url'] ?? null,
 
                 'position' => $validatedData['position'] ?? 0,
-                'price' => !empty($validatedData['price']) ? $validatedData['price'] : null,
+                'price' => $request->input('price') !== '' ? ($validatedData['price'] ?? null) : null,
                 'is_published' => $request->boolean('is_published', true),
             ]);
 

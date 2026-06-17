@@ -24,7 +24,7 @@ class UpdateController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'position' => $validated['position'] ?? 0,
-            'price' => $validated['price'] ?: null,
+            'price' => $request->input('price') !== '' ? ($validated['price'] ?? null) : null,
             'is_published' => $request->boolean('is_published'),
         ]);
 

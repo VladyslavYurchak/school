@@ -9,7 +9,7 @@
                 <div class="lesson-locked-icon">🔒</div>
                 <h2 class="lesson-locked-title">Контент закрито</h2>
                 <p class="lesson-locked-sub">{{ $lesson->title }}</p>
-                @if($lesson->price)
+                @if($lesson->isPaid())
                     <form action="{{ route('lessons.buy', $lesson) }}" method="POST">
                         @csrf
                         <button type="submit" class="lesson-buy-btn">

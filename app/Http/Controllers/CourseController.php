@@ -35,21 +35,20 @@ class CourseController extends Controller
         $hasAccess = $course->isAvailableFor($user);
 
         // Для кожного уроку — чи є окремий доступ
-        $lessonAccess = [];
+        $ownedLessonIds = [];
         if (!$hasAccess && $user) {
             $ownedLessonIds = $user->lessons()
                 ->wherePivot('status', 'paid')
                 ->pluck('lessons.id')
                 ->flip()
                 ->all();
+        }
 
-            foreach ($course->lessons as $lesson) {
-                $lessonAccess[$lesson->id] = isset($ownedLessonIds[$lesson->id]);
-            }
-        } else {
-            foreach ($course->lessons as $lesson) {
-                $lessonAccess[$lesson->id] = $hasAccess;
-            }
+        $lessonAccess = [];
+        foreach ($course->lessons as $lesson) {
+            $lessonAccess[$lesson->id] = $hasAccess
+                || $lesson->isFree()
+                || isset($ownedLessonIds[$lesson->id]);
         }
 
         return view('public.courses.show', compact('course', 'hasAccess', 'lessonAccess'));
@@ -70,7 +69,7 @@ class CourseController extends Controller
             }
 
             // є окрема ціна — пропонуємо купити урок
-            if ($lesson->price) {
+            if ($lesson->isPaid()) {
                 return redirect()
                     ->route('courses.show', $course)
                     ->with('error', 'Придбайте цей урок або весь курс щоб отримати доступ.');

@@ -27,7 +27,7 @@ class LessonPaymentController extends Controller
                 ->with('success', 'У вас вже є доступ до цього уроку.');
         }
 
-        if (!$lesson->price) {
+        if (!$lesson->isPaid()) {
             return redirect()
                 ->route('courses.show', $lesson->course)
                 ->with('error', 'Урок не продається окремо.');
