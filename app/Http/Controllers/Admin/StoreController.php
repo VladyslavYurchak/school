@@ -2,10 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
-use App\Models\LessonLog;
-use App\Models\PlannedLesson;
-use Carbon\Carbon;
-use Illuminate\Http\Request;
+use App\Models\TrialLessonRequest;
 
 
 class StoreController extends Controller
@@ -13,6 +10,15 @@ class StoreController extends Controller
 
     public function __invoke()
     {
-        return view('admin.index');
+        $user = auth()->user();
+
+        return view('admin.index', [
+            'newTrialLessonRequests' => $user?->isAdmin()
+                ? TrialLessonRequest::query()->new()->latest()->limit(10)->get()
+                : collect(),
+            'newTrialLessonRequestsCount' => $user?->isAdmin()
+                ? TrialLessonRequest::query()->new()->count()
+                : 0,
+        ]);
     }
 }

@@ -22,7 +22,10 @@
 <header class="site-header">
     <div class="topbar">
         <div class="container topbar-inner">
-            <a href="#" class="btn-register">
+            <a href="#"
+               class="btn-register"
+               data-bs-toggle="modal"
+               data-bs-target="#trialLessonRequestModal">
                 📚 Запис на безкоштовне заняття
             </a>
 
@@ -122,8 +125,69 @@
 </header>
 
 <main class="site-main">
+    @if(session('trial_request_success'))
+        <div class="container pt-3">
+            <div class="alert alert-success mb-0">
+                {{ session('trial_request_success') }}
+            </div>
+        </div>
+    @endif
+
     @yield('content')
 </main>
+
+<div class="modal fade" id="trialLessonRequestModal" tabindex="-1" aria-labelledby="trialLessonRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="POST" action="{{ route('trial-lesson-requests.store') }}">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title" id="trialLessonRequestModalLabel">Запис на безкоштовне заняття</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
+            </div>
+            <div class="modal-body">
+                @if($errors->any())
+                    <div class="alert alert-danger">
+                        {{ $errors->first() }}
+                    </div>
+                @endif
+
+                <div class="mb-3">
+                    <label for="trial-name" class="form-label">Ім’я</label>
+                    <input type="text" class="form-control" id="trial-name" name="name" value="{{ old('name') }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="trial-phone" class="form-label">Телефон</label>
+                    <input type="text" class="form-control" id="trial-phone" name="phone" value="{{ old('phone') }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="trial-email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="trial-email" name="email" value="{{ old('email') }}">
+                </div>
+
+                <div class="mb-3">
+                    <label for="trial-contact" class="form-label">Як краще зв’язатися?</label>
+                    <select class="form-select" id="trial-contact" name="preferred_contact">
+                        <option value="">Не важливо</option>
+                        <option value="phone" @selected(old('preferred_contact') === 'phone')>Телефон</option>
+                        <option value="telegram" @selected(old('preferred_contact') === 'telegram')>Telegram</option>
+                        <option value="email" @selected(old('preferred_contact') === 'email')>Email</option>
+                    </select>
+                </div>
+
+                <div class="mb-0">
+                    <label for="trial-notes" class="form-label">Коментар</label>
+                    <textarea class="form-control" id="trial-notes" name="notes" rows="3" placeholder="Вік, мова, рівень або зручний час">{{ old('notes') }}</textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрити</button>
+                <button type="submit" class="btn btn-primary">Надіслати заявку</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

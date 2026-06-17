@@ -13,6 +13,11 @@
     <div class="sidebar-wrapper">
         <nav class="mt-2">
             <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+                @php
+                    $newTrialRequestsCount = auth()->user()?->isAdmin()
+                        ? \App\Models\TrialLessonRequest::query()->new()->count()
+                        : 0;
+                @endphp
                 <li class="nav-header">Кабінет вчителя</li>
                 <li class="nav-item">
                     <a href="{{ route('admin.teacher.my_students') }}" class="nav-link">
@@ -39,6 +44,19 @@
                     </a>
                 </li>
             @if (auth()->user()->role === 'admin')
+                <li class="nav-header">CRM</li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.index') }}" class="nav-link {{ request()->routeIs('admin.index') ? 'active' : '' }}">
+                        <i class="nav-icon bi bi-bell"></i>
+                        <p>
+                            Заявки
+                            @if($newTrialRequestsCount > 0)
+                                <span class="badge text-bg-danger ms-2">{{ $newTrialRequestsCount }}</span>
+                            @endif
+                        </p>
+                    </a>
+                </li>
+
                 <li class="nav-header">Управління заняттями</li>
                 <li class="nav-item">
                     <a href="{{route('admin.course.index')}}" class="nav-link">
