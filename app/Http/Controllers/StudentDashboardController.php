@@ -30,6 +30,11 @@ class StudentDashboardController extends Controller
             'payments' => $student->payments,
             'lessonLogs' => $student->lessonLogs,
             'courses' => $user->courses()->with('language')->wherePivot('status', 'paid')->get(),
+            'lessons' => $user->lessons()
+                ->with('course.language')
+                ->wherePivot('status', 'paid')
+                ->where('lessons.is_published', true)
+                ->get(),
         ]);
     }
 }

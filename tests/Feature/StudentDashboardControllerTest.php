@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Course;
+use App\Models\Language;
+use App\Models\Lesson;
 use App\Models\Student;
 use App\Models\StudentSubscription;
 use App\Models\SubscriptionTemplate;
@@ -50,5 +53,52 @@ class StudentDashboardControllerTest extends TestCase
             ->assertDontSee('Всього занять')
             ->assertDontSee('Використано')
             ->assertDontSee('Залишилось');
+    }
+
+    public function test_dashboard_shows_paid_separate_lessons(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+        Student::factory()->create(['user_id' => $user->id]);
+
+        $language = Language::create(['name' => 'English']);
+        $course = Course::create([
+            'title' => 'English A1',
+            'description' => 'Course description',
+            'language_id' => $language->id,
+            'price' => 1000,
+            'is_published' => true,
+        ]);
+
+        $paidLesson = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Paid separate lesson',
+            'description' => 'Lesson description',
+            'position' => 1,
+            'price' => 300,
+            'is_published' => true,
+        ]);
+
+        $unpaidLesson = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Unpaid lesson',
+            'description' => 'Lesson description',
+            'position' => 2,
+            'price' => 300,
+            'is_published' => true,
+        ]);
+
+        $user->lessons()->attach($paidLesson->id, [
+            'status' => 'paid',
+            'paid_amount' => 300,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertSee('Мої окремі уроки')
+            ->assertSee('Paid separate lesson')
+            ->assertSee(route('courses.lessons.show', [$course, $paidLesson]), false)
+            ->assertDontSee('Unpaid lesson');
     }
 }

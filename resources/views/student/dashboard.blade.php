@@ -101,6 +101,27 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
+                        <h4 class="card-title mb-3">Мої окремі уроки</h4>
+
+                        @if(($lessons ?? collect())->count())
+                            <div class="list-group">
+                                @foreach($lessons as $lesson)
+                                    <a href="{{ route('courses.lessons.show', [$lesson->course, $lesson]) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                        <span>{{ $lesson->title }}</span>
+                                        <span class="badge text-bg-secondary">{{ $lesson->course->title ?? '' }}</span>
+                                    </a>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="mb-0">Окремо оплачених уроків поки немає.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
                         <h4 class="card-title mb-3">Мої заняття</h4>
 
                         @if($lessonLogs->count())
