@@ -53,7 +53,13 @@
 
                                 {{-- Домашнє завдання --}}
                                 @php
-                                    $hasHomework = !empty($lesson->homework_text) || !empty($lesson->homework_video_url) || !empty(json_decode($lesson->homework_files, true));
+                                    $homeworkFiles = is_array($lesson->homework_files)
+                                        ? $lesson->homework_files
+                                        : (json_decode($lesson->homework_files ?? '[]', true) ?: []);
+
+                                    $hasHomework = !empty($lesson->homework_text)
+                                        || !empty($lesson->homework_video_url)
+                                        || !empty($homeworkFiles);
                                 @endphp
                                 <a href="{{ $hasHomework ? route('admin.course.lesson.homework.edit', $lesson->id) : route('admin.course.lesson.homework.create', $lesson->id) }}"
                                    class="btn {{ $hasHomework ? 'btn-outline-warning' : 'btn-outline-success' }} btn-sm me-1">

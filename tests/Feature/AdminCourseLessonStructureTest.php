@@ -192,6 +192,29 @@ class AdminCourseLessonStructureTest extends TestCase
         $this->assertFieldInsideForm($html, 'is_published', $formStart, $formEnd);
     }
 
+    public function test_admin_course_show_handles_lesson_homework_files_array(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+
+        $lesson = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Lesson with homework files',
+            'description' => 'Lesson description',
+            'lesson_type' => 'Reading',
+            'position' => 1,
+            'homework_files' => ['homework/file.pdf'],
+            'is_published' => true,
+        ]);
+
+        $this
+            ->actingAs($admin)
+            ->get(route('admin.course.show', $course))
+            ->assertOk()
+            ->assertSee($lesson->title)
+            ->assertSee('Ред. дом.завд.');
+    }
+
     public function test_admin_can_update_lesson_price_position_and_publish_status(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
