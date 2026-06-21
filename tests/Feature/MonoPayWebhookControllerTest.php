@@ -53,7 +53,7 @@ class MonoPayWebhookControllerTest extends TestCase
         ];
 
         $this->postSignedMonoWebhook($payload)->assertOk();
-        $this->postSignedMonoWebhook($payload)->assertOk();
+        $this->postSignedMonoWebhook($payload, publicKeyFormat: 'pem')->assertOk();
 
         $payment->refresh();
 
@@ -76,6 +76,15 @@ class MonoPayWebhookControllerTest extends TestCase
 
         $this->assertSame('2026-08-01', $subscription->start_date->toDateString());
         $this->assertSame('2026-08-31', $subscription->end_date->toDateString());
+
+        $this->postSignedMonoWebhook([
+            'invoiceId' => 'invoice-123',
+            'reference' => $payment->provider_order_id,
+            'status' => 'reversed',
+        ])->assertOk();
+
+        $this->assertSame('refunded', $payment->fresh()->status);
+        $this->assertSame('cancelled', $subscription->fresh()->status);
     }
 
     public function test_failed_subscription_webhook_marks_payment_failed_without_creating_subscription(): void
@@ -112,6 +121,82 @@ class MonoPayWebhookControllerTest extends TestCase
         $this->assertSame('failed', $payment->status);
         $this->assertSame('invoice-failed', $payment->provider_payment_id);
         $this->assertDatabaseCount('student_subscriptions', 0);
+
+    }
+
+    public function test_successful_subscription_webhook_falls_back_to_invoice_status_when_signature_cannot_be_verified(): void
+    {
+        Carbon::setTestNow('2026-06-14 12:00:00');
+
+        $template = SubscriptionTemplate::factory()->create([
+            'type' => 'individual',
+            'lessons_per_week' => 2,
+            'price' => 5,
+        ]);
+
+        $student = Student::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'student'])->id,
+            'subscription_id' => $template->id,
+        ]);
+
+        $payment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 5,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_order_id' => 'order-fallback',
+            'provider_payment_id' => 'invoice-fallback',
+            'description' => 'Subscription payment',
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => '2026-06',
+            ],
+        ]);
+
+        $payload = [
+            'invoiceId' => 'invoice-fallback',
+            'reference' => 'order-fallback',
+            'status' => 'success',
+            'amount' => 500,
+            'ccy' => 980,
+        ];
+
+        $this->mock(MonoPayService::class, function ($mock) use ($payload) {
+            $mock->shouldReceive('getPublicKey')
+                ->once()
+                ->andReturn('not-a-valid-public-key');
+
+            $mock->shouldReceive('getInvoiceStatus')
+                ->once()
+                ->with('invoice-fallback')
+                ->andReturn($payload);
+        });
+
+        $this->call(
+            'POST',
+            route('monopay.webhook'),
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_SIGN' => base64_encode('bad-signature'),
+            ],
+            json_encode($payload, JSON_UNESCAPED_SLASHES)
+        )->assertOk();
+
+        $payment->refresh();
+
+        $this->assertSame('paid', $payment->status);
+        $this->assertDatabaseHas('student_subscriptions', [
+            'student_id' => $student->id,
+            'subscription_template_id' => $template->id,
+            'payment_id' => $payment->id,
+            'status' => 'active',
+            'price' => 5,
+        ]);
     }
 
     public function test_successful_course_and_lesson_webhooks_grant_student_access_without_subscription(): void
@@ -194,9 +279,33 @@ class MonoPayWebhookControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseCount('student_subscriptions', 0);
+
+        $this->postSignedMonoWebhook([
+            'invoiceId' => 'course-invoice',
+            'reference' => $coursePayment->provider_order_id,
+            'status' => 'reversed',
+        ])->assertOk();
+
+        $this->postSignedMonoWebhook([
+            'invoiceId' => 'lesson-invoice',
+            'reference' => $lessonPayment->provider_order_id,
+            'status' => 'reversed',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('user_course', [
+            'user_id' => $student->user_id,
+            'course_id' => $course->id,
+            'status' => 'refunded',
+        ]);
+
+        $this->assertDatabaseHas('user_lesson', [
+            'user_id' => $student->user_id,
+            'lesson_id' => $lesson->id,
+            'status' => 'refunded',
+        ]);
     }
 
-    private function postSignedMonoWebhook(array $payload)
+    private function postSignedMonoWebhook(array $payload, string $publicKeyFormat = 'base64')
     {
         $options = [
             'private_key_bits' => 2048,
@@ -223,10 +332,14 @@ class MonoPayWebhookControllerTest extends TestCase
         $rawBody = json_encode($payload, JSON_UNESCAPED_SLASHES);
         openssl_sign($rawBody, $signature, $keyPair, OPENSSL_ALGO_SHA256);
 
-        $this->mock(MonoPayService::class, function ($mock) use ($publicKeyBase64) {
+        $publicKey = $publicKeyFormat === 'pem'
+            ? $details['key']
+            : $publicKeyBase64;
+
+        $this->mock(MonoPayService::class, function ($mock) use ($publicKey) {
             $mock->shouldReceive('getPublicKey')
                 ->once()
-                ->andReturn($publicKeyBase64);
+                ->andReturn($publicKey);
         });
 
         return $this->call(

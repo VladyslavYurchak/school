@@ -42,7 +42,13 @@
                         <h4>{{ $currentSection->title }}</h4>
 
                         @if($currentSection->instruction_text)
-                            <p class="text-muted">{{ $currentSection->instruction_text }}</p>
+                            <div class="text-muted mb-3" style="white-space: pre-line;">{{ $currentSection->instruction_text }}</div>
+                        @endif
+
+                        @if($currentSection->description)
+                            <div class="testing-section-text mb-4">
+                                {{ $currentSection->description }}
+                            </div>
                         @endif
 
                         @if($currentSection->media_type === 'youtube' && $currentSection->media_url)
@@ -57,7 +63,22 @@
                             </div>
                         @endif
 
-                        @foreach($currentSection->questions as $question)
+                        @if($currentSection->media_type === 'audio' && $currentSection->media_url)
+                            @php
+                                $audioSrc = \Illuminate\Support\Str::startsWith($currentSection->media_url, ['http://', 'https://'])
+                                    ? $currentSection->media_url
+                                    : asset('storage/' . $currentSection->media_url);
+                            @endphp
+
+                            <div class="alert alert-light border mb-3">
+                                @if($currentSection->media_title)
+                                    <div class="fw-semibold mb-2">{{ $currentSection->media_title }}</div>
+                                @endif
+                                <audio controls class="w-100" src="{{ $audioSrc }}"></audio>
+                            </div>
+                        @endif
+
+                        @foreach($currentSection->questions->where('is_active', true) as $question)
                             <div class="mb-4 p-3 border rounded">
                                 <div class="fw-semibold mb-2">
                                     {{ $question->question_text }}
@@ -113,7 +134,6 @@
                         @endforeach
                     </div>
                 </div>
-                </div>
             </div>
 
             <div class="text-center">
@@ -163,4 +183,25 @@
             });
         </script>
     @endif
+
+    <style>
+        .testing-section-text {
+            background: #ffffff;
+            border: 1px solid #dbe4ef;
+            border-radius: 10px;
+            color: #182230;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            padding: 1.25rem;
+            white-space: pre-line;
+        }
+
+        @media (max-width: 576px) {
+            .testing-section-text {
+                font-size: 1rem;
+                line-height: 1.7;
+                padding: 1rem;
+            }
+        }
+    </style>
 @endsection

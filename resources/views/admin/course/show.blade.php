@@ -1,96 +1,149 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <main class="app-main">
-        <div class="card shadow-sm border-0">
-            <div class="card-header d-flex align-items-center bg-light border-bottom">
-                <h3 class="mb-0 text-dark">{{ $course->title }}</h3>
-                <a href="{{ route('admin.course.index') }}" class="btn btn-outline-dark btn-sm ms-auto">
-                    ← Назад
-                </a>
-            </div>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-mortarboard"></i>
+                            Курс
+                        </span>
+                        <h1 class="admin-title">{{ $course->title }}</h1>
+                        <p class="admin-subtitle">
+                            {{ $course->description ?: 'Опис курсу ще не додано.' }}
+                        </p>
+                    </div>
 
-            <div class="card-body">
-                <p><strong>Опис:</strong> {{ $course->description }}</p>
-                <p><strong>Мова:</strong> {{ $course->language->name }}</p>
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.course.lesson.create', $course->id) }}" class="admin-btn-primary">
+                            <i class="bi bi-plus-lg"></i>
+                            Додати урок
+                        </a>
+                        <a href="{{ route('admin.course.index') }}" class="admin-btn-soft">
+                            <i class="bi bi-arrow-left"></i>
+                            До курсів
+                        </a>
+                    </div>
+                </div>
+            </section>
 
-                <a href="{{ route('admin.course.lesson.create', $course->id) }}" class="btn btn-dark btn-sm mb-3">
-                    + Додати урок
-                </a>
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Дані курсу</h2>
+                    <span class="admin-badge admin-badge-muted">{{ $course->language->name }}</span>
+                </div>
+                <div class="admin-panel-body">
+                    <div class="admin-content-box">
+                        <strong>Мова:</strong> {{ $course->language->name }}<br>
+                        <strong>Ціна:</strong>
+                        @if($course->price > 0)
+                            {{ $course->price }} грн
+                        @else
+                            Безкоштовний
+                        @endif
+                    </div>
+                </div>
+            </section>
 
-                <table class="table table-hover table-bordered align-middle">
-                    <thead class="table-light">
-                    <tr>
-                        <th style="width:5%">#</th>
-                        <th style="width:20%">Назва уроку</th>
-                        <th style="width:30%">Опис</th>
-                        <th style="width:15%">Тип уроку</th>
-                        <th style="width:30%">Дії</th>
-                    </tr>
-                    </thead>
-                    <tbody id="sortable-lessons">
-                    @foreach ($course->lessons as $lesson)
-                        <tr id="lesson-{{ $lesson->id }}" data-id="{{ $lesson->id }}">
-                            <td class="sortable-handle text-muted">{{ $lesson->position }}</td>
-                            <td class="text-start">{{ $lesson->title }}</td>
-                            <td class="text-start small text-secondary">{{ $lesson->description }}</td>
-                            <td class="text-start">{{ $lesson->lesson_type }}</td>
-                            <td class="text-center">
-                                <a href="{{ route('admin.course.lesson.show', $lesson->id) }}"
-                                   class="btn btn-outline-dark btn-sm me-1">👁️</a>
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Уроки курсу</h2>
+                    <span class="admin-badge admin-badge-muted">Усього: {{ $course->lessons->count() }}</span>
+                </div>
 
-                                <a href="{{ route('admin.course.lesson.edit', $lesson->id) }}"
-                                   class="btn btn-outline-primary btn-sm me-1">
-                                    Ред. урок
-                                </a>
+                <div class="admin-panel-body p-0">
+                    @if($course->lessons->count())
+                        <div class="admin-table-wrap border-0 rounded-0">
+                            <table class="table admin-table mb-0 admin-lessons-table">
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Назва уроку</th>
+                                    <th>Опис</th>
+                                    <th>Тип</th>
+                                    <th class="text-end">Дії</th>
+                                </tr>
+                                </thead>
+                                <tbody id="sortable-lessons">
+                                @foreach ($course->lessons as $lesson)
+                                    <tr id="lesson-{{ $lesson->id }}" data-id="{{ $lesson->id }}">
+                                        <td class="sortable-handle text-muted">{{ $lesson->position }}</td>
+                                        <td>
+                                            <a href="{{ route('admin.course.lesson.show', $lesson->id) }}" class="admin-course-link">
+                                                {{ $lesson->title }}
+                                            </a>
+                                            @unless($lesson->is_published)
+                                                <span class="admin-badge admin-badge-muted ms-1">Чернетка</span>
+                                            @endunless
+                                        </td>
+                                        <td class="small text-muted">{{ $lesson->description ?: '—' }}</td>
+                                        <td>{{ $lesson->lesson_type }}</td>
+                                        <td class="text-end">
+                                            @php
+                                                $homeworkFiles = is_array($lesson->homework_files)
+                                                    ? $lesson->homework_files
+                                                    : (json_decode($lesson->homework_files ?? '[]', true) ?: []);
 
-                                {{-- Основна частина --}}
-                                <a href="{{ route('admin.course.lesson.main.create', $lesson->id) }}"
-                                   class="btn {{ !empty($lesson->content) ? 'btn-outline-secondary' : 'btn-outline-success' }} btn-sm me-1">
-                                    {{ !empty($lesson->content) ? 'Ред. осн.част.' : 'Дод. осн. част.' }}
-                                </a>
+                                                $hasHomework = !empty($lesson->homework_text)
+                                                    || !empty($lesson->homework_video_url)
+                                                    || !empty($homeworkFiles);
+                                            @endphp
 
-                                {{-- Тестовий блок --}}
-                                <a href="{{ route('admin.course.lesson.test.create', $lesson->id) }}"
-                                   class="btn {{ $lesson->tests()->exists() ? 'btn-outline-secondary' : 'btn-outline-success' }} btn-sm me-1">
-                                    {{ $lesson->tests()->exists() ? 'Ред. тест' : 'Дод. тест' }}
-                                </a>
-
-                                {{-- Домашнє завдання --}}
-                                @php
-                                    $homeworkFiles = is_array($lesson->homework_files)
-                                        ? $lesson->homework_files
-                                        : (json_decode($lesson->homework_files ?? '[]', true) ?: []);
-
-                                    $hasHomework = !empty($lesson->homework_text)
-                                        || !empty($lesson->homework_video_url)
-                                        || !empty($homeworkFiles);
-                                @endphp
-                                <a href="{{ $hasHomework ? route('admin.course.lesson.homework.edit', $lesson->id) : route('admin.course.lesson.homework.create', $lesson->id) }}"
-                                   class="btn {{ $hasHomework ? 'btn-outline-warning' : 'btn-outline-success' }} btn-sm me-1">
-                                    {{ $hasHomework ? 'Ред. дом.завд.' : 'Дод. дом.завд.' }}
-                                </a>
-
-                                <form action="{{ route('admin.course.lesson.delete', $lesson->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">🗑️</button>
-                                </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
+                                            <div class="admin-row-actions">
+                                                <a href="{{ route('admin.course.lesson.show', $lesson->id) }}" class="btn btn-sm btn-outline-secondary">Перегляд</a>
+                                                <a href="{{ route('admin.course.lesson.edit', $lesson->id) }}" class="btn btn-sm btn-outline-primary">Редагувати</a>
+                                                <a href="{{ route('admin.course.lesson.main.create', $lesson->id) }}"
+                                                   class="btn btn-sm {{ $lesson->content_blocks_count > 0 ? 'btn-outline-secondary' : 'btn-outline-success' }}">
+                                                    {{ $lesson->content_blocks_count > 0 ? 'Конструктор (' . $lesson->content_blocks_count . ')' : 'Додати матеріали' }}
+                                                </a>
+                                                <a href="{{ route('admin.course.lesson.test.create', $lesson->id) }}"
+                                                   class="btn btn-sm {{ $lesson->tests()->exists() ? 'btn-outline-secondary' : 'btn-outline-success' }}">
+                                                    {{ $lesson->tests()->exists() ? 'Тест' : 'Додати тест' }}
+                                                </a>
+                                                <a href="{{ $hasHomework ? route('admin.course.lesson.homework.edit', $lesson->id) : route('admin.course.lesson.homework.create', $lesson->id) }}"
+                                                   class="btn btn-sm {{ $hasHomework ? 'btn-outline-warning' : 'btn-outline-success' }}">
+                                                    {{ $hasHomework ? 'Домашнє' : 'Додати домашнє' }}
+                                                </a>
+                                                <form action="{{ route('admin.course.lesson.delete', $lesson->id) }}" method="POST">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Ви впевнені?')">
+                                                        Видалити
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="admin-empty-state">
+                            <i class="bi bi-journal-plus"></i>
+                            <h3>Уроків поки немає</h3>
+                            <p>Додайте перший урок, щоб наповнити курс матеріалами.</p>
+                        </div>
+                    @endif
+                </div>
+            </section>
         </div>
-    </main>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const sortable = new Sortable(document.getElementById('sortable-lessons'), {
+            const lessonsList = document.getElementById('sortable-lessons');
+
+            if (!lessonsList) {
+                return;
+            }
+
+            new Sortable(lessonsList, {
                 handle: '.sortable-handle',
                 animation: 150,
-                onEnd(evt) {
+                onEnd() {
                     const newOrder = [];
                     document.querySelectorAll('#sortable-lessons tr').forEach((row, index) => {
                         newOrder.push({
@@ -98,7 +151,7 @@
                             position: index + 1
                         });
                     });
-                    fetch('{{ route('admin.course.lesson.updateOrder') }}', {
+                    fetch('{{ route('admin.course.lesson.updateOrder', $course) }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -110,15 +163,4 @@
             });
         });
     </script>
-
-    <style>
-        .sortable-handle { cursor: grab; }
-        .btn { border-radius: 6px; }
-        .table td, .table th { text-align: center; }
-        .table td:nth-child(3) {
-            max-width: 250px;
-            white-space: normal;
-            word-wrap: break-word;
-        }
-    </style>
 @endsection

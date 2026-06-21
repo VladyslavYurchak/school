@@ -33,17 +33,28 @@ class LessonPaymentController extends Controller
                 ->with('error', 'Урок не продається окремо.');
         }
 
-        $student = $user->student;
-
-        if (!$student) {
-            $student = Student::create([
-                'user_id' => $user->id,
+        $student = Student::firstOrCreate(
+            ['user_id' => $user->id],
+            [
                 'first_name' => $user->name ?? 'Користувач',
                 'last_name' => '',
                 'email' => $user->email,
                 'is_active' => true,
                 'start_date' => now()->toDateString(),
-            ]);
+            ]
+        );
+
+        $existingPayment = Payment::query()
+            ->where('student_id', $student->id)
+            ->where('status', 'pending')
+            ->where('type', 'single')
+            ->where('provider', 'monopay')
+            ->where('payload->lesson_id', $lesson->id)
+            ->latest()
+            ->first();
+
+        if ($existingPayment) {
+            return redirect()->route('student.payments.checkout', $existingPayment);
         }
 
         $payment = Payment::create([
@@ -54,7 +65,7 @@ class LessonPaymentController extends Controller
             'type' => 'single',
             'provider' => 'monopay',
             'provider_order_id' => (string) Str::uuid(),
-            'description' => 'Оплата уроку: ' . $lesson->title,
+            'description' => 'Оплата за "' . $lesson->title . '"',
             'payload' => [
                 'lesson_id' => $lesson->id,
                 'user_id' => $user->id,

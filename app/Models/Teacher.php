@@ -26,7 +26,9 @@ class Teacher extends Model
         'is_active',
 
         'public_photo',
+        'public_position',
         'public_bio',
+        'public_details',
         'is_public',
         'public_sort_order'
     ];

@@ -39,22 +39,20 @@ class LevelDetectorService
             ];
         }
 
-        $detectedLevel = 'A1';
+        $detectedLevel = null;
 
         foreach ($levelOrder as $level) {
             if (($stats[$level]['total'] ?? 0) === 0) {
-                break;
+                continue;
             }
 
             if (($stats[$level]['passed'] ?? false) === true) {
                 $detectedLevel = $level;
-            } else {
-                break;
             }
         }
 
         return [
-            'detected_level' => $detectedLevel,
+            'detected_level' => $detectedLevel ?? 'A1',
             'level_stats' => $stats,
         ];
     }

@@ -34,11 +34,21 @@
             </a>
 
             <div class="social-icons">
-                <a href="#"><i class="bi bi-instagram"></i></a>
-                <a href="#"><i class="bi bi-telegram"></i></a>
-                <a href="#"><i class="bi bi-telephone"></i></a>
-                <a href="#"><i class="bi bi-facebook"></i></a>
-                <a href="#"><i class="bi bi-tiktok"></i></a>
+                <a href="https://www.instagram.com/korporatsiia.mov/" target="_blank" rel="noopener" aria-label="Instagram">
+                    <i class="bi bi-instagram"></i>
+                </a>
+                <a href="https://t.me/DashaYurchak" target="_blank" rel="noopener" aria-label="Telegram">
+                    <i class="bi bi-telegram"></i>
+                </a>
+                <a href="tel:+380662992218" aria-label="Телефон">
+                    <i class="bi bi-telephone"></i>
+                </a>
+                <a href="https://www.facebook.com/people/%D0%9A%D0%BE%D1%80%D0%BF%D0%BE%D1%80%D0%B0%D1%86%D1%96%D1%8F-%D0%BC%D0%BE%D0%B2/61558067528774/" target="_blank" rel="noopener" aria-label="Facebook">
+                    <i class="bi bi-facebook"></i>
+                </a>
+                <a href="https://www.tiktok.com/@korporatsiia.mov" target="_blank" rel="noopener" aria-label="TikTok">
+                    <i class="bi bi-tiktok"></i>
+                </a>
             </div>
         </div>
     </div>
@@ -62,9 +72,6 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ route('courses.index') }}">Доступні курси</a></li>
-                            <li><a class="dropdown-item" href="#">Словник</a></li>
-                            <li><a class="dropdown-item" href="#">Відео</a></li>
-                            <li><a class="dropdown-item" href="#">Оплата</a></li>
                         </ul>
                     </li>
 

@@ -11,7 +11,7 @@ class ShowController extends Controller
     public function __invoke(Course $course)
     {
         $course->load(['lessons' => function ($query) {
-            $query->orderBy('position', 'asc');
+            $query->withCount('contentBlocks')->orderBy('position', 'asc');
         }]);
 
         return view('admin.course.show', compact('course'));    }

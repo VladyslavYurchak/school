@@ -1,53 +1,31 @@
 @extends('admin.layouts.layout')
 
-@section('content')<!--begin::App Main-->
-<main class="app-main">
-    <!--begin::App Content Header-->
-    <div class="card">
-        <div class="card-header">
-            <a href="{{ route('admin.event.index') }}" class="btn btn-secondary">Повернутися до списку подій</a>
-        </div>
-        <div class="card-body">
-            <h3>Створити подію</h3>
-            @if(session('success'))
-                <div class="alert alert-success">
-                    {{ session('success') }}
-                </div>
-            @endif
+@section('content')
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-plus-lg"></i>
+                            Нова подія
+                        </span>
+                        <h1 class="admin-title">Створити подію</h1>
+                        <p class="admin-subtitle">
+                            Додайте майбутню подію школи для головної сторінки.
+                        </p>
+                    </div>
 
-            <!-- Форма для створення події -->
-            <form action="{{ route('admin.event.store') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="mb-3">
-                    <label for="title" class="form-label">Назва події</label>
-                    <input type="text" name="title" id="title" class="form-control" placeholder="Введіть заголовок події" required>
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.event.index') }}" class="admin-btn-soft">
+                            <i class="bi bi-arrow-left"></i>
+                            До списку
+                        </a>
+                    </div>
                 </div>
-                <div class="form-group mb-3">
-                    <label for="image" class="form-label" style="font-weight: bold;">Фото URL</label>
-                    <input type="text" class="form-control border-dark" name="image" id="image"
-                           placeholder="Вставте URL фото"
-                           style="background-color: #f8f9fa; color: #000; border-radius: 8px;">
-                    <small class="text-danger">
-                        @error('image')
-                        {{ $message }}
-                        @enderror
-                    </small>
-                </div>
+            </section>
 
-                <div class="form-group mb-3">
-                    <label for="start_date" class="form-label">Вкажіть дату</label>
-                    <input type="date" class="form-control" name="start_date" id="start_date" required>
-                    <small class="text-danger">
-                        @error('start_date')
-                        {{ $message }}
-                        @enderror
-                    </small>
-                </div>
-
-                <button type="submit" class="btn btn-success">Створити подію</button>
-            </form>
+            @include('admin.event.form')
         </div>
     </div>
-    <!--end::App Content-->
-</main>
 @endsection

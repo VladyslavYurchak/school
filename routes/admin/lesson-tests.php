@@ -14,6 +14,6 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::delete('lessons/{lesson}/test-block/{test}', DestroyController::class)->name('admin.course.lesson.test.destroy');
     Route::delete('/course/lesson/test/option/{option}', \App\Http\Controllers\Admin\Course\Lesson\Test\TestOptionController::class)
         ->name('admin.course.lesson.test.option.destroy');
-    Route::post('/courses/lesson/test/updateOrder', \App\Http\Controllers\Admin\Course\Lesson\Test\UpdateOrderController::class)
+    Route::post('lessons/{lesson}/test-block/update-order', \App\Http\Controllers\Admin\Course\Lesson\Test\UpdateOrderController::class)
         ->name('admin.course.lesson.test.updateOrder');
 });

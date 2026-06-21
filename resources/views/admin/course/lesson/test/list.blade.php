@@ -1,39 +1,42 @@
-<div class="card shadow-lg border-0">
-    <div class="card-header bg-white">
-        <h4 class="fw-bold text-dark mb-0">Список тестів</h4>
+<section class="admin-panel">
+    <div class="admin-panel-header">
+        <h2 class="admin-panel-title">Список тестів</h2>
+        <span class="admin-badge admin-badge-muted">Усього: {{ $tests->count() }}</span>
     </div>
-    <div class="card-body">
+
+    <div class="admin-panel-body">
         @if($tests->isEmpty())
-            <div class="alert alert-info shadow-sm empty-tests-alert">Тестів ще немає.</div>
+            <div class="admin-empty-state">
+                <div class="admin-empty-icon">
+                    <i class="bi bi-ui-checks"></i>
+                </div>
+                <h3>Тестів ще немає</h3>
+                <p>Додайте перше питання для цього уроку.</p>
+            </div>
         @else
             <ul id="sortable-tests" class="list-group list-group-flush sortable-tests-list">
                 @foreach($tests->sortBy('position') as $test)
-                    <li
-                        class="list-group-item d-flex justify-content-between align-items-center shadow-sm mb-2 rounded"
-                        data-id="{{ $test->id }}"
-                    >
+                    <li class="list-group-item d-flex justify-content-between align-items-center"
+                        data-id="{{ $test->id }}">
                         <div>
                             <strong>#{{ $test->position }}</strong> {{ $test->question }}
                         </div>
 
-                        <div class="btn-group">
-                            <a
-                                href="{{ route('admin.course.lesson.test.edit', ['lesson' => $lesson->id, 'test' => $test->id]) }}"
-                                class="btn btn-warning btn-sm shadow-sm"
-                            >
-                                ✏️ Редагувати
+                        <div class="admin-actions">
+                            <a href="{{ route('admin.course.lesson.test.edit', ['lesson' => $lesson->id, 'test' => $test->id]) }}"
+                               class="admin-btn-warning">
+                                <i class="bi bi-pencil"></i>
+                                Редагувати
                             </a>
 
-                            <form
-                                action="{{ route('admin.course.lesson.test.destroy', ['lesson' => $lesson->id, 'test' => $test->id]) }}"
-                                method="POST"
-                                onsubmit="return confirm('Ви впевнені?')"
-                                class="d-inline"
-                            >
+                            <form action="{{ route('admin.course.lesson.test.destroy', ['lesson' => $lesson->id, 'test' => $test->id]) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('Видалити тест?')">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm shadow-sm">
-                                    🗑️ Видалити
+                                <button type="submit" class="admin-btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                    Видалити
                                 </button>
                             </form>
                         </div>
@@ -42,4 +45,4 @@
             </ul>
         @endif
     </div>
-</div>
+</section>

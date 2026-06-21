@@ -11,7 +11,7 @@ class UpdateController extends Controller
     public function __invoke(Request $request, Lesson $lesson)
     {
         $validated = $request->validate([
-            'lesson_type' => ['required', 'string', 'max:255'],
+            'lesson_type' => ['required', 'in:Reading,Listening,Grammar,Speaking,Test'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'position' => ['nullable', 'integer', 'min:0'],

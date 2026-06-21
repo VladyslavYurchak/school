@@ -1,16 +1,27 @@
 @extends('public.layouts.main')
 
 @section('content')
-    <div class="card p-4">
-        <h3 class="text-dark">{{ $post->id }}. {{ $post->title }}</h3>
-        <p class="mt-3">{{ $post->content }}</p>
+    <div class="container py-5">
+        <article class="post-show">
+            <a href="{{ route('index') }}#posts-block" class="post-back-link">
+                <i class="bi bi-arrow-left"></i>
+                Повернутись на головну
+            </a>
 
-        @if($post->image)
-            <img src="{{ asset('storage/' . $post->image) }}" class="img-fluid rounded mt-3" alt="Post Image">
-        @endif
+            <div class="post-show-header">
+                <div class="post-date mb-2">{{ $post->created_at->format('d.m.Y') }}</div>
+                <h1 class="post-show-title">{{ $post->title }}</h1>
+            </div>
 
-        <div class="mt-4">
-            <a href="{{ route('posts.index') }}" class="btn btn-secondary">⬅ Повернутись</a>
-        </div>
+            @if($post->image)
+                <div class="post-show-image-wrap">
+                    <img src="{{ $post->image_url }}" class="post-show-image" alt="{{ $post->title }}">
+                </div>
+            @endif
+
+            <div class="post-show-content">
+                {!! nl2br(e($post->content)) !!}
+            </div>
+        </article>
     </div>
 @endsection

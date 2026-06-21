@@ -1,0 +1,161 @@
+/* Temporary bridge for older admin pages that still use Bootstrap cards/tables. */
+
+.app-main {
+    > .container,
+    > .container-fluid,
+    > .content,
+    > .content-wrapper {
+        max-width: 1320px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    > .card,
+    > form > .card {
+        max-width: 1320px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+.app-main .card {
+    border: 1px solid rgba(230, 235, 241, 0.95);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 10px 28px rgba(36, 49, 64, 0.06);
+}
+
+.app-main .card-header {
+    border-bottom: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-color);
+    padding: 1rem 1.15rem;
+}
+
+.app-main .card-header h1,
+.app-main .card-header h2,
+.app-main .card-header h3,
+.app-main .card-header h4,
+.app-main .card-header h5,
+.app-main .card-header h6,
+.app-main .card-title {
+    color: var(--text-color);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.app-main .card-body,
+.app-main .card-footer {
+    padding: 1.15rem;
+}
+
+.app-main .table-responsive,
+.app-main .card-body > .table,
+.app-main .card-body > .table-responsive {
+    border-radius: 18px;
+}
+
+.app-main .table {
+    margin-bottom: 0;
+    color: var(--text-color);
+    vertical-align: middle;
+}
+
+.app-main .table thead th {
+    background: #f8fafc;
+    color: var(--muted-text);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.app-main .table td,
+.app-main .table th {
+    border-color: var(--border-color);
+    overflow-wrap: anywhere;
+}
+
+.app-main .form-control,
+.app-main .form-select {
+    min-height: 44px;
+    border-radius: 14px;
+    border-color: var(--border-color);
+    box-shadow: none;
+}
+
+.app-main textarea.form-control {
+    min-height: 120px;
+}
+
+.app-main .form-control:focus,
+.app-main .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.22rem rgba(90, 195, 164, 0.14);
+}
+
+.app-main .btn {
+    border-radius: 12px;
+    font-weight: 700;
+}
+
+.app-main .btn-primary,
+.app-main .btn-success,
+.app-main .btn-custom {
+    border: 0;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    box-shadow: 0 8px 20px rgba(90, 195, 164, 0.22);
+}
+
+.app-main .btn-primary:hover,
+.app-main .btn-success:hover,
+.app-main .btn-custom:hover {
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(90, 195, 164, 0.28);
+}
+
+.app-main .btn-outline-primary {
+    color: var(--primary-dark);
+    border-color: var(--primary-color);
+}
+
+.app-main .btn-outline-primary:hover {
+    color: #fff;
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.app-main .badge {
+    border-radius: 999px;
+    padding: 0.38rem 0.62rem;
+    font-weight: 800;
+}
+
+@media (max-width: 767.98px) {
+    .app-main {
+        > .container,
+        > .container-fluid,
+        > .content,
+        > .content-wrapper {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+    }
+
+    .app-main .card {
+        border-radius: 18px;
+    }
+
+    .app-main .card-header,
+    .app-main .card-body,
+    .app-main .card-footer {
+        padding: 0.9rem;
+    }
+
+    .app-main .btn {
+        min-height: 40px;
+    }
+}

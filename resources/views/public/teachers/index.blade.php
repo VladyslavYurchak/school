@@ -34,16 +34,28 @@
                         <div class="row align-items-center g-4">
 
                             <div class="col-md-4 col-lg-3">
-                                <div class="teacher-photo-wrap">
-                                    @if($teacher->public_photo)
-                                        <img
-                                            src="{{ asset('storage/' . $teacher->public_photo) }}"
-                                            alt="{{ $teacher->full_name }}"
-                                            class="teacher-photo"
-                                        >
-                                    @else
-                                        <div class="teacher-photo teacher-photo-placeholder">
-                                            <span>{{ mb_substr($teacher->full_name ?: 'В', 0, 1) }}</span>
+                                <div class="teacher-photo-column">
+                                    <div class="teacher-photo-wrap">
+                                        @if($teacher->public_photo)
+                                            <img
+                                                src="{{ asset('storage/' . $teacher->public_photo) }}"
+                                                alt="{{ $teacher->full_name }}"
+                                                class="teacher-photo"
+                                            >
+                                        @else
+                                            <div class="teacher-photo teacher-photo-placeholder">
+                                                <span>{{ mb_substr($teacher->full_name ?: 'В', 0, 1) }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    @if($teacher->public_details)
+                                        <div class="teacher-details">
+                                            @foreach(preg_split('/\r\n|\r|\n/', trim($teacher->public_details)) as $detail)
+                                                @if(trim($detail) !== '')
+                                                    <div class="teacher-detail-line">{{ trim($detail) }}</div>
+                                                @endif
+                                            @endforeach
                                         </div>
                                     @endif
                                 </div>
@@ -51,13 +63,25 @@
 
                             <div class="col-md-8 col-lg-9">
                                 <div class="teacher-content">
-                                    <h2 class="teacher-name">
-                                        {{ $teacher->full_name ?: 'Викладач' }}
-                                    </h2>
+                                    <div class="teacher-heading">
+                                        <h2 class="teacher-name">
+                                            {{ $teacher->full_name ?: 'Викладач' }}
+                                        </h2>
+
+                                        @if($teacher->public_position)
+                                            <div class="teacher-position">
+                                                - {{ ltrim($teacher->public_position, "- \t\n\r\0\x0B") }}
+                                            </div>
+                                        @endif
+                                    </div>
 
                                     @if($teacher->public_bio)
                                         <div class="teacher-bio">
-                                            {{ $teacher->public_bio }}
+                                            @if($teacher->public_bio !== strip_tags($teacher->public_bio))
+                                                {!! $teacher->public_bio !!}
+                                            @else
+                                                {!! nl2br(e($teacher->public_bio)) !!}
+                                            @endif
                                         </div>
                                     @else
                                         <div class="teacher-bio teacher-bio-empty">

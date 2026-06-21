@@ -1,0 +1,182 @@
+/* Teacher-facing admin pages. */
+
+.admin-teacher-table {
+    min-width: 720px;
+}
+
+.admin-teacher-table-sm {
+    min-width: 620px;
+}
+
+.admin-teacher-table-lg {
+    min-width: 980px;
+}
+
+.admin-teacher-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.admin-summary-card {
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: #fff;
+    padding: 0.9rem 1rem;
+}
+
+.admin-summary-label {
+    display: block;
+    color: var(--muted-text);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.admin-summary-value {
+    display: block;
+    color: var(--text-color);
+    font-size: 1.35rem;
+    line-height: 1.2;
+    font-weight: 800;
+    margin-top: 0.2rem;
+}
+
+.admin-filter-grid.admin-filter-grid-three {
+    grid-template-columns: minmax(170px, 1fr) minmax(130px, 0.6fr) auto;
+}
+
+.admin-calendar-shell {
+    min-height: 720px;
+}
+
+.admin-calendar-shell .fc {
+    color: var(--text-color);
+}
+
+.admin-calendar-shell .fc-toolbar {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.admin-calendar-shell .fc-toolbar-title {
+    color: var(--text-color);
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.admin-calendar-shell .fc-button {
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: var(--primary-dark) !important;
+    box-shadow: none !important;
+    font-weight: 700 !important;
+}
+
+.admin-calendar-shell .fc-button:disabled {
+    opacity: 0.62;
+}
+
+.admin-calendar-shell .fc-scrollgrid,
+.admin-calendar-shell .fc-theme-standard td,
+.admin-calendar-shell .fc-theme-standard th {
+    border-color: var(--border-color);
+}
+
+.admin-calendar-shell .fc-col-header-cell {
+    background: #f7fafc;
+}
+
+.admin-calendar-shell .fc-daygrid-day-number,
+.admin-calendar-shell .fc-col-header-cell-cushion {
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.admin-calendar-shell .fc-event {
+    border: 0;
+    border-radius: 10px;
+    padding: 0.1rem 0.25rem;
+}
+
+.admin-note-truncate {
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-compact-actions {
+    display: inline-flex;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+}
+
+.dataTables_wrapper {
+    color: var(--text-color);
+}
+
+.dataTables_wrapper .row {
+    row-gap: 0.75rem;
+}
+
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label,
+.dataTables_wrapper .dataTables_info {
+    color: var(--muted-text);
+    font-weight: 700;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    min-height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: none;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    margin-left: 0.5rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    margin: 0 0.2rem !important;
+    padding: 0.38rem 0.65rem !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border-color) !important;
+    background: #fff !important;
+    color: var(--text-color) !important;
+    cursor: pointer;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--primary-light) !important;
+    color: var(--primary-dark) !important;
+    border-color: var(--primary-color) !important;
+}
+
+@media (max-width: 767.98px) {
+    .admin-filter-grid.admin-filter-grid-three {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-calendar-shell {
+        min-height: 620px;
+    }
+
+    .admin-calendar-shell .fc-toolbar {
+        align-items: flex-start;
+    }
+
+    .admin-calendar-shell .fc-toolbar-title {
+        font-size: 1.05rem;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        display: block;
+        width: 100%;
+        margin: 0.35rem 0 0;
+    }
+}

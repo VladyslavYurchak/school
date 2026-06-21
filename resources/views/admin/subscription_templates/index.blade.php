@@ -1,178 +1,120 @@
 @extends('admin.layouts.layout')
 
+@php
+    $templateSections = [
+        'individual' => ['title' => 'Індивідуальні абонементи', 'items' => $individualTemplates],
+        'group' => ['title' => 'Групові абонементи', 'items' => $groupTemplates],
+        'pair' => ['title' => 'Парні абонементи', 'items' => $pairTemplates ?? collect()],
+    ];
+    $totalTemplates = collect($templateSections)->sum(fn ($section) => $section['items']->count());
+@endphp
+
 @section('content')
-    <div class="container py-4">
-        <h1>Абонементи</h1>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-ticket-perforated"></i>
+                            Адмін
+                        </span>
+                        <h1 class="admin-title">Абонементи</h1>
+                        <p class="admin-subtitle">Шаблони оплат для індивідуальних, групових і парних занять.</p>
+                    </div>
 
-        @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.subscription-templates.create') }}" class="admin-btn-primary">
+                            <i class="bi bi-plus-lg"></i>
+                            Додати абонемент
+                        </a>
+                    </div>
+                </div>
+            </section>
 
-        <a href="{{ route('admin.subscription-templates.create') }}" class="btn btn-primary mb-3">
-            Додати новий абонемент
-        </a>
+            @if(session('success'))
+                <div class="alert alert-success">{{ session('success') }}</div>
+            @endif
 
-        <h3>Індивідуальні абонементи</h3>
-        @if($individualTemplates->count())
-            <table class="table table-bordered align-middle">
-                <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Назва</th>
-                    <th>Занять/тиждень</th>
-                    <th>Ціна</th>
-                    <th>Створено</th>
-                    <th>Оновлено</th>
-                    <th>Дія</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($individualTemplates as $template)
-                    <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $template->title }}</td>
-                        <td>{{ $template->lessons_per_week }}</td>
-                        <td>{{ number_format($template->price, 2, ',', ' ') }} грн</td>
-                        <td>{{ $template->created_at->format('d.m.Y') }}</td>
-                        <td>{{ $template->updated_at->format('d.m.Y') }}</td>
-                        <td class="d-flex gap-2">
-                            <button
-                                class="btn btn-sm btn-outline-primary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#editSubscriptionModal"
-                                data-id="{{ $template->id }}"
-                                data-title="{{ $template->title }}"
-                                data-type="{{ $template->type }}"
-                                data-lessons="{{ $template->lessons_per_week }}"
-                                data-price="{{ $template->price }}"
-                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"
-                            >
-                                Редагувати
-                            </button>
+            @foreach($templateSections as $type => $section)
+                <section class="admin-panel">
+                    <div class="admin-panel-header">
+                        <h2 class="admin-panel-title">{{ $section['title'] }}</h2>
+                        <span class="admin-badge admin-badge-muted">Усього: {{ $section['items']->count() }}</span>
+                    </div>
 
-                            <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
-                                  method="POST"
-                                  onsubmit="return confirm('Ви впевнені, що хочете видалити цей абонемент?')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger">Видалити</button>
-                            </form>
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        @else
-            <p>Індивідуальні абонементи відсутні.</p>
-        @endif
+                    <div class="admin-panel-body">
+                        @if($section['items']->count())
+                            <div class="admin-table-wrap">
+                                <table class="table admin-table admin-teacher-table">
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Назва</th>
+                                        <th>Занять/тиждень</th>
+                                        <th>Ціна</th>
+                                        <th>Створено</th>
+                                        <th>Оновлено</th>
+                                        <th class="text-end">Дії</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach($section['items'] as $template)
+                                        <tr>
+                                            <td>{{ $loop->iteration }}</td>
+                                            <td>{{ $template->title }}</td>
+                                            <td>{{ $template->lessons_per_week }}</td>
+                                            <td>{{ number_format($template->price, 2, ',', ' ') }} грн</td>
+                                            <td>{{ $template->created_at->format('d.m.Y') }}</td>
+                                            <td>{{ $template->updated_at->format('d.m.Y') }}</td>
+                                            <td class="text-end">
+                                                <div class="admin-actions justify-content-end">
+                                                    <button
+                                                        type="button"
+                                                        class="admin-btn-warning"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editSubscriptionModal"
+                                                        data-id="{{ $template->id }}"
+                                                        data-title="{{ $template->title }}"
+                                                        data-type="{{ $template->type }}"
+                                                        data-lessons="{{ $template->lessons_per_week }}"
+                                                        data-price="{{ $template->price }}"
+                                                        data-update-url="{{ route('admin.subscription-templates.update', $template) }}"
+                                                    >
+                                                        <i class="bi bi-pencil"></i>
+                                                        Редагувати
+                                                    </button>
 
-        <h3 class="mt-4">Групові абонементи</h3>
-        @if($groupTemplates->count())
-            <table class="table table-bordered align-middle">
-                <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Назва</th>
-                    <th>Занять/тиждень</th>
-                    <th>Ціна</th>
-                    <th>Створено</th>
-                    <th>Оновлено</th>
-                    <th>Дія</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($groupTemplates as $template)
-                    <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $template->title }}</td>
-                        <td>{{ $template->lessons_per_week }}</td>
-                        <td>{{ number_format($template->price, 2, ',', ' ') }} грн</td>
-                        <td>{{ $template->created_at->format('d.m.Y') }}</td>
-                        <td>{{ $template->updated_at->format('d.m.Y') }}</td>
-                        <td class="d-flex gap-2">
-                            <button
-                                class="btn btn-sm btn-outline-primary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#editSubscriptionModal"
-                                data-id="{{ $template->id }}"
-                                data-title="{{ $template->title }}"
-                                data-type="{{ $template->type }}"
-                                data-lessons="{{ $template->lessons_per_week }}"
-                                data-price="{{ $template->price }}"
-                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"
-                            >
-                                Редагувати
-                            </button>
-
-                            <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
-                                  method="POST"
-                                  onsubmit="return confirm('Ви впевнені, що хочете видалити цей абонемент?')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger">Видалити</button>
-                            </form>
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        @else
-            <p>Групові абонементи відсутні.</p>
-        @endif
-
-        <h3 class="mt-4">Парні абонементи</h3>
-        @if(isset($pairTemplates) && $pairTemplates->count())
-            <table class="table table-bordered align-middle">
-                <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Назва</th>
-                    <th>Занять/тиждень</th>
-                    <th>Ціна</th>
-                    <th>Створено</th>
-                    <th>Оновлено</th>
-                    <th>Дія</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($pairTemplates as $template)
-                    <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $template->title }}</td>
-                        <td>{{ $template->lessons_per_week }}</td>
-                        <td>{{ number_format($template->price, 2, ',', ' ') }} грн</td>
-                        <td>{{ $template->created_at->format('d.m.Y') }}</td>
-                        <td>{{ $template->updated_at->format('d.m.Y') }}</td>
-                        <td class="d-flex gap-2">
-                            <button
-                                class="btn btn-sm btn-outline-primary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#editSubscriptionModal"
-                                data-id="{{ $template->id }}"
-                                data-title="{{ $template->title }}"
-                                data-type="{{ $template->type }}"
-                                data-lessons="{{ $template->lessons_per_week }}"
-                                data-price="{{ $template->price }}"
-                                data-update-url="{{ route('admin.subscription-templates.update', $template) }}"
-                            >
-                                Редагувати
-                            </button>
-
-                            <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
-                                  method="POST"
-                                  onsubmit="return confirm('Ви впевнені, що хочете видалити цей абонемент?')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger">Видалити</button>
-                            </form>
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        @else
-            <p>Парні абонементи відсутні.</p>
-        @endif
+                                                    <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
+                                                          method="POST"
+                                                          onsubmit="return confirm('Видалити цей абонемент?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button class="admin-btn-danger" type="submit">
+                                                            <i class="bi bi-trash"></i>
+                                                            Видалити
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="admin-empty-state">
+                                <div class="admin-empty-icon">
+                                    <i class="bi bi-ticket-perforated"></i>
+                                </div>
+                                <h3>Абонементів поки немає</h3>
+                                <p>Додайте шаблон для цього типу занять, коли він буде потрібен.</p>
+                            </div>
+                        @endif
+                    </div>
+                </section>
+            @endforeach
+        </div>
     </div>
 
     <div class="modal fade" id="editSubscriptionModal" tabindex="-1" aria-hidden="true">
@@ -214,33 +156,28 @@
                     </div>
 
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Зберегти зміни</button>
+                        <button type="submit" class="admin-btn-primary">Зберегти зміни</button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
+@endsection
 
+@section('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const editModal = document.getElementById('editSubscriptionModal');
             const editForm = document.getElementById('editSubscriptionForm');
 
-            editModal.addEventListener('show.bs.modal', function (event) {
+            editModal?.addEventListener('show.bs.modal', function (event) {
                 const button = event.relatedTarget;
 
-                const id = button.getAttribute('data-id');
-                const title = button.getAttribute('data-title');
-                const type = button.getAttribute('data-type');
-                const lessons = button.getAttribute('data-lessons');
-                const price = button.getAttribute('data-price');
-                const updateUrl = button.getAttribute('data-update-url');
-
-                editForm.setAttribute('action', updateUrl);
-                document.getElementById('editTitle').value = title;
-                document.getElementById('editType').value = type;
-                document.getElementById('editLessons').value = lessons;
-                document.getElementById('editPrice').value = price;
+                editForm.setAttribute('action', button.getAttribute('data-update-url'));
+                document.getElementById('editTitle').value = button.getAttribute('data-title');
+                document.getElementById('editType').value = button.getAttribute('data-type');
+                document.getElementById('editLessons').value = button.getAttribute('data-lessons');
+                document.getElementById('editPrice').value = button.getAttribute('data-price');
             });
         });
     </script>

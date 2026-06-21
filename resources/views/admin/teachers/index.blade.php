@@ -1,76 +1,58 @@
 @extends('admin.layouts.layout')
 
 @section('styles')
-    {{-- DataTables + Bootstrap 5 theme --}}
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <style>
-        .app-main { padding-top: 1.25rem; }
-
-        .page-title{
-            margin-bottom: 1rem;
-            font-weight: 600;
-            letter-spacing: .2px;
-        }
-
-        table.dataTable > thead > tr > th{
-            background:#f8f9fa;
-            border-bottom:1px solid #dee2e6 !important;
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button{
-            margin:0 .25rem !important;
-            padding:.375rem .65rem !important;
-            border-radius:.375rem !important;
-            border:1px solid #dee2e6 !important;
-            background:#fff !important;
-            cursor:pointer;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-        .dataTables_wrapper .dataTables_paginate .paginate_button:hover{
-            background:#0d6efd !important;
-            color:#fff !important;
-            border-color:#0d6efd !important;
-        }
-
-        .dataTables_info{ color:#6c757d; }
-        .dataTables_length select{ border-radius:.375rem; }
-        .dataTables_filter input{ border-radius:.375rem; }
-
-        .note-trunc{
-            max-width: 220px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-    </style>
 @endsection
 
 @section('content')
-    <main class="app-main">
-        <div class="container-fluid">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h2 class="page-title mb-0">Викладачі</h2>
-                <a href="{{ route('admin.teachers.create') }}" class="btn btn-success">+ Додати викладача</a>
-            </div>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-person-workspace"></i>
+                            Адмін
+                        </span>
+                        <h1 class="admin-title">Викладачі</h1>
+                        <p class="admin-subtitle">Профілі викладачів, ставки, контакти і статус активності.</p>
+                    </div>
+
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.teachers.create') }}" class="admin-btn-primary">
+                            <i class="bi bi-plus-lg"></i>
+                            Додати викладача
+                        </a>
+                    </div>
+                </div>
+            </section>
 
             @if(session('success'))
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
 
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover align-middle w-100" id="teachers-table">
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Список викладачів</h2>
+                    <span class="admin-badge admin-badge-muted">Усього: {{ $teachers->count() }}</span>
+                </div>
+
+                <div class="admin-panel-body">
+                    <div class="admin-table-wrap">
+                        <table class="table admin-table admin-teacher-table-lg w-100" id="teachers-table">
                             <thead>
                             <tr>
                                 <th>Прізвище</th>
-                                <th>Ім’я</th>
+                                <th>Імʼя</th>
                                 <th>Телефон</th>
                                 <th>Email</th>
-                                <th>Ціна заняття</th>
-                                <th>Активний</th>
+                                <th>Індивідуальне</th>
+                                <th>Групове</th>
+                                <th>Парне</th>
+                                <th>Пробне</th>
+                                <th>Статус</th>
                                 <th>Нотатки</th>
-                                <th class="text-nowrap">Дії</th>
+                                <th class="text-end">Дії</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -79,42 +61,45 @@
                                     <td>{{ $teacher->last_name }}</td>
                                     <td>{{ $teacher->first_name }}</td>
                                     <td>{{ $teacher->phone ?? '-' }}</td>
-                                    <td>{{ $teacher->user->email ?? '-' }}</td>
-                                    <td>{{ $teacher->lesson_price ? number_format($teacher->lesson_price, 2) . ' ₴' : '-' }}</td>
+                                    <td>{{ $teacher->user->email ?? $teacher->email ?? '-' }}</td>
+                                    <td>{{ $teacher->lesson_price ? number_format($teacher->lesson_price, 2) . ' грн' : '-' }}</td>
+                                    <td>{{ $teacher->group_lesson_price ? number_format($teacher->group_lesson_price, 2) . ' грн' : '-' }}</td>
+                                    <td>{{ $teacher->pair_lesson_price ? number_format($teacher->pair_lesson_price, 2) . ' грн' : '-' }}</td>
+                                    <td>{{ $teacher->trial_lesson_price ? number_format($teacher->trial_lesson_price, 2) . ' грн' : '-' }}</td>
                                     <td>
                                         @if($teacher->is_active)
-                                            <span class="badge bg-success">Так</span>
+                                            <span class="admin-badge admin-badge-free">Активний</span>
                                         @else
-                                            <span class="badge bg-secondary">Ні</span>
+                                            <span class="admin-badge admin-badge-muted">Архів</span>
                                         @endif
                                     </td>
-                                    <td class="note-trunc" title="{{ $teacher->note }}">{{ $teacher->note }}</td>
-                                    <td class="text-nowrap">
-                                        <a href="{{ route('admin.teachers.edit', $teacher->id) }}" class="btn btn-sm btn-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <form action="{{ route('admin.teachers.destroy', $teacher->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Видалити цього викладача?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-sm btn-danger" type="submit">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
+                                    <td class="admin-note-truncate" title="{{ $teacher->note }}">{{ $teacher->note ?? '-' }}</td>
+                                    <td class="text-end">
+                                        <div class="admin-compact-actions">
+                                            <a href="{{ route('admin.teachers.edit', $teacher->id) }}" class="admin-btn-warning" title="Редагувати">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <form action="{{ route('admin.teachers.destroy', $teacher->id) }}" method="POST" onsubmit="return confirm('Видалити цього викладача?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="admin-btn-danger" type="submit" title="Видалити">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
                             </tbody>
                         </table>
-                    </div> {{-- /.table-responsive --}}
+                    </div>
                 </div>
-            </div>
+            </section>
         </div>
-    </main>
+    </div>
 @endsection
 
 @section('scripts')
-    {{-- jQuery за потреби:
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> --}}
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script>
@@ -123,10 +108,10 @@
                 language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/uk.json' },
                 pageLength: 10,
                 lengthMenu: [5, 10, 25, 50],
-                order: [[0, 'asc']], // сортування за прізвищем
-                dom: "<'row mb-2'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                order: [[0, 'asc']],
+                dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                     "<'row'<'col-sm-12'tr>>" +
-                    "<'row mt-2'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+                    "<'row mt-3'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
             });
         });
     </script>

@@ -22,9 +22,11 @@ class StoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'required | string',
-            'image' => 'string | nullable',
-            'start_date' => 'required | date',
+            'title' => ['required', 'string', 'max:255'],
+            'image' => ['nullable', 'string', 'max:255'],
+            'image_file' => ['nullable', 'image', 'max:4096'],
+            'start_date' => ['required', 'date'],
+            'is_published' => ['required', 'boolean'],
         ];
     }
 }

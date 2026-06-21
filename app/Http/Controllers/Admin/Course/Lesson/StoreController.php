@@ -18,7 +18,7 @@ class StoreController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'content' => 'nullable|string',
-            'lesson_type' => 'required|string',
+            'lesson_type' => 'required|in:Reading,Listening,Grammar,Speaking,Test',
             'video_url' => 'nullable|url',
             'homework_text' => 'nullable|string',
             'homework_video_url' => 'nullable|url',
@@ -46,7 +46,21 @@ class StoreController extends Controller
                     }
                 }
             ],
-            'tests.*.correct_answer' => 'required_with:tests|integer|min:0|max:4',
+            'tests.*.correct_answer' => [
+                'required_with:tests',
+                'integer',
+                'min:0',
+                'max:4',
+                function ($attribute, $value, $fail) use ($request) {
+                    $parts = explode('.', $attribute);
+                    $testIndex = $parts[1] ?? null;
+                    $answers = $request->input("tests.{$testIndex}.answers", []);
+
+                    if (!isset($answers[$value]) || trim((string) $answers[$value]) === '') {
+                        $fail('The selected correct answer must contain text.');
+                    }
+                },
+            ],
         ], [
             'media_files.*.mimes' => 'Завантажте файл у форматах: jpg, jpeg, png, mp4, mov, avi, wmv, pdf, doc, docx, xls, xlsx, ppt, pptx, txt, zip, rar.',
             'homework_file.*.mimes' => 'Завантажте файл у форматах: jpg, jpeg, png, pdf, doc, docx, ppt, pptx.',

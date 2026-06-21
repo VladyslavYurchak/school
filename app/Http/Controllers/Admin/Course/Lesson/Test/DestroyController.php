@@ -10,7 +10,8 @@ class DestroyController extends Controller
 {
     public function __invoke($lessonId, $testId)
     {
-        $test = LessonTest::findOrFail($testId);
+        Lesson::findOrFail($lessonId);
+        $test = LessonTest::where('lesson_id', $lessonId)->findOrFail($testId);
         $test->delete();
 
         // Оновлюємо позиції тестів після видалення

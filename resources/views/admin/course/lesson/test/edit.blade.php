@@ -1,116 +1,136 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <main class="app-main">
-        <div class="card shadow-lg border-0">
-            <div class="card-header bg-white d-flex align-items-center">
-                <h3 class="fw-bold text-dark mb-0">Редагувати тест</h3>
-                <a href="{{ route('admin.course.lesson.test.create', $lesson->id) }}" class="btn btn-outline-secondary btn-sm ms-auto">
-                    Назад
-                </a>
-            </div>
-
-            <div class="card-body">
-                @if (session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрити"></button>
+    <div class="admin-page test-block-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-ui-checks"></i>
+                            Тестовий блок
+                        </span>
+                        <h1 class="admin-title">Редагувати тест</h1>
+                        <p class="admin-subtitle">{{ $lesson->title }}</p>
                     </div>
-                @endif
 
-                <form method="POST" action="{{ route('admin.course.lesson.test.update', [$lesson->id, $test->id]) }}">
-                    @csrf
-                    @method('PATCH')
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.course.lesson.test.create', $lesson->id) }}" class="admin-btn-soft">
+                            <i class="bi bi-arrow-left"></i>
+                            До тестів
+                        </a>
+                        <a href="{{ route('admin.course.lesson.edit', $lesson->id) }}" class="admin-btn-soft">
+                            <i class="bi bi-pencil"></i>
+                            Редагувати урок
+                        </a>
+                    </div>
+                </div>
+            </section>
 
-                    <div class="mb-3">
-                        <label for="question" class="form-label fw-bold">Питання</label>
-                        <textarea name="question" id="question" class="form-control shadow-sm" rows="3">{{ old('question', $test->question) }}</textarea>
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрити"></button>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('admin.course.lesson.test.update', [$lesson->id, $test->id]) }}" class="admin-panel admin-form">
+                @csrf
+                @method('PATCH')
+
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Питання</h2>
+                </div>
+
+                <div class="admin-panel-body">
+                    <div class="admin-form-section">
+                        <label for="question" class="admin-form-label">Питання</label>
+                        <textarea name="question" id="question" class="form-control question-textarea" rows="3">{{ old('question', $test->question) }}</textarea>
                         @if ($errors->has('question'))
-                            <div class="alert alert-danger mt-2 shadow-sm rounded">
-                                {{ $errors->first('question') }}
-                            </div>
+                            <div class="alert alert-danger mt-2">{{ $errors->first('question') }}</div>
                         @endif
                     </div>
 
-                    <h5 class="mb-1 fw-bold">Варіанти відповідей</h5>
-                    <div class="form-text mb-3">Мінімум 3 відповіді, максимум 5. Позначте одну або кілька правильних.</div>
+                    <div class="admin-form-section">
+                        <label class="admin-form-label">Варіанти відповідей</label>
+                        <div class="form-text mb-3">Мінімум 3 відповіді, максимум 5. Позначте одну або кілька правильних.</div>
 
-                    @php
-                        $oldExistingOptions = old('options.existing');
-                    @endphp
+                        @php
+                            $oldExistingOptions = old('options.existing');
+                        @endphp
 
-                    <div id="options-list">
-                        @foreach($test->options as $option)
-                            @php
-                                $isChecked = is_array($oldExistingOptions)
-                                    ? old("options.existing.$option->id.is_correct")
-                                    : $option->is_correct;
-                            @endphp
-                            <div class="option-item mb-2 p-2 bg-light rounded shadow-sm d-flex align-items-center gap-2" data-id="{{ $option->id }}">
-                                <input type="text"
-                                       name="options[existing][{{ $option->id }}][option_text]"
-                                       class="form-control w-50 shadow-sm"
-                                       value="{{ old("options.existing.$option->id.option_text", $option->option_text) }}"
-                                       maxlength="1000">
-                                <div class="form-check ms-2">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           name="options[existing][{{ $option->id }}][is_correct]"
-                                           value="1" {{ $isChecked ? 'checked' : '' }}>
-                                    <label class="form-check-label">Правильна</label>
+                        <div id="options-list" class="options-container">
+                            @foreach($test->options as $option)
+                                @php
+                                    $isChecked = is_array($oldExistingOptions)
+                                        ? old("options.existing.$option->id.is_correct")
+                                        : $option->is_correct;
+                                @endphp
+                                <div class="option-item" data-id="{{ $option->id }}">
+                                    <input type="text"
+                                           name="options[existing][{{ $option->id }}][option_text]"
+                                           class="form-control option-input"
+                                           value="{{ old("options.existing.$option->id.option_text", $option->option_text) }}"
+                                           maxlength="1000">
+                                    <label class="custom-checkbox">
+                                        <input type="checkbox"
+                                               name="options[existing][{{ $option->id }}][is_correct]"
+                                               value="1" {{ $isChecked ? 'checked' : '' }}>
+                                        <span class="checkmark"></span>
+                                        Правильна
+                                    </label>
+                                    <button type="button" class="admin-btn-danger remove-option" data-id="{{ $option->id }}">
+                                        <i class="bi bi-trash"></i>
+                                        Видалити
+                                    </button>
                                 </div>
-                                <button type="button"
-                                        class="btn btn-danger btn-sm shadow-sm remove-option"
-                                        data-id="{{ $option->id }}">
-                                    Видалити
-                                </button>
-                            </div>
-                        @endforeach
+                            @endforeach
 
-                        @foreach(old('options.new', []) as $index => $option)
-                            <div class="option-item mb-2 p-2 bg-light rounded shadow-sm d-flex align-items-center gap-2" data-id="">
-                                <input type="text"
-                                       name="options[new][{{ $index }}][option_text]"
-                                       class="form-control w-50 shadow-sm"
-                                       value="{{ $option['option_text'] ?? '' }}"
-                                       maxlength="1000">
-                                <div class="form-check ms-2">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           name="options[new][{{ $index }}][is_correct]"
-                                           value="1" {{ !empty($option['is_correct']) ? 'checked' : '' }}>
-                                    <label class="form-check-label">Правильна</label>
+                            @foreach(old('options.new', []) as $index => $option)
+                                <div class="option-item" data-id="">
+                                    <input type="text"
+                                           name="options[new][{{ $index }}][option_text]"
+                                           class="form-control option-input"
+                                           value="{{ $option['option_text'] ?? '' }}"
+                                           maxlength="1000">
+                                    <label class="custom-checkbox">
+                                        <input type="checkbox"
+                                               name="options[new][{{ $index }}][is_correct]"
+                                               value="1" {{ !empty($option['is_correct']) ? 'checked' : '' }}>
+                                        <span class="checkmark"></span>
+                                        Правильна
+                                    </label>
+                                    <button type="button" class="admin-btn-danger remove-option" data-id="">
+                                        <i class="bi bi-trash"></i>
+                                        Видалити
+                                    </button>
                                 </div>
-                                <button type="button"
-                                        class="btn btn-danger btn-sm shadow-sm remove-option"
-                                        data-id="">
-                                    Видалити
-                                </button>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <div class="my-3">
-                        <button type="button" class="btn btn-success shadow-sm" id="add-option">
-                            Додати відповідь
-                        </button>
+                            @endforeach
+                        </div>
                     </div>
 
                     @if ($errors->has('options'))
-                        <div class="alert alert-danger shadow-sm rounded">
+                        <div class="alert alert-danger">
                             @foreach($errors->get('options') as $error)
                                 <div>{{ $error }}</div>
                             @endforeach
                         </div>
                     @endif
 
-                    <button type="submit" class="btn btn-primary shadow-sm">
-                        Зберегти
-                    </button>
-                </form>
-            </div>
+                    <div class="admin-form-actions">
+                        <button type="button" class="admin-btn-soft" id="add-option">
+                            <i class="bi bi-plus-lg"></i>
+                            Додати відповідь
+                        </button>
+                        <button type="submit" class="admin-btn-primary">
+                            <i class="bi bi-check2"></i>
+                            Зберегти
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-    </main>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -134,7 +154,8 @@
             }
 
             optionsList.addEventListener('click', function (event) {
-                if (!event.target.classList.contains('remove-option')) {
+                const removeButton = event.target.closest('.remove-option');
+                if (!removeButton) {
                     return;
                 }
 
@@ -144,8 +165,8 @@
                     return;
                 }
 
-                const optionId = event.target.dataset.id;
-                const optionItem = event.target.closest('.option-item');
+                const optionId = removeButton.dataset.id;
+                const optionItem = removeButton.closest('.option-item');
 
                 if (!optionId) {
                     optionItem.remove();
@@ -182,22 +203,21 @@
 
                 const index = Date.now();
                 const html = `
-                    <div class="option-item mb-2 p-2 bg-light rounded shadow-sm d-flex align-items-center gap-2" data-id="">
+                    <div class="option-item" data-id="">
                         <input type="text"
                                name="options[new][${index}][option_text]"
-                               class="form-control w-50 shadow-sm"
+                               class="form-control option-input"
                                placeholder="Нова відповідь"
                                maxlength="1000">
-                        <div class="form-check ms-2">
+                        <label class="custom-checkbox">
                             <input type="checkbox"
-                                   class="form-check-input"
                                    name="options[new][${index}][is_correct]"
                                    value="1">
-                            <label class="form-check-label">Правильна</label>
-                        </div>
-                        <button type="button"
-                                class="btn btn-danger btn-sm shadow-sm remove-option"
-                                data-id="">
+                            <span class="checkmark"></span>
+                            Правильна
+                        </label>
+                        <button type="button" class="admin-btn-danger remove-option" data-id="">
+                            <i class="bi bi-trash"></i>
                             Видалити
                         </button>
                     </div>`;

@@ -1,8 +1,8 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <div class="app-content p-3">
-        <div class="container-fluid">
+    <div class="admin-page">
+        <div class="admin-page-shell">
 
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                 <div>
@@ -11,21 +11,22 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('admin.testing.tests.index') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('admin.testing.tests.index') }}" class="admin-btn-soft">
                         До тестів
                     </a>
-                    <a href="{{ route('admin.testing.tests.sections.index', $test) }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('admin.testing.tests.sections.index', $test) }}" class="admin-btn-soft">
                         Секції
                     </a>
-                    <a href="{{ route('admin.testing.tests.questions.create', $test) }}" class="btn btn-custom">
+                    <a href="{{ route('admin.testing.tests.questions.create', $test) }}" class="admin-btn-primary">
                         Створити питання
                     </a>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-body table-responsive">
-                    <table class="table align-middle">
+            <section class="admin-panel">
+                <div class="admin-panel-body">
+                    <div class="admin-table-wrap">
+                    <table class="table admin-table">
                         <thead>
                         <tr>
                             <th>ID</th>
@@ -77,14 +78,14 @@
                                 <td>{{ $question->difficulty_level ?? '—' }}</td>
                                 <td>{{ $question->is_active ? 'Так' : 'Ні' }}</td>
                                 <td class="text-end">
-                                    <div class="d-flex flex-wrap justify-content-end gap-2">
+                                    <div class="admin-row-actions">
                                         <a href="{{ route('admin.testing.questions.edit', $question) }}"
-                                           class="btn btn-sm btn-primary">
+                                           class="admin-btn-warning">
                                             Редагувати
                                         </a>
 
                                         <a href="{{ route('admin.testing.questions.options.index', $question) }}"
-                                           class="btn btn-sm btn-outline-secondary">
+                                           class="admin-btn-soft">
                                             Варіанти
                                         </a>
 
@@ -93,7 +94,7 @@
                                               onsubmit="return confirm('Видалити питання?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <button type="submit" class="admin-btn-danger">
                                                 Видалити
                                             </button>
                                         </form>
@@ -109,10 +110,11 @@
                         @endforelse
                         </tbody>
                     </table>
+                    </div>
 
-                    {{ $questions->links() }}
+                    {{ $questions->onEachSide(2)->links('admin.pagination.pagination') }}
                 </div>
-            </div>
+            </section>
 
         </div>
     </div>

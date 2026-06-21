@@ -8,9 +8,11 @@ class IsTeacher
 {
     public function handle($request, Closure $next)
     {
-        
+        if (!Auth::check()) {
+            return redirect()->guest(route('login'));
+        }
 
-        if (Auth::check() && (Auth::user()->isTeacher() || Auth::user()->isAdmin())) {
+        if (Auth::user()->isTeacher() || Auth::user()->isAdmin()) {
             return $next($request);
         }
 

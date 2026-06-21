@@ -1,36 +1,128 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <main class="app-main">
-        <div class="card">
-            <div class="card-header">
-                <a href="{{ route('admin.post.index') }}" class="btn btn-secondary">Повернутися до списку постів</a>
-            </div>
-            <div class="card-body">
-                <h3>Редагувати пост</h3>
-
-                <form action="{{ route('admin.post.update', $post->id) }}" method="POST">
-                    @csrf
-                    @method('PATCH')
-
-                    <div class="mb-3">
-                        <label for="title" class="form-label">Заголовок</label>
-                        <input type="text" name="title" id="title" class="form-control" value="{{ old('title', $post->title) }}" required>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-pencil"></i>
+                            Редагування
+                        </span>
+                        <h1 class="admin-title">Редагувати пост</h1>
+                        <p class="admin-subtitle">
+                            Оновіть заголовок, текст або фото публікації.
+                        </p>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="content" class="form-label">Зміст</label>
-                        <textarea name="content" id="content" class="form-control" rows="5" required>{{ old('content', $post->content) }}</textarea>
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.post.show', $post) }}" class="admin-btn-soft">
+                            <i class="bi bi-eye"></i>
+                            Перегляд
+                        </a>
+                        <a href="{{ route('admin.post.index') }}" class="admin-btn-soft">
+                            <i class="bi bi-arrow-left"></i>
+                            До списку
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <form action="{{ route('admin.post.update', $post) }}" method="POST" enctype="multipart/form-data" class="admin-panel admin-form admin-form-card">
+                @csrf
+                @method('PATCH')
+
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Дані поста</h2>
+                    <span class="admin-badge {{ $post->is_published ? 'admin-badge-free' : 'admin-badge-muted' }}">
+                        {{ $post->is_published ? 'Опубліковано' : 'Чернетка' }}
+                    </span>
+                </div>
+
+                <div class="admin-panel-body">
+                    <div class="admin-form-section">
+                        <label for="title" class="admin-form-label">Заголовок</label>
+                        <input type="text"
+                               name="title"
+                               id="title"
+                               class="form-control @error('title') is-invalid @enderror"
+                               value="{{ old('title', $post->title) }}"
+                               maxlength="255"
+                               required>
+                        @error('title')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
-                    <div class="form-group mb-3">
-                        <label for="image" class="form-label">Фото URL</label>
-                        <input type="text" class="form-control" name="image" id="image" value="{{ old('image', $post->image) }}" placeholder="Вставте URL фото">
+                    <div class="admin-form-section">
+                        <label for="content" class="admin-form-label">Зміст</label>
+                        <textarea name="content"
+                                  id="content"
+                                  class="form-control @error('content') is-invalid @enderror"
+                                  rows="8"
+                                  required>{{ old('content', $post->content) }}</textarea>
+                        @error('content')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
-                    <button type="submit" class="btn btn-success">Оновити пост</button>
-                </form>
-            </div>
+                    <div class="admin-form-section">
+                        <label for="image" class="admin-form-label">Фото за URL або шляхом</label>
+                        @if($post->image)
+                            <div class="admin-form-preview mb-3">
+                                <img src="{{ $post->image_url }}" alt="" style="max-width: 220px; border-radius: 8px;">
+                            </div>
+                        @endif
+                        <input type="text"
+                               name="image"
+                               id="image"
+                               class="form-control @error('image') is-invalid @enderror"
+                               value="{{ old('image', $post->image) }}"
+                               maxlength="255"
+                               placeholder="https://example.com/photo.jpg">
+                        @error('image')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <div class="form-text">Можна залишити поточне значення, вставити URL або завантажити новий файл нижче.</div>
+                    </div>
+
+                    <div class="admin-form-section">
+                        <label for="image_file" class="admin-form-label">Завантажити нове фото</label>
+                        <input type="file"
+                               name="image_file"
+                               id="image_file"
+                               class="form-control @error('image_file') is-invalid @enderror"
+                               accept="image/*">
+                        @error('image_file')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <div class="form-text">Якщо вибрати файл, він замінить поточне фото.</div>
+                    </div>
+
+                    <div class="admin-form-section">
+                        <label for="is_published" class="admin-form-label">Статус</label>
+                        <select id="is_published" name="is_published" class="form-select @error('is_published') is-invalid @enderror">
+                            <option value="1" @selected(old('is_published', $post->is_published) == 1)>Опубліковано</option>
+                            <option value="0" @selected(old('is_published', $post->is_published) == 0)>Чернетка</option>
+                        </select>
+                        @error('is_published')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="admin-form-actions">
+                        <a href="{{ route('admin.post.index') }}" class="admin-btn-soft">
+                            <i class="bi bi-x-lg"></i>
+                            Скасувати
+                        </a>
+                        <button type="submit" class="admin-btn-primary">
+                            <i class="bi bi-check2"></i>
+                            Оновити пост
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-    </main>
+    </div>
 @endsection

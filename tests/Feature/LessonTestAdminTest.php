@@ -248,6 +248,86 @@ class LessonTestAdminTest extends TestCase
         ]);
     }
 
+    public function test_test_cannot_be_deleted_through_another_lesson(): void
+    {
+        $lesson = $this->createLesson();
+        $otherLesson = Lesson::create([
+            'course_id' => $lesson->course_id,
+            'title' => 'Other lesson',
+            'description' => 'Other lesson description',
+            'position' => 2,
+        ]);
+        $test = $lesson->tests()->create([
+            'question' => 'Protected test',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+
+        $this->delete(route('admin.course.lesson.test.destroy', [$otherLesson, $test]))
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('lesson_tests', ['id' => $test->id]);
+    }
+
+    public function test_test_order_rejects_tests_from_another_lesson(): void
+    {
+        $lesson = $this->createLesson();
+        $otherLesson = Lesson::create([
+            'course_id' => $lesson->course_id,
+            'title' => 'Other lesson',
+            'description' => 'Other lesson description',
+            'position' => 2,
+        ]);
+        $foreignTest = $otherLesson->tests()->create([
+            'question' => 'Foreign test',
+            'position' => 7,
+            'is_multiple_choice' => false,
+        ]);
+
+        $this->postJson(route('admin.course.lesson.test.updateOrder', $lesson), [
+            'order' => [['id' => $foreignTest->id, 'position' => 1]],
+        ])->assertUnprocessable();
+
+        $this->assertSame(7, $foreignTest->fresh()->position);
+    }
+
+    public function test_update_rejects_answer_options_from_another_test(): void
+    {
+        $lesson = $this->createLesson();
+        $test = $lesson->tests()->create([
+            'question' => 'Original test',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+        $ownOptions = $test->options()->createMany([
+            ['option_text' => 'A', 'is_correct' => true],
+            ['option_text' => 'B', 'is_correct' => false],
+            ['option_text' => 'C', 'is_correct' => false],
+        ]);
+        $otherTest = $lesson->tests()->create([
+            'question' => 'Other test',
+            'position' => 2,
+            'is_multiple_choice' => false,
+        ]);
+        $foreignOption = $otherTest->options()->create([
+            'option_text' => 'Foreign correct answer',
+            'is_correct' => true,
+        ]);
+
+        $this->patch(route('admin.course.lesson.test.update', [$lesson, $test]), [
+            'question' => 'Tampered update',
+            'options' => [
+                'existing' => [
+                    $ownOptions[0]->id => ['option_text' => 'A'],
+                    $ownOptions[1]->id => ['option_text' => 'B'],
+                    $foreignOption->id => ['option_text' => 'Foreign', 'is_correct' => '1'],
+                ],
+            ],
+        ])->assertSessionHasErrors('options');
+
+        $this->assertSame('Original test', $test->fresh()->question);
+    }
+
     private function createLesson(): Lesson
     {
         $language = Language::create(['name' => 'English']);

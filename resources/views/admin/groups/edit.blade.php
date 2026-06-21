@@ -1,14 +1,26 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <main class="app-main">
-        <div class="container py-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="mb-0">Редагування групи: "{{ $group->name }}"</h2>
-                <a href="{{ route('admin.groups.index') }}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Назад до списку
-                </a>
-            </div>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-people"></i>
+                            Групи
+                        </span>
+                        <h1 class="admin-title">Редагування групи: "{{ $group->name }}"</h1>
+                    </div>
+
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.groups.index') }}" class="admin-btn-soft">
+                            <i class="bi bi-arrow-left"></i>
+                            Назад до списку
+                        </a>
+                    </div>
+                </div>
+            </section>
 
             @if(session('success'))
                 <div class="alert alert-success">{{ session('success') }}</div>
@@ -27,15 +39,18 @@
             @endif
 
             {{-- Форма редагування групи --}}
-            <form action="{{ route('admin.groups.update', $group->id) }}" method="POST" class="mb-4">
+            <form action="{{ route('admin.groups.update', $group->id) }}" method="POST" class="admin-panel admin-form admin-form-card">
                 @csrf
                 @method('PUT')
 
-                <div class="card shadow-sm">
-                    <div class="card-body">
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Дані групи</h2>
+                </div>
+
+                <div class="admin-panel-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Назва групи</label>
+                                <label class="admin-form-label">Назва групи</label>
                                 <input
                                     type="text"
                                     name="name"
@@ -48,7 +63,7 @@
 
                             {{-- NEW: Тип групи --}}
                             <div class="col-md-3">
-                                <label class="form-label">Тип групи</label>
+                                <label class="admin-form-label">Тип групи</label>
                                 <select
                                     name="type"
                                     class="form-select @error('type') is-invalid @enderror"
@@ -63,7 +78,7 @@
                             </div>
 
                             <div class="col-md-3">
-                                <label class="form-label">Викладач</label>
+                                <label class="admin-form-label">Викладач</label>
                                 <select
                                     name="teacher_id"
                                     class="form-select @error('teacher_id') is-invalid @enderror"
@@ -80,7 +95,7 @@
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label">Нотатки</label>
+                                <label class="admin-form-label">Нотатки</label>
                                 <textarea
                                     name="notes"
                                     class="form-control @error('notes') is-invalid @enderror"
@@ -89,18 +104,20 @@
                                 @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
-                            <div class="col-12 text-end">
-                                <button type="submit" class="btn btn-primary">Зберегти зміни</button>
+                            <div class="col-12">
+                                <div class="admin-form-actions">
+                                    <a href="{{ route('admin.groups.index') }}" class="admin-btn-soft">Скасувати</a>
+                                    <button type="submit" class="admin-btn-primary">Зберегти зміни</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
                 </div>
             </form>
 
             {{-- Список студентів --}}
-            <div class="card shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Студенти у групі</span>
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Студенти у групі</h2>
 
                     @php
                         // якщо контролер передає $canAddMore — використовуємо його;
@@ -110,7 +127,7 @@
                             : !($group->type === 'pair' && $group->students->count() >= 2);
                     @endphp
 
-                    <button class="btn btn-sm btn-success"
+                    <button class="admin-btn-primary"
                             data-bs-toggle="modal"
                             data-bs-target="#addStudentModal"
                         @disabled(!$canAddMoreLocal)>
@@ -118,7 +135,7 @@
                     </button>
                 </div>
 
-                <div class="card-body table-responsive">
+                <div class="admin-panel-body">
                     @if(!$canAddMoreLocal && $group->type === 'pair')
                         <div class="alert alert-warning">
                             У парній групі може бути не більше двох студентів.
@@ -128,8 +145,9 @@
                     @if($group->students->isEmpty())
                         <p>Немає студентів у цій групі.</p>
                     @else
-                        <table class="table table-bordered table-hover align-middle">
-                            <thead class="table-light">
+                        <div class="admin-table-wrap">
+                        <table class="table admin-table">
+                            <thead>
                             <tr>
                                 <th>Ім’я</th>
                                 <th>Прізвище</th>
@@ -161,7 +179,7 @@
                                               onsubmit="return confirm('Видалити студента з групи?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger">
+                                            <button type="submit" class="admin-btn-danger">
                                                 <i class="bi bi-x"></i> Видалити
                                             </button>
                                         </form>
@@ -170,9 +188,10 @@
                             @endforeach
                             </tbody>
                         </table>
+                        </div>
                     @endif
                 </div>
-            </div>
+            </section>
 
         </div>
 
@@ -203,10 +222,10 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary" @disabled(!$canAddMoreLocal)>Додати</button>
+                        <button type="submit" class="admin-btn-primary" @disabled(!$canAddMoreLocal)>Додати</button>
                     </div>
                 </form>
             </div>
         </div>
-    </main>
+    </div>
 @endsection

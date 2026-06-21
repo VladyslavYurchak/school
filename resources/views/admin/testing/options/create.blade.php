@@ -1,8 +1,8 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <div class="app-content p-3">
-        <div class="container-fluid">
+    <div class="admin-page">
+        <div class="admin-page-shell">
 
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <div>
@@ -11,18 +11,18 @@
                 </div>
 
                 <a href="{{ route('admin.testing.questions.options.index', $question) }}"
-                   class="btn btn-outline-secondary">
+                   class="admin-btn-soft">
                     Назад
                 </a>
             </div>
 
-            <div class="card">
-                <div class="card-body">
+            <section class="admin-panel admin-form admin-form-card">
+                <div class="admin-panel-body">
                     <form action="{{ route('admin.testing.questions.options.store', $question) }}" method="POST">
                         @include('admin.testing.options._form')
                     </form>
                 </div>
-            </div>
+            </section>
 
         </div>
     </div>

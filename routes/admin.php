@@ -9,6 +9,7 @@ require __DIR__.'/admin/courses.php';
 require __DIR__.'/admin/lessons.php';
 require __DIR__.'/admin/lesson-tests.php';
 require __DIR__.'/admin/lesson-main.php';
+require __DIR__.'/admin/lesson-content-blocks.php';
 require __DIR__.'/admin/lesson-homework.php';
 require __DIR__.'/admin/students.php';
 require __DIR__.'/admin/teachers.php';

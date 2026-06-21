@@ -63,13 +63,10 @@
         </div>
 
             @php
-                $attempt = $session->attempts->first();
-                $answersByQuestionId = $attempt
-                    ? $attempt->answers->keyBy('question_id')
-                    : collect();
+                $attempts = $session->attempts->sortBy(fn ($attempt) => [$attempt->test->sort_order ?? 0, $attempt->id]);
             @endphp
 
-            @if($attempt && $attempt->test)
+            @if($attempts->isNotEmpty())
 
                 <div class="text-center mb-3 text-muted">
                     Якщо цікаво — ось правильні відповіді до всього тесту 🙂
@@ -81,90 +78,101 @@
                     </div>
 
                     <div class="card-body">
-                        @foreach($attempt->test->sections as $section)
-                            <div class="mb-5">
-                                <h4 class="mb-3">{{ $section->title }}</h4>
+                        @foreach($attempts as $attempt)
+                            @php
+                                $answersByQuestionId = $attempt->answers->keyBy('question_id');
+                            @endphp
 
-                                @foreach($section->questions as $question)
-                                    @php
-                                        $answer = $answersByQuestionId->get($question->id);
-                                        $correctOptions = $question->options->where('is_correct', true);
-                                        $selectedIds = [];
+                            @if($attempt->test)
+                                <h3 class="h5 mb-3">{{ $attempt->test->title }}</h3>
 
-                                        if ($question->type === 'multiple_choice' && !empty($answer?->answer_text)) {
-                                            $decoded = json_decode($answer->answer_text, true);
-                                            $selectedIds = is_array($decoded) ? $decoded : [];
-                                        }
-                                    @endphp
+                                @foreach($attempt->test->sections->where('is_active', true) as $section)
+                                    <div class="mb-5">
+                                        <h4 class="mb-3">{{ $section->title }}</h4>
 
-                                    <div class="border rounded p-3 mb-3">
+                                        @foreach($section->questions->where('is_active', true) as $question)
+                                            @php
+                                                $answer = $answersByQuestionId->get($question->id);
+                                                $correctOptions = $question->options->where('is_correct', true);
+                                                $selectedIds = [];
 
-                                        <div class="d-flex justify-content-between mb-2">
-                                            <div class="fw-semibold">
-                                                {{ $question->question_text }}
-                                            </div>
+                                                if ($question->type === 'multiple_choice' && !empty($answer?->answer_text)) {
+                                                    $decoded = json_decode($answer->answer_text, true);
+                                                    $selectedIds = is_array($decoded) ? $decoded : [];
+                                                }
+                                            @endphp
 
-                                            <div>
-                                                @if($answer)
-                                                    @if($answer->is_correct)
-                                                        <span class="badge bg-success">✔</span>
-                                                    @else
-                                                        <span class="badge bg-danger">✖</span>
-                                                    @endif
-                                                @else
-                                                    <span class="badge bg-secondary">—</span>
+                                            <div class="border rounded p-3 mb-3">
+
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <div class="fw-semibold">
+                                                        {{ $question->question_text }}
+                                                    </div>
+
+                                                    <div>
+                                                        @if($answer)
+                                                            @if($answer->is_correct)
+                                                                <span class="badge bg-success">✔</span>
+                                                            @else
+                                                                <span class="badge bg-danger">✖</span>
+                                                            @endif
+                                                        @else
+                                                            <span class="badge bg-secondary">—</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+
+                                                {{-- SINGLE --}}
+                                                @if(in_array($question->type, ['single_choice', 'true_false']))
+                                                    <div class="small">
+                                                        <strong>Ваша:</strong>
+                                                        @php
+                                                            $selectedOption = $answer?->selectedOption;
+
+                                                            if (!$selectedOption && $answer?->answer_text) {
+                                                                $selectedOption = $question->options->firstWhere('id', $answer->answer_text);
+                                                            }
+                                                        @endphp
+
+                                                        {{ $selectedOption?->option_text ?? '—' }}
+                                                    </div>
+
+                                                    <div class="small text-success">
+                                                        <strong>Правильна:</strong>
+                                                        {{ $correctOptions->pluck('option_text')->join(', ') ?: '—' }}
+                                                    </div>
                                                 @endif
+
+                                                {{-- MULTIPLE --}}
+                                                @if($question->type === 'multiple_choice')
+                                                    <div class="small">
+                                                        <strong>Ваша:</strong>
+                                                        @php
+                                                            $selectedOptions = $question->options->whereIn('id', $selectedIds);
+                                                        @endphp
+
+                                                        {{ $selectedOptions->pluck('option_text')->join(', ') ?: '—' }}
+                                                    </div>
+
+                                                    <div class="small text-success">
+                                                        <strong>Правильні:</strong>
+                                                        {{ $correctOptions->pluck('option_text')->join(', ') ?: '—' }}
+                                                    </div>
+                                                @endif
+
+                                                {{-- TEXT --}}
+                                                @if(in_array($question->type, ['short_text', 'long_text']))
+                                                    <div class="small">
+                                                        <strong>Ваша відповідь:</strong>
+                                                        {{ $answer?->answer_text ?? '—' }}
+                                                    </div>
+                                                @endif
+
                                             </div>
-                                        </div>
-
-                                        {{-- SINGLE --}}
-                                        @if(in_array($question->type, ['single_choice', 'true_false']))
-                                            <div class="small">
-                                                <strong>Ваша:</strong>
-                                                @php
-                                                    $selectedOption = $answer?->selectedOption;
-
-                                                    if (!$selectedOption && $answer?->answer_text) {
-                                                        $selectedOption = $question->options->firstWhere('id', $answer->answer_text);
-                                                    }
-                                                @endphp
-
-                                                {{ $selectedOption?->option_text ?? '—' }}                                            </div>
-
-                                            <div class="small text-success">
-                                                <strong>Правильна:</strong>
-                                                {{ $correctOptions->pluck('option_text')->join(', ') ?: '—' }}
-                                            </div>
-                                        @endif
-
-                                        {{-- MULTIPLE --}}
-                                        @if($question->type === 'multiple_choice')
-                                            <div class="small">
-                                                <strong>Ваша:</strong>
-                                                @php
-                                                    $selectedOptions = $question->options->whereIn('id', $selectedIds);
-                                                @endphp
-
-                                                {{ $selectedOptions->pluck('option_text')->join(', ') ?: '—' }}
-                                            </div>
-
-                                            <div class="small text-success">
-                                                <strong>Правильні:</strong>
-                                                {{ $correctOptions->pluck('option_text')->join(', ') ?: '—' }}
-                                            </div>
-                                        @endif
-
-                                        {{-- TEXT --}}
-                                        @if(in_array($question->type, ['short_text', 'long_text']))
-                                            <div class="small">
-                                                <strong>Ваша відповідь:</strong>
-                                                {{ $answer?->answer_text ?? '—' }}
-                                            </div>
-                                        @endif
-
+                                        @endforeach
                                     </div>
                                 @endforeach
-                            </div>
+                            @endif
                         @endforeach
                     </div>
                 </div>

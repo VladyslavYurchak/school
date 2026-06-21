@@ -38,19 +38,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 <input
                     type="text"
                     name="options[new][${optionIndex}][option_text]"
-                    class="form-control me-2 option-input"
+                    class="form-control option-input"
                     placeholder="Нова відповідь"
                     maxlength="1000"
                 />
                 <label class="custom-checkbox">
                     <input type="checkbox" name="options[new][${optionIndex}][is_correct]" value="1">
-                    <span class="checkmark"></span> Правильна
+                    <span class="checkmark"></span>
+                    Правильна
                 </label>
                 <button
                     type="button"
-                    class="btn btn-danger btn-sm remove-option"
+                    class="admin-btn-danger remove-option"
                     data-index="${optionIndex}"
                 >
+                    <i class="bi bi-trash"></i>
                     Видалити
                 </button>
             </div>
@@ -62,7 +64,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     optionsContainer.addEventListener('click', function (event) {
-        if (!event.target.classList.contains('remove-option')) {
+        const removeButton = event.target.closest('.remove-option');
+        if (!removeButton) {
             return;
         }
 
@@ -72,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        event.target.closest('.option-row')?.remove();
+        removeButton.closest('.option-row')?.remove();
         updateControls();
     });
 

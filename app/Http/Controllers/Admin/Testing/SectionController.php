@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Testing\StoreSectionRequest;
 use App\Http\Requests\Admin\Testing\UpdateSectionRequest;
 use App\Models\Testing\Section;
 use App\Models\Testing\Test;
+use Illuminate\Http\UploadedFile;
 
 class SectionController extends Controller
 {
@@ -24,7 +25,7 @@ class SectionController extends Controller
 
     public function store(StoreSectionRequest $request, Test $test)
     {
-        $data = $request->validated();
+        $data = $this->prepareData($request->validated());
 
         $typeTitles = [
             'grammar' => 'Grammar',
@@ -55,7 +56,7 @@ class SectionController extends Controller
 
     public function update(UpdateSectionRequest $request, Section $section)
     {
-        $data = $request->validated();
+        $data = $this->prepareData($request->validated());
 
         $typeTitles = [
             'grammar' => 'Grammar',
@@ -85,5 +86,17 @@ class SectionController extends Controller
         return redirect()
             ->route('admin.testing.tests.sections.index', $test)
             ->with('success', 'Секцію видалено');
+    }
+
+    private function prepareData(array $data): array
+    {
+        if (($data['media_file'] ?? null) instanceof UploadedFile) {
+            $data['media_url'] = $data['media_file']->store('testing_audio', 'public');
+            $data['media_type'] = 'audio';
+        }
+
+        unset($data['media_file']);
+
+        return $data;
     }
 }

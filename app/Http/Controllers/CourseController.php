@@ -81,7 +81,13 @@ class CourseController extends Controller
         }
 
         $course->setRelation('lessons', $this->visibleLessons($course, $isAdmin));
-        $lesson->load('tests.options');
+        $lesson->load([
+            'tests.options',
+            'contentBlocks' => fn ($query) => $query
+                ->where('is_active', true)
+                ->orderBy('position')
+                ->orderBy('id'),
+        ]);
 
         $lastTestAttempt = null;
 

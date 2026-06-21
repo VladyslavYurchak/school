@@ -1,8 +1,8 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <div class="app-content p-3">
-        <div class="container-fluid">
+    <div class="admin-page">
+        <div class="admin-page-shell">
 
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                 <div>
@@ -11,25 +11,25 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('admin.testing.tests.index') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('admin.testing.tests.index') }}" class="admin-btn-soft">
                         До тестів
                     </a>
 
-                    <a href="{{ route('admin.testing.tests.result-ranges.create', $test) }}" class="btn btn-custom">
+                    <a href="{{ route('admin.testing.tests.result-ranges.create', $test) }}" class="admin-btn-primary">
                         Додати діапазон
                     </a>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-body">
+            <section class="admin-panel">
+                <div class="admin-panel-body">
                     <div class="alert alert-light border mb-3">
                         Ці діапазони використовуються для текстового опису підсумкового результату за шкалою
                         <strong>0–100</strong>. Основний рівень CEFR визначається окремо — за складністю питань.
                     </div>
 
-                    <div class="table-responsive">
-                        <table class="table align-middle">
+                    <div class="admin-table-wrap">
+                        <table class="table admin-table">
                             <thead>
                             <tr>
                                 <th>ID</th>
@@ -77,9 +77,9 @@
                                     </td>
 
                                     <td class="text-end">
-                                        <div class="d-flex flex-wrap justify-content-end gap-2">
+                                        <div class="admin-row-actions">
                                             <a href="{{ route('admin.testing.result-ranges.edit', $range) }}"
-                                               class="btn btn-sm btn-primary">
+                                               class="admin-btn-warning">
                                                 Редагувати
                                             </a>
 
@@ -88,7 +88,7 @@
                                                   onsubmit="return confirm('Видалити діапазон результатів?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <button type="submit" class="admin-btn-danger">
                                                     Видалити
                                                 </button>
                                             </form>
@@ -106,9 +106,9 @@
                         </table>
                     </div>
 
-                    {{ $ranges->links() }}
+                    {{ $ranges->onEachSide(2)->links('admin.pagination.pagination') }}
                 </div>
-            </div>
+            </section>
 
         </div>
     </div>

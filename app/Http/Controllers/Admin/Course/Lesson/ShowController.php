@@ -9,6 +9,8 @@ class ShowController extends Controller
 {
     public function __invoke(Lesson $lesson)
     {
+        $lesson->load(['course', 'contentBlocks']);
+
         $mediaFiles = is_string($lesson->media_files)
             ? json_decode($lesson->media_files, true)
             : ($lesson->media_files ?? []);
@@ -19,6 +21,8 @@ class ShowController extends Controller
 
         $tests = $lesson->tests()->with('options')->orderBy('position')->get();
 
-        return view('admin.course.lesson.show', compact('lesson', 'mediaFiles', 'homeworkFiles', 'tests'));
+        $blocks = $lesson->contentBlocks;
+
+        return view('admin.course.lesson.show', compact('lesson', 'blocks', 'mediaFiles', 'homeworkFiles', 'tests'));
     }
 }

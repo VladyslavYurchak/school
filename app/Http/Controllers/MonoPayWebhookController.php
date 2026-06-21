@@ -23,12 +23,6 @@ class MonoPayWebhookController extends Controller
             'headers' => $request->headers->all(),
         ]);
 
-        if (!$this->isValidSignature($request, $rawBody, $monoPay)) {
-            Log::warning('MONOPAY: invalid signature');
-
-            return response('invalid signature', 400);
-        }
-
         $monoPayload = json_decode($rawBody, true);
 
         if (!is_array($monoPayload)) {
@@ -67,6 +61,34 @@ class MonoPayWebhookController extends Controller
             ]);
 
             return response('payment not found', 404);
+        }
+
+        if (!$this->isValidSignature($request, $rawBody, $monoPay)) {
+            Log::warning('MONOPAY: invalid signature, trying invoice status fallback', [
+                'payment_id' => $payment->id,
+                'invoiceId' => $invoiceId,
+                'reference' => $reference,
+            ]);
+
+            $verifiedPayload = $this->verifiedPayloadFromInvoiceStatus($monoPay, $payment, $invoiceId, $reference);
+
+            if (!$verifiedPayload) {
+                Log::warning('MONOPAY: invoice status fallback failed', [
+                    'payment_id' => $payment->id,
+                    'invoiceId' => $invoiceId,
+                    'reference' => $reference,
+                ]);
+
+                return response('invalid signature', 400);
+            }
+
+            $monoPayload = array_merge($monoPayload, $verifiedPayload, [
+                'verified_by_invoice_status' => true,
+            ]);
+
+            $invoiceId = $monoPayload['invoiceId'] ?? $invoiceId;
+            $reference = $monoPayload['reference'] ?? $reference;
+            $status = $monoPayload['status'] ?? $status;
         }
 
         $paymentPayload = is_array($payment->payload) ? $payment->payload : [];
@@ -197,10 +219,30 @@ class MonoPayWebhookController extends Controller
         }
 
         if ($status === 'reversed') {
-            $payment->update([
-                'status' => 'refunded',
-                'payload' => $mergedPayload,
-            ]);
+            DB::transaction(function () use ($payment, $mergedPayload) {
+                $payment->update([
+                    'status' => 'refunded',
+                    'payload' => $mergedPayload,
+                ]);
+
+                $student = $payment->student()->with('user')->first();
+
+                if ($student?->user && ($courseId = ($mergedPayload['course_id'] ?? null))) {
+                    $student->user->courses()->updateExistingPivot($courseId, [
+                        'status' => 'refunded',
+                    ]);
+                }
+
+                if ($student?->user && ($lessonId = ($mergedPayload['lesson_id'] ?? null))) {
+                    $student->user->lessons()->updateExistingPivot($lessonId, [
+                        'status' => 'refunded',
+                    ]);
+                }
+
+                $payment->subscriptions()
+                    ->whereIn('status', ['pending', 'active'])
+                    ->update(['status' => 'cancelled']);
+            });
 
             return response('ok');
         }
@@ -222,11 +264,7 @@ class MonoPayWebhookController extends Controller
         }
 
         try {
-            $publicKeyBase64 = $monoPay->getPublicKey();
-
-            $publicKeyPem = "-----BEGIN PUBLIC KEY-----\n"
-                . chunk_split($publicKeyBase64, 64, "\n")
-                . "-----END PUBLIC KEY-----\n";
+            $publicKeyPem = $this->normalizePublicKey($monoPay->getPublicKey());
 
             $publicKeyResource = openssl_pkey_get_public($publicKeyPem);
 
@@ -249,5 +287,65 @@ class MonoPayWebhookController extends Controller
 
             return false;
         }
+    }
+
+    private function normalizePublicKey(string $publicKey): string
+    {
+        $publicKey = trim($publicKey);
+
+        if (str_contains($publicKey, '-----BEGIN PUBLIC KEY-----')) {
+            return $publicKey;
+        }
+
+        $publicKey = preg_replace('/\s+/', '', $publicKey);
+
+        return "-----BEGIN PUBLIC KEY-----\n"
+            . chunk_split($publicKey, 64, "\n")
+            . "-----END PUBLIC KEY-----\n";
+    }
+
+    private function verifiedPayloadFromInvoiceStatus(
+        MonoPayService $monoPay,
+        Payment $payment,
+        ?string $invoiceId,
+        ?string $reference
+    ): ?array {
+        if (!$invoiceId) {
+            return null;
+        }
+
+        try {
+            $invoice = $monoPay->getInvoiceStatus($invoiceId);
+        } catch (\Throwable $e) {
+            Log::error('MONOPAY INVOICE STATUS FALLBACK ERROR', [
+                'payment_id' => $payment->id,
+                'invoice_id' => $invoiceId,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        $invoiceReference = $invoice['reference'] ?? null;
+        $invoiceAmount = isset($invoice['amount']) ? (int) $invoice['amount'] : null;
+        $paymentAmount = (int) round(((float) $payment->amount) * 100);
+
+        if (($invoice['invoiceId'] ?? null) !== $invoiceId) {
+            return null;
+        }
+
+        if ($reference && $invoiceReference && $invoiceReference !== $reference) {
+            return null;
+        }
+
+        if ($invoiceReference && $invoiceReference !== $payment->provider_order_id) {
+            return null;
+        }
+
+        if ($invoiceAmount !== null && $invoiceAmount !== $paymentAmount) {
+            return null;
+        }
+
+        return $invoice;
     }
 }

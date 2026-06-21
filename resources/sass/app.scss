@@ -1,4 +1,15 @@
 // resources/sass/app.scss
 
 @import "public/app";
+@import "admin/variables";
+@import "admin/layout";
+@import "admin/header";
+@import "admin/sidebar";
+@import "admin/footer";
+@import "admin/cards";
+@import "admin/course-pages";
+@import "admin/teacher-pages";
+@import "admin/legacy";
+@import "admin/responsive";
+@import "admin/test-options";
 @import "admin/students/payment";

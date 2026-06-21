@@ -64,4 +64,31 @@ class MonoPayService
 
         return $response->json('key');
     }
+
+    public function getInvoiceStatus(string $invoiceId): array
+    {
+        $token = config('services.monopay.token');
+
+        if (!$token) {
+            throw new \RuntimeException('MONOPAY_TOKEN is not configured.');
+        }
+
+        $response = Http::withHeaders([
+            'X-Token' => $token,
+        ])->get($this->baseUrl . '/api/merchant/invoice/status', [
+            'invoiceId' => $invoiceId,
+        ]);
+
+        if (!$response->successful()) {
+            Log::error('MONOPAY INVOICE STATUS ERROR', [
+                'invoice_id' => $invoiceId,
+                'status' => $response->status(),
+                'body' => $response->json(),
+            ]);
+
+            throw new \RuntimeException('Cannot get MonoPay invoice status.');
+        }
+
+        return $response->json();
+    }
 }

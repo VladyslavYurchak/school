@@ -1,15 +1,4 @@
 .test-block-page {
-    .card {
-        overflow: visible;
-    }
-
-    .card-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
     .question-textarea {
         min-height: 110px;
         resize: vertical;
@@ -32,6 +21,17 @@
         border-radius: var(--radius-md);
         background: #fff;
         box-shadow: 0 2px 8px rgba(36, 49, 64, 0.04);
+    }
+
+    .option-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 12px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: #fff;
     }
 
     .option-input {
@@ -142,6 +142,25 @@
     .empty-tests-alert {
         border-radius: 14px;
     }
+
+    .test-preview-question {
+        white-space: pre-wrap;
+        font-size: 1.05rem;
+        line-height: 1.55;
+        text-align: left;
+    }
+
+    .test-preview-option {
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.7rem 0.85rem;
+        background: #fff;
+    }
+
+    .test-preview-option.is-correct {
+        border-color: rgba(90, 195, 164, 0.45);
+        background: var(--primary-light);
+    }
 }
 
 @media (max-width: 767.98px) {
@@ -151,7 +170,12 @@
             padding: 12px;
         }
 
-        .option-input {
+        .option-item {
+            align-items: stretch;
+        }
+
+        .option-input,
+        .option-item .form-control {
             flex: 1 1 100%;
             min-width: 100%;
         }

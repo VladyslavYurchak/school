@@ -1,60 +1,111 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0">Правила школи</h1>
-            <a href="{{ route('admin.school-rules.create') }}" class="btn btn-primary">Додати правило</a>
-        </div>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-list-check"></i>
+                            Сайт
+                        </span>
+                        <h1 class="admin-title">Правила школи</h1>
+                        <p class="admin-subtitle">
+                            Керуйте правилами, які відображаються на публічній сторінці для учнів та батьків.
+                            Активні правила показуються на сайті у вказаному порядку.
+                        </p>
+                    </div>
 
-        @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
+                    <div class="admin-actions">
+                        <a href="{{ route('rules.index') }}" class="admin-btn-soft" target="_blank" rel="noopener">
+                            <i class="bi bi-eye"></i>
+                            Переглянути на сайті
+                        </a>
+                        <a href="{{ route('admin.school-rules.create') }}" class="admin-btn-primary">
+                            <i class="bi bi-plus-lg"></i>
+                            Додати правило
+                        </a>
+                    </div>
+                </div>
+            </section>
 
-        <div class="card">
-            <div class="card-body p-0">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Назва</th>
-                        <th>Порядок</th>
-                        <th>Активне</th>
-                        <th class="text-end">Дії</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @forelse($rules as $rule)
-                        <tr>
-                            <td>{{ $rule->id }}</td>
-                            <td>{{ $rule->title }}</td>
-                            <td>{{ $rule->sort_order }}</td>
-                            <td>{{ $rule->is_active ? 'Так' : 'Ні' }}</td>
-                            <td class="text-end">
-                                <a href="{{ route('admin.school-rules.edit', $rule) }}" class="btn btn-sm btn-outline-primary">
-                                    Редагувати
-                                </a>
+            @if(session('success'))
+                <div class="alert alert-success">{{ session('success') }}</div>
+            @endif
 
-                                <form action="{{ route('admin.school-rules.destroy', $rule) }}"
-                                      method="POST"
-                                      class="d-inline"
-                                      onsubmit="return confirm('Видалити правило?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        Видалити
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="text-center py-4">Правил поки немає.</td>
-                        </tr>
-                    @endforelse
-                    </tbody>
-                </table>
-            </div>
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Список правил</h2>
+                    <span class="admin-badge admin-badge-muted">
+                        Усього: {{ $rules->count() }}
+                    </span>
+                </div>
+
+                <div class="admin-panel-body p-0">
+                    @if($rules->count())
+                        <div class="admin-table-wrap border-0 rounded-0">
+                            <table class="table admin-table mb-0">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Назва</th>
+                                    <th>Порядок</th>
+                                    <th>Статус</th>
+                                    <th class="text-end">Дії</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach($rules as $rule)
+                                    <tr>
+                                        <td>{{ $rule->id }}</td>
+                                        <td>
+                                            <strong>{{ $rule->title }}</strong>
+                                        </td>
+                                        <td>{{ $rule->sort_order }}</td>
+                                        <td>
+                                            @if($rule->is_active)
+                                                <span class="admin-badge admin-badge-free">Активне</span>
+                                            @else
+                                                <span class="admin-badge admin-badge-muted">Приховане</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <div class="admin-inline-actions justify-content-end">
+                                                <a href="{{ route('admin.school-rules.edit', $rule) }}"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-pencil"></i>
+                                                    Редагувати
+                                                </a>
+
+                                                <form action="{{ route('admin.school-rules.destroy', $rule) }}"
+                                                      method="POST"
+                                                      onsubmit="return confirm('Видалити правило?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i class="bi bi-trash"></i>
+                                                        Видалити
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="admin-empty-state">
+                            <div class="admin-empty-icon">
+                                <i class="bi bi-list-check"></i>
+                            </div>
+                            <h2 class="h5">Правил поки немає</h2>
+                            <p class="mb-0">Додайте перше правило, щоб воно зʼявилося на публічній сторінці.</p>
+                        </div>
+                    @endif
+                </div>
+            </section>
         </div>
     </div>
 @endsection

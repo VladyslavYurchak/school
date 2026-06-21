@@ -1,14 +1,11 @@
 <?php
 
 namespace App\Http\Controllers\Admin\Event;
-use App\Http\Controllers\Admin\Post\BaseController;
-use App\Models\Event;
-use App\Models\Post;
 
+use App\Models\Event;
 
 class DeleteController extends BaseController
 {
-
     public function __invoke(Event $event)
     {
         $event->delete();

@@ -1,86 +1,85 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <main class="app-main">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light border-bottom">
-                <h3 class="mb-0 text-dark">Створити курс</h3>
-            </div>
-            <div class="card-body">
-                <form action="{{ route('admin.course.store') }}" method="POST">
-                    @csrf
-
-                    <!-- Назва курсу -->
-                    <div class="mb-3">
-                        <label for="title" class="form-label fw-semibold">Назва курсу</label>
-                        <input type="text" class="form-control border-secondary" id="title" name="title" required>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-plus-lg"></i>
+                            Новий курс
+                        </span>
+                        <h1 class="admin-title">Створити курс</h1>
+                        <p class="admin-subtitle">
+                            Додайте курс, який потім можна наповнювати уроками, тестами та домашніми завданнями.
+                        </p>
                     </div>
 
-                    <!-- Опис курсу -->
-                    <div class="mb-3">
-                        <label for="description" class="form-label fw-semibold">Опис курсу</label>
-                        <textarea class="form-control border-secondary" id="description" name="description" rows="4" required></textarea>
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.course.index') }}" class="admin-btn-soft">
+                            <i class="bi bi-arrow-left"></i>
+                            До курсів
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <form action="{{ route('admin.course.store') }}" method="POST" class="admin-panel admin-form admin-form-card">
+                @csrf
+
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Дані курсу</h2>
+                </div>
+
+                <div class="admin-panel-body">
+                    <div class="admin-form-section">
+                        <label for="title" class="admin-form-label">Назва курсу</label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ old('title') }}" required>
                     </div>
 
-                    <!-- Вибір мови -->
-                    <div class="mb-3">
-                        <label for="language" class="form-label fw-semibold">Мова курсу</label>
-                        <select class="form-select border-secondary" id="language" name="language_id" required>
+                    <div class="admin-form-section">
+                        <label for="description" class="admin-form-label">Опис курсу</label>
+                        <textarea class="form-control" id="description" name="description" rows="4" required>{{ old('description') }}</textarea>
+                    </div>
+
+                    <div class="admin-form-section">
+                        <label for="language" class="admin-form-label">Мова курсу</label>
+                        <select class="form-select" id="language" name="language_id" required>
                             <option value="">Оберіть мову</option>
                             @foreach($languages as $language)
-                                <option value="{{ $language->id }}">{{ $language->name }}</option>
+                                <option value="{{ $language->id }}" @selected(old('language_id') == $language->id)>
+                                    {{ $language->name }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
 
-                    <!-- Кнопки -->
-                    <div class="mb-3">
-                        <label for="price" class="form-label fw-semibold">Ціна (грн)</label>
-                        <input type="number"
-                               class="form-control border-secondary"
-                               id="price"
-                               name="price"
-                               value="{{ old('price', 0) }}"
-                               min="0"
-                               step="0.01"
-                               required>
+                    <div class="admin-form-section">
+                        <label for="price" class="admin-form-label">Ціна (грн)</label>
+                        <input type="number" class="form-control" id="price" name="price" value="{{ old('price', 0) }}" min="0" step="0.01" required>
                     </div>
 
-                    <div class="form-check mb-3">
-                        <input type="hidden" name="is_published" value="0">
-                        <input
-                            type="checkbox"
-                            name="is_published"
-                            id="is_published"
-                            value="1"
-                            class="form-check-input"
-                            @checked(old('is_published', false))
-                        >
-                        <label for="is_published" class="form-check-label">
-                            Опублікувати курс
-                        </label>
+                    <div class="admin-form-section">
+                        <div class="form-check form-switch admin-switch">
+                            <input type="hidden" name="is_published" value="0">
+                            <input type="checkbox" name="is_published" id="is_published" value="1" class="form-check-input" @checked(old('is_published', false))>
+                            <label for="is_published" class="form-check-label">Опублікувати курс</label>
+                        </div>
                     </div>
 
-                    <div class="d-flex justify-content-end">
-                        <a href="{{ route('admin.course.index') }}" class="btn btn-outline-secondary me-2">Скасувати</a>
-                        <button type="submit" class="btn btn-outline-dark">Створити курс</button>
+                    <div class="admin-form-actions">
+                        <a href="{{ route('admin.course.index') }}" class="admin-btn-soft">
+                            <i class="bi bi-x-lg"></i>
+                            Скасувати
+                        </a>
+                        <button type="submit" class="admin-btn-primary">
+                            <i class="bi bi-check2"></i>
+                            Створити курс
+                        </button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
-    </main>
-
-    <style>
-        .form-control, .form-select {
-            border-radius: 6px;
-            box-shadow: none;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #6c757d;
-            box-shadow: 0 0 0 0.1rem rgba(108,117,125,.25);
-        }
-        .btn {
-            border-radius: 6px;
-        }
-    </style>
+    </div>
 @endsection

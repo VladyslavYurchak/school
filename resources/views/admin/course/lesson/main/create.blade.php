@@ -1,102 +1,112 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <main class="app-main">
-        <div class="card shadow-lg border-0">
-            <div class="card-header bg-white d-flex align-items-center">
-                <h3 class="fw-bold text-dark mb-0">{{ $lesson->title }}</h3>
-                <a href="{{ route('admin.course.show', $lesson->course_id) }}" class="btn btn-outline-secondary btn-sm ms-auto">
-                    Назад
-                </a>
-            </div>
-
-            <div class="card-body">
-                <form action="{{ route('admin.course.lesson.main.update', $lesson->id) }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    @method('PUT')
-
-                    <div class="mb-4">
-                        <label for="content_editor" class="form-label fw-bold">Основний зміст</label>
-
-                        <textarea
-                            name="content"
-                            id="content_editor"
-                            class="form-control"
-                        >{{ old('content', $lesson->content) }}</textarea>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-journal-richtext"></i>
+                            Основне завдання
+                        </span>
+                        <h1 class="admin-title">{{ $lesson->title }}</h1>
+                        <p class="admin-subtitle">Основний зміст уроку, відео, аудіо та додаткові матеріали.</p>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="video_url" class="form-label fw-bold">Посилання на відео</label>
-                        <input
-                            type="url"
-                            name="video_url"
-                            id="video_url"
-                            class="form-control shadow-sm"
-                            value="{{ old('video_url', $lesson->video_url) }}"
-                        >
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.course.lesson.edit', $lesson->id) }}" class="admin-btn-soft">
+                            <i class="bi bi-pencil"></i>
+                            Редагувати урок
+                        </a>
+                        <a href="{{ route('admin.course.show', $lesson->course_id) }}" class="admin-btn-soft">
+                            <i class="bi bi-arrow-left"></i>
+                            До курсу
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <form action="{{ route('admin.course.lesson.main.update', $lesson->id) }}" method="POST" enctype="multipart/form-data" class="admin-panel admin-form">
+                @csrf
+                @method('PUT')
+
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Основна частина</h2>
+                </div>
+
+                <div class="admin-panel-body">
+                    <div class="admin-form-section">
+                        <label for="content_editor" class="admin-form-label">Основний зміст</label>
+                        <textarea name="content" id="content_editor" class="form-control">{{ old('content', $lesson->content) }}</textarea>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="media_files" class="form-label fw-bold">Матеріали</label>
-                        <input type="file" name="media_files[]" id="media_files" class="form-control shadow-sm" multiple>
-                        <div id="selected-media-files" class="small text-muted mt-2">Файли не вибрані.</div>
+                    <div class="admin-form-section">
+                        <label for="video_url" class="admin-form-label">Посилання на відео</label>
+                        <input type="url" name="video_url" id="video_url" class="form-control" value="{{ old('video_url', $lesson->video_url) }}">
+                    </div>
+
+                    <div class="admin-form-section">
+                        <label for="media_files" class="admin-form-label">Матеріали</label>
+                        <input type="file" name="media_files[]" id="media_files" class="form-control" multiple>
+                        <div id="selected-media-files" class="form-text mt-2">Файли не вибрані.</div>
 
                         @if(count($mediaFiles) > 0)
-                            <ul class="list-group list-group-flush mt-3 shadow-sm rounded">
-                                @foreach($mediaFiles as $file)
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <span>{{ basename($file) }}</span>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm btn-outline-danger"
-                                            onclick="deleteFile('{{ route('admin.course.lesson.main.file.delete', [
-                                            'lesson' => $lesson->id,
-                                            'filename' => urlencode($file)
-                                        ]) }}')"
-                                        >
-                                            Видалити
-                                        </button>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="audio_file" class="form-label fw-bold">Аудіо</label>
-                        <input type="file" name="audio_file" id="audio_file" class="form-control shadow-sm">
-
-                        @if($lesson->audio_file)
-                            <div class="mt-3 p-2 bg-light rounded shadow-sm d-flex justify-content-between align-items-center">
-                                <span>{{ basename($lesson->audio_file) }}</span>
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-danger"
-                                    onclick="deleteFile('{{ route('admin.course.lesson.main.audio.delete', $lesson->id) }}', 'Видалити аудіо?')"
-                                >
-                                    Видалити
-                                </button>
+                            <div class="admin-content-box mt-3">
+                                <strong>Завантажені матеріали:</strong>
+                                <ul class="admin-file-list mt-2">
+                                    @foreach($mediaFiles as $file)
+                                        <li>
+                                            <a href="{{ asset('storage/' . $file) }}" target="_blank" rel="noopener">
+                                                <i class="bi bi-paperclip"></i>
+                                                {{ basename($file) }}
+                                            </a>
+                                            <button type="button" class="admin-btn-danger"
+                                                    onclick="deleteFile('{{ route('admin.course.lesson.main.file.delete', ['lesson' => $lesson->id, 'filename' => urlencode($file)]) }}')">
+                                                <i class="bi bi-trash"></i>
+                                                Видалити
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ul>
                             </div>
                         @endif
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center mt-4">
-                        <button
-                            type="button"
-                            class="btn btn-outline-danger shadow-sm"
-                            onclick="deleteFile('{{ route('admin.course.lesson.main.destroy', $lesson->id) }}', 'Ви впевнені, що хочете видалити основну частину уроку?')"
-                        >
+                    <div class="admin-form-section">
+                        <label for="audio_file" class="admin-form-label">Аудіо</label>
+                        <input type="file" name="audio_file" id="audio_file" class="form-control">
+
+                        @if($lesson->audio_file)
+                            <div class="admin-content-box mt-3">
+                                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                    <span>{{ basename($lesson->audio_file) }}</span>
+                                    <button type="button" class="admin-btn-danger"
+                                            onclick="deleteFile('{{ route('admin.course.lesson.main.audio.delete', $lesson->id) }}', 'Видалити аудіо?')">
+                                        <i class="bi bi-trash"></i>
+                                        Видалити
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="admin-form-actions">
+                        <button type="button" class="admin-btn-danger"
+                                onclick="deleteFile('{{ route('admin.course.lesson.main.destroy', $lesson->id) }}', 'Видалити основну частину уроку?')">
+                            <i class="bi bi-trash"></i>
                             Видалити
                         </button>
 
-                        <button type="submit" class="btn btn-success shadow-sm">
-                            Оновити основну частину
+                        <button type="submit" class="admin-btn-primary">
+                            <i class="bi bi-check2"></i>
+                            Зберегти
                         </button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
-    </main>
+    </div>
 
     <script>
         const inputMedia = document.getElementById('media_files');
@@ -136,41 +146,16 @@
         }
     </script>
     <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const editorConfig = {
-                toolbar: [
-                    'heading',
-                    '|',
-                    'bold',
-                    'italic',
-                    'link',
-                    'bulletedList',
-                    'numberedList',
-                    'blockQuote',
-                    '|',
-                    'undo',
-                    'redo'
-                ]
+                toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|', 'undo', 'redo']
             };
 
-            if (document.querySelector('#content_editor')) {
-                ClassicEditor
-                    .create(document.querySelector('#content_editor'), editorConfig)
-                    .catch(error => {
-                        console.error(error);
-                    });
-            }
-
-            if (document.querySelector('#homework_editor')) {
-                ClassicEditor
-                    .create(document.querySelector('#homework_editor'), editorConfig)
-                    .catch(error => {
-                        console.error(error);
-                    });
+            const contentEditor = document.querySelector('#content_editor');
+            if (contentEditor) {
+                ClassicEditor.create(contentEditor, editorConfig).catch(error => console.error(error));
             }
         });
     </script>
-
 @endsection

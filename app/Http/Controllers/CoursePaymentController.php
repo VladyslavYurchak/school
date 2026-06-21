@@ -35,17 +35,28 @@ class CoursePaymentController extends Controller
                 ->with('error', 'Цей курс безкоштовний.');
         }
 
-        $student = $user->student;
-
-        if (!$student) {
-            $student = Student::create([
-                'user_id' => $user->id,
+        $student = Student::firstOrCreate(
+            ['user_id' => $user->id],
+            [
                 'first_name' => $user->name ?? 'Користувач',
                 'last_name' => '',
                 'email' => $user->email,
                 'is_active' => true,
                 'start_date' => now()->toDateString(),
-            ]);
+            ]
+        );
+
+        $existingPayment = Payment::query()
+            ->where('student_id', $student->id)
+            ->where('status', 'pending')
+            ->where('type', 'single')
+            ->where('provider', 'monopay')
+            ->where('payload->course_id', $course->id)
+            ->latest()
+            ->first();
+
+        if ($existingPayment) {
+            return redirect()->route('student.payments.checkout', $existingPayment);
         }
 
         $payment = Payment::create([
@@ -56,7 +67,7 @@ class CoursePaymentController extends Controller
             'type' => 'single',
             'provider' => 'monopay',
             'provider_order_id' => (string) Str::uuid(),
-            'description' => 'Оплата курсу: ' . $course->title,
+            'description' => 'Оплата за "' . $course->title . '"',
             'payload' => [
                 'course_id' => $course->id,
                 'user_id' => $user->id,

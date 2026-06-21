@@ -1,8 +1,8 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <div class="app-content p-3">
-        <div class="container-fluid">
+    <div class="admin-page">
+        <div class="admin-page-shell">
 
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                 <div>
@@ -14,19 +14,19 @@
 
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{{ route('admin.testing.tests.questions.index', $question->test) }}"
-                       class="btn btn-outline-secondary">
+                       class="admin-btn-soft">
                         До питань
                     </a>
 
                     <a href="{{ route('admin.testing.questions.options.create', $question) }}"
-                       class="btn btn-custom">
+                       class="admin-btn-primary">
                         Додати варіант
                     </a>
                 </div>
             </div>
 
-            <div class="card mb-3">
-                <div class="card-body">
+            <section class="admin-panel">
+                <div class="admin-panel-body">
                     <div class="fw-semibold mb-2">Текст питання:</div>
                     <div>{!! nl2br(e($question->question_text)) !!}</div>
 
@@ -37,11 +37,12 @@
                             За неправильну: {{ $question->default_incorrect_points }}                        </div>
                     @endif
                 </div>
-            </div>
+            </section>
 
-            <div class="card">
-                <div class="card-body table-responsive">
-                    <table class="table align-middle">
+            <section class="admin-panel">
+                <div class="admin-panel-body">
+                    <div class="admin-table-wrap">
+                    <table class="table admin-table">
                         <thead>
                         <tr>
                             <th>ID</th>
@@ -95,9 +96,9 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    <div class="d-flex flex-wrap justify-content-end gap-2">
+                                    <div class="admin-row-actions">
                                         <a href="{{ route('admin.testing.options.edit', $option) }}"
-                                           class="btn btn-sm btn-primary">
+                                           class="admin-btn-warning">
                                             Редагувати
                                         </a>
 
@@ -106,7 +107,7 @@
                                               onsubmit="return confirm('Видалити варіант відповіді?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <button type="submit" class="admin-btn-danger">
                                                 Видалити
                                             </button>
                                         </form>
@@ -122,10 +123,11 @@
                         @endforelse
                         </tbody>
                     </table>
+                    </div>
 
-                    {{ $options->links() }}
+                    {{ $options->onEachSide(2)->links('admin.pagination.pagination') }}
                 </div>
-            </div>
+            </section>
 
         </div>
     </div>

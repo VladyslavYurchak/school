@@ -45,6 +45,11 @@ class Lesson extends Model
         return $this->hasMany(\App\Models\LessonTest::class);
     }
 
+    public function contentBlocks()
+    {
+        return $this->hasMany(LessonContentBlock::class)->orderBy('position')->orderBy('id');
+    }
+
     public function users()
     {
         return $this->belongsToMany(User::class, 'user_lesson')

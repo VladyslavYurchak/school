@@ -86,6 +86,13 @@
     border-color: #d8ebe6;
 }
 
+.teacher-photo-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
 .teacher-photo-wrap {
     display: flex;
     justify-content: center;
@@ -123,8 +130,30 @@
     line-height: 1;
 }
 
+.teacher-details {
+    width: 100%;
+    max-width: 230px;
+    padding-top: 16px;
+    border-top: 1px solid #d1d5db;
+    color: #4b5563;
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.teacher-detail-line + .teacher-detail-line {
+    margin-top: 4px;
+}
+
 .teacher-content {
     max-width: 760px;
+}
+
+.teacher-heading {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-bottom: 8px;
 }
 
 .teacher-name {
@@ -132,15 +161,47 @@
     line-height: 1.15;
     font-weight: 700;
     color: #111827;
-    margin-bottom: 16px;
+    margin-bottom: 0;
     letter-spacing: -0.02em;
+}
+
+.teacher-position {
+    font-size: 17px;
+    line-height: 1.45;
+    font-weight: 600;
+    font-style: italic;
+    color: #5f6b7a;
 }
 
 .teacher-bio {
     font-size: 16px;
     line-height: 1.85;
     color: #4b5563;
-    white-space: pre-line;
+}
+
+.teacher-bio p {
+    margin: 0 0 10px;
+}
+
+.teacher-bio p:last-child,
+.teacher-bio ul:last-child,
+.teacher-bio ol:last-child,
+.teacher-bio blockquote:last-child {
+    margin-bottom: 0;
+}
+
+.teacher-bio ul,
+.teacher-bio ol {
+    margin: 0 0 12px 20px;
+    padding: 0;
+}
+
+.teacher-bio blockquote {
+    margin: 0 0 12px;
+    padding-left: 14px;
+    border-left: 3px solid #57b7ab;
+    color: #64748b;
+    font-style: italic;
 }
 
 .teacher-bio-empty {
@@ -188,14 +249,33 @@
         font-size: 28px;
     }
 
+    .teacher-heading {
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+
+    .teacher-position {
+        width: 100%;
+        font-size: 16px;
+    }
+
+    .teacher-details {
+        text-align: left;
+    }
+
     .teacher-bio {
         font-size: 15px;
         line-height: 1.8;
+        text-align: left;
     }
 
     .teacher-photo,
     .teacher-photo-placeholder {
         max-width: 200px;
+    }
+
+    .teacher-details {
+        max-width: 260px;
     }
 }
 
@@ -216,5 +296,9 @@
 
     .teacher-name {
         font-size: 24px;
+    }
+
+    .teacher-details {
+        font-size: 14px;
     }
 }

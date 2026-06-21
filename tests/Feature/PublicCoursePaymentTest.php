@@ -112,6 +112,7 @@ class PublicCoursePaymentTest extends TestCase
         $this->assertSame('pending', $payment->status);
         $this->assertSame('monopay', $payment->provider);
         $this->assertEquals(1000, (float) $payment->amount);
+        $this->assertSame('Оплата за "Paid course"', $payment->description);
         $this->assertSame($course->id, $payment->payload['course_id']);
         $this->assertSame($user->id, $payment->payload['user_id']);
     }
@@ -139,6 +140,7 @@ class PublicCoursePaymentTest extends TestCase
         $this->assertSame('single', $payment->type);
         $this->assertSame('pending', $payment->status);
         $this->assertEquals(300, (float) $payment->amount);
+        $this->assertSame('Оплата за "Separate lesson"', $payment->description);
         $this->assertSame($lesson->id, $payment->payload['lesson_id']);
         $this->assertSame($user->id, $payment->payload['user_id']);
     }
@@ -161,6 +163,46 @@ class PublicCoursePaymentTest extends TestCase
             ->assertNotFound();
 
         $this->assertDatabaseCount('payments', 0);
+    }
+
+    public function test_repeated_course_purchase_reuses_pending_payment(): void
+    {
+        $course = $this->createCourse([
+            'price' => 1000,
+            'is_published' => true,
+        ]);
+        $user = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($user)->post(route('courses.buy', $course));
+        $payment = Payment::firstOrFail();
+
+        $this->actingAs($user)
+            ->post(route('courses.buy', $course))
+            ->assertRedirect(route('student.payments.checkout', $payment));
+
+        $this->assertDatabaseCount('payments', 1);
+    }
+
+    public function test_repeated_lesson_purchase_reuses_pending_payment(): void
+    {
+        $course = $this->createCourse([
+            'price' => 1000,
+            'is_published' => true,
+        ]);
+        $lesson = $this->createLesson($course, [
+            'price' => 300,
+            'is_published' => true,
+        ]);
+        $user = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($user)->post(route('lessons.buy', $lesson));
+        $payment = Payment::firstOrFail();
+
+        $this->actingAs($user)
+            ->post(route('lessons.buy', $lesson))
+            ->assertRedirect(route('student.payments.checkout', $payment));
+
+        $this->assertDatabaseCount('payments', 1);
     }
 
     private function createCourse(array $attributes = []): Course

@@ -6,37 +6,41 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            'user_id'      => 'required|exists:users,id',
+            'user_id' => ['required', 'exists:users,id'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
 
-            'lesson_price' => 'nullable|numeric|min:0',
-            'group_lesson_price' => 'nullable|numeric|min:0',
-            'trial_lesson_price' => 'nullable|numeric|min:0',
-            'pair_lesson_price' => 'nullable|numeric|min:0',
+            'lesson_price' => ['nullable', 'numeric', 'min:0'],
+            'group_lesson_price' => ['nullable', 'numeric', 'min:0'],
+            'trial_lesson_price' => ['nullable', 'numeric', 'min:0'],
+            'pair_lesson_price' => ['nullable', 'numeric', 'min:0'],
 
-            'note'         => 'nullable|string',
-            'is_active'    => 'required|boolean',
+            'note' => ['nullable', 'string'],
+            'is_active' => ['required', 'boolean'],
 
-            // 🔥 нове (для сайту)
-            'public_photo'      => 'nullable|image|max:4096',
-            'public_bio'        => 'nullable|string',
-            'is_public'         => 'nullable|boolean',
-            'public_sort_order' => 'nullable|integer|min:0',
+            'public_photo' => ['nullable', 'image', 'max:4096'],
+            'public_position' => ['nullable', 'string', 'max:255'],
+            'public_bio' => ['nullable', 'string'],
+            'public_details' => ['nullable', 'string'],
+            'is_public' => ['nullable', 'boolean'],
+            'public_sort_order' => ['nullable', 'integer', 'min:0'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'is_active' => $this->boolean('is_active'),
+            'is_public' => $this->boolean('is_public'),
+        ]);
     }
 }

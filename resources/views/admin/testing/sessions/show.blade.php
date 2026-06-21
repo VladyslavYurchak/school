@@ -1,8 +1,8 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <div class="app-content p-3">
-        <div class="container-fluid">
+    <div class="admin-page">
+        <div class="admin-page-shell">
 
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
@@ -12,15 +12,15 @@
                     </div>
                 </div>
 
-                <a href="{{ route('admin.testing.sessions.index') }}" class="btn btn-outline-secondary">
+                <a href="{{ route('admin.testing.sessions.index') }}" class="admin-btn-soft">
                     Назад
                 </a>
             </div>
 
             <div class="row g-3 mb-3">
                 <div class="col-md-3">
-                    <div class="card h-100">
-                        <div class="card-body">
+                    <div class="admin-panel h-100">
+                        <div class="admin-panel-body">
                             <div class="text-muted small mb-1">Статус</div>
                             <div class="fw-semibold">
                                 @if($session->status === 'completed' || $session->status === 'finished')
@@ -34,8 +34,8 @@
                 </div>
 
                 <div class="col-md-3">
-                    <div class="card h-100">
-                        <div class="card-body">
+                    <div class="admin-panel h-100">
+                        <div class="admin-panel-body">
                             <div class="text-muted small mb-1">Загальний raw score</div>
                             <div class="fw-semibold">{{ $session->total_raw_score }}</div>
                         </div>
@@ -43,8 +43,8 @@
                 </div>
 
                 <div class="col-md-3">
-                    <div class="card h-100">
-                        <div class="card-body">
+                    <div class="admin-panel h-100">
+                        <div class="admin-panel-body">
                             <div class="text-muted small mb-1">Weighted score</div>
                             <div class="fw-semibold">{{ $session->total_weighted_score }}</div>
                         </div>
@@ -52,8 +52,8 @@
                 </div>
 
                 <div class="col-md-3">
-                    <div class="card h-100">
-                        <div class="card-body">
+                    <div class="admin-panel h-100">
+                        <div class="admin-panel-body">
                             <div class="text-muted small mb-1">Рівень</div>
                             <div class="fw-semibold">
                                 {{ $session->detected_level ?? '—' }}
@@ -65,11 +65,11 @@
 
             <div class="row g-3 mb-3">
                 <div class="col-lg-6">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h3 class="mb-0">Загальна інформація</h3>
+                    <div class="admin-panel h-100">
+                        <div class="admin-panel-header">
+                            <h3 class="admin-panel-title">Загальна інформація</h3>
                         </div>
-                        <div class="card-body">
+                        <div class="admin-panel-body">
                             <div class="mb-2">
                                 <strong>Початок:</strong>
                                 {{ $session->started_at ? $session->started_at->format('d.m.Y H:i') : '—' }}
@@ -99,11 +99,11 @@
                 </div>
 
                 <div class="col-lg-6">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h3 class="mb-0">Lead</h3>
+                    <div class="admin-panel h-100">
+                        <div class="admin-panel-header">
+                            <h3 class="admin-panel-title">Lead</h3>
                         </div>
-                        <div class="card-body">
+                        <div class="admin-panel-body">
                             @if($session->lead)
                                 <div class="mb-2">
                                     <strong>Ім’я:</strong>
@@ -147,12 +147,13 @@
                 </div>
             </div>
 
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h3 class="mb-0">Тести в межах сесії</h3>
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <h3 class="admin-panel-title">Тести в межах сесії</h3>
                 </div>
-                <div class="card-body table-responsive">
-                    <table class="table align-middle">
+                <div class="admin-panel-body">
+                    <div class="admin-table-wrap">
+                    <table class="table admin-table">
                         <thead>
                         <tr>
                             <th>ID</th>
@@ -184,17 +185,18 @@
                         @endforelse
                         </tbody>
                     </table>
+                    </div>
                 </div>
-            </div>
+            </section>
 
             @foreach($session->attempts as $attempt)
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h3 class="mb-0">
+                <section class="admin-panel">
+                    <div class="admin-panel-header">
+                        <h3 class="admin-panel-title">
                             Відповіді: {{ $attempt->test?->title ?? 'Тест' }}
                         </h3>
                     </div>
-                    <div class="card-body">
+                    <div class="admin-panel-body">
                         @forelse($attempt->answers as $answer)
                             <div class="border rounded p-3 mb-3">
                                 <div class="mb-2">
@@ -243,7 +245,7 @@
                             <div class="text-muted">Відповідей поки немає</div>
                         @endforelse
                     </div>
-                </div>
+                </section>
             @endforeach
 
         </div>

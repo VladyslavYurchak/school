@@ -7,6 +7,7 @@ use App\Http\Requests\LessonTestRequest;
 use App\Models\LessonTest;
 use App\Models\LessonTestOption;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class UpdateController extends Controller
 {
@@ -16,6 +17,19 @@ class UpdateController extends Controller
         abort_unless((int) $test->lesson_id === (int) $lessonId, 404);
 
         $validated = $request->validated();
+
+        $submittedOptionIds = collect($request->input('options.existing', []))
+            ->keys()
+            ->map(fn ($id) => (int) $id);
+
+        if (
+            $submittedOptionIds->unique()->count() !== $submittedOptionIds->count()
+            || $test->options()->whereIn('id', $submittedOptionIds)->count() !== $submittedOptionIds->count()
+        ) {
+            throw ValidationException::withMessages([
+                'options' => 'One or more answer options do not belong to this test.',
+            ]);
+        }
 
         DB::transaction(function () use ($request, $test, $validated) {
             $test->update([

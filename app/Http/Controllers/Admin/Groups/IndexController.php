@@ -9,7 +9,10 @@ class IndexController extends Controller
 {
     public function __invoke()
     {
-        $groups = Group::withCount('students')->get();
+        $groups = Group::with('teacher')
+            ->withCount('students')
+            ->orderBy('name')
+            ->get();
 
         return view('admin.groups.index', compact('groups'));
     }

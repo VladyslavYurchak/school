@@ -48,24 +48,20 @@ class PublicTestingController extends Controller
             'attempts.test.sections.questions.options',
         ]);
 
-        $attempts = $session->attempts->values();
-        $currentAttempt = $attempts->first();
-        $timeLimitMinutes = $currentAttempt->test->time_limit_minutes;
-        $startedAt = optional($session->started_at)->timestamp;
+        $steps = $this->buildTestingSteps($session);
 
-        if (! $currentAttempt) {
+        if ($steps->isEmpty()) {
             return redirect()->route('testing.session.result', $session);
         }
 
-        $sections = $currentAttempt->test->sections->values();
-        $totalSteps = $sections->count();
+        $totalSteps = $steps->count();
         $step = max(1, min((int) $request->integer('step', 1), $totalSteps));
 
-        $currentSection = $sections->get($step - 1);
-
-        if (! $currentSection) {
-            return redirect()->route('testing.session.result', $session);
-        }
+        $currentStep = $steps->get($step - 1);
+        $currentAttempt = $currentStep['attempt'];
+        $currentSection = $currentStep['section'];
+        $timeLimitMinutes = $currentAttempt->test->time_limit_minutes;
+        $startedAt = optional($session->started_at)->timestamp;
 
         return view('testing.session', [
             'session' => $session,
@@ -89,22 +85,18 @@ class PublicTestingController extends Controller
             'attempts.answers.question',
         ]);
 
-        $attempts = $session->attempts->values();
-        $currentAttempt = $attempts->first();
+        $steps = $this->buildTestingSteps($session);
 
-        if (! $currentAttempt) {
+        if ($steps->isEmpty()) {
             return redirect()->route('testing.session.result', $session);
         }
 
-        $sections = $currentAttempt->test->sections->values();
-        $totalSteps = $sections->count();
+        $totalSteps = $steps->count();
         $step = max(1, min((int) $request->integer('step', 1), $totalSteps));
 
-        $currentSection = $sections->get($step - 1);
-
-        if (! $currentSection) {
-            return redirect()->route('testing.session.result', $session);
-        }
+        $currentStep = $steps->get($step - 1);
+        $currentAttempt = $currentStep['attempt'];
+        $currentSection = $currentStep['section'];
 
         $answers = $request->input('answers', []);
 
@@ -126,15 +118,17 @@ class PublicTestingController extends Controller
             ]);
         }
 
-        $currentAttempt->update([
-            'status' => 'completed',
-            'finished_at' => now(),
-        ]);
+        foreach ($session->attempts as $attempt) {
+            $attempt->update([
+                'status' => 'completed',
+                'finished_at' => now(),
+            ]);
 
-        $scoreCalculator->recalculateAttempt($currentAttempt->fresh([
-            'test.sections.questions.options',
-            'answers.question',
-        ]));
+            $scoreCalculator->recalculateAttempt($attempt->fresh([
+                'test.sections.questions.options',
+                'answers.question',
+            ]));
+        }
 
         $session->update([
             'status' => 'completed',
@@ -186,5 +180,22 @@ class PublicTestingController extends Controller
         return redirect()
             ->route('testing.session.result', $session)
             ->with('success', 'Дякуємо! Ми зв’яжемося з вами найближчим часом.');
+    }
+
+    protected function buildTestingSteps(Session $session)
+    {
+        return $session->attempts
+            ->sortBy(fn ($attempt) => [$attempt->test->sort_order ?? 0, $attempt->id])
+            ->values()
+            ->flatMap(function ($attempt) {
+                return $attempt->test->sections
+                    ->where('is_active', true)
+                    ->values()
+                    ->map(fn ($section) => [
+                        'attempt' => $attempt,
+                        'section' => $section,
+                    ]);
+            })
+            ->values();
     }
 }

@@ -38,7 +38,7 @@ class IndexController extends Controller
         }
 
         // день
-        $logs = LessonLog::with(['teacher'])
+        $logs = LessonLog::with(['student', 'teacher', 'group'])
             ->whereDate('date', $date)
             ->orderBy('time')
             ->get();

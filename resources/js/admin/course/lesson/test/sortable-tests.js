@@ -1,28 +1,23 @@
 import Sortable from 'sortablejs';
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('SortableJS ініціалізується...');
-
     const sortableElement = document.getElementById('sortable-tests');
 
     if (!sortableElement) {
-        console.warn("Елемент '#sortable-tests' не знайдено");
         return;
     }
 
     if (typeof updateOrderUrl === 'undefined' || !updateOrderUrl) {
-        console.error('updateOrderUrl не визначений');
+        console.error('updateOrderUrl is not defined');
         return;
     }
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
     if (!csrfToken) {
-        console.error('CSRF-токен не знайдено');
+        console.error('CSRF token was not found');
         return;
     }
-
-    console.log('Sortable знайдено, ініціалізуємо...');
 
     Sortable.create(sortableElement, {
         animation: 150,
@@ -40,8 +35,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             });
 
-            console.log('Новий порядок:', order);
-
             fetch(updateOrderUrl, {
                 method: 'POST',
                 headers: {
@@ -55,15 +48,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     const data = await response.json().catch(() => ({}));
 
                     if (!response.ok) {
-                        throw new Error(data.message || 'Помилка при оновленні порядку');
+                        throw new Error(data.message || 'Failed to update test order');
                     }
 
                     return data;
                 })
                 .then(data => {
                     if (data.success) {
-                        console.log('Порядок оновлено');
-
                         sortableElement.querySelectorAll('li[data-id]').forEach((el, index) => {
                             const strong = el.querySelector('strong');
                             if (strong) {
@@ -71,12 +62,12 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         });
                     } else {
-                        alert(data.message || 'Помилка при оновленні порядку!');
+                        alert(data.message || 'Failed to update test order.');
                     }
                 })
                 .catch(error => {
-                    console.error('Помилка fetch:', error);
-                    alert('Не вдалося зберегти порядок тестів.');
+                    console.error('Fetch error:', error);
+                    alert('Could not save the test order.');
                 });
         }
     });

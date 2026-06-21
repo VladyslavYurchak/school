@@ -58,7 +58,9 @@ class TestSubmissionService
         ]);
 
         $questions = $attempt->test->sections
+            ->where('is_active', true)
             ->flatMap(fn ($section) => $section->questions)
+            ->where('is_active', true)
             ->keyBy('id');
 
         DB::transaction(function () use ($attempt, $answers, $questions) {

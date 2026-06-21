@@ -1,125 +1,177 @@
 @extends('admin.layouts.layout')
 
-@section('content')
-    <!-- Cropper.js CSS -->
+@push('styles')
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+@endpush
 
-    <!-- Cropper.js JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
-
-    <div class="container mt-4">
-        <h3 class="fw-bold">Завантажити фото</h3>
-
-        @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
-
-        <!-- Контейнер для обрізки -->
-        <div id="crop-container" style="display: none; width: 350px; margin: 0 auto;">
-            <img id="image-to-crop" src="" alt="Фото для обрізки" style="width: 100%; height: auto;">
-        </div>
-
-        <!-- Форма завантаження -->
-        <form action="{{ route('admin.photos.upload') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <div class="mb-3">
-                <input type="file" name="photo" id="photo" class="form-control" required>
-            </div>
-
-            <!-- Кнопка для відправки форми -->
-            <button type="submit" id="submit-button" class="btn btn-success" disabled>Завантажити</button>
-        </form>
-
-        <h3 class="fw-bold mt-4">Галерея</h3>
-        <div class="row">
-            @foreach ($photos as $photo)
-                <div class="col-md-3">
-                    <div class="card shadow-sm">
-                        <img src="{{ asset('storage/' . $photo->path) }}" class="card-img-top" alt="Фото">
-                        <div class="card-body text-center">
-                            <form action="{{ route('admin.photos.delete', $photo->id) }}" method="POST" onsubmit="return confirm('Ви впевнені, що хочете видалити це фото?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm">Видалити</button>
-                            </form>
-                        </div>
+@section('content')
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-images"></i>
+                            Сайт
+                        </span>
+                        <h1 class="admin-title">Фото</h1>
+                        <p class="admin-subtitle">
+                            Завантажуйте фото для галереї на головній сторінці. Перед збереженням фото можна обрізати.
+                        </p>
                     </div>
                 </div>
-            @endforeach
+            </section>
+
+            @if(session('success'))
+                <div class="alert alert-success">{{ session('success') }}</div>
+            @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
+            @endif
+
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Завантажити фото</h2>
+                </div>
+
+                <div class="admin-panel-body">
+                    <form id="photo-upload-form"
+                          action="{{ route('admin.photos.upload') }}"
+                          method="POST"
+                          enctype="multipart/form-data"
+                          class="admin-form">
+                        @csrf
+
+                        <div class="admin-form-section">
+                            <label for="photo" class="admin-form-label">Оберіть фото</label>
+                            <input type="file" name="photo" id="photo" class="form-control" accept="image/*" required>
+                            <div class="form-text">Після вибору фото зʼявиться область обрізки.</div>
+                        </div>
+
+                        <div id="crop-container" class="admin-crop-container d-none">
+                            <img id="image-to-crop" src="" alt="Фото для обрізки">
+                        </div>
+
+                        <div class="admin-form-actions mt-3">
+                            <button type="submit" id="submit-button" class="admin-btn-primary" disabled>
+                                <i class="bi bi-upload"></i>
+                                Завантажити
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Галерея</h2>
+                    <span class="admin-badge admin-badge-muted">
+                        Усього: {{ $photos->count() }}
+                    </span>
+                </div>
+
+                <div class="admin-panel-body">
+                    @if($photos->count())
+                        <div class="admin-photo-grid">
+                            @foreach($photos as $photo)
+                                <article class="admin-photo-card">
+                                    <img src="{{ asset('storage/' . $photo->path) }}" alt="Фото">
+
+                                    <form action="{{ route('admin.photos.delete', $photo) }}"
+                                          method="POST"
+                                          onsubmit="return confirm('Видалити це фото?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                            <i class="bi bi-trash"></i>
+                                            Видалити
+                                        </button>
+                                    </form>
+                                </article>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="admin-empty-state">
+                            <div class="admin-empty-icon">
+                                <i class="bi bi-images"></i>
+                            </div>
+                            <h2 class="h5">Фото поки немає</h2>
+                            <p class="mb-0">Завантажте перше фото, щоб галерея на головній стала живішою.</p>
+                        </div>
+                    @endif
+                </div>
+            </section>
         </div>
     </div>
+@endsection
 
-    <!-- Стилі для контейнера обрізки -->
-    <style>
-        #crop-container {
-            width: 350px; /* Зменшуємо контейнер для обрізки */
-            margin: 0 auto;
-        }
-        #image-to-crop {
-            width: 100%; /* Налаштовуємо, щоб зображення автоматично підлаштовувалося під контейнер */
-            height: auto;
-        }
-    </style>
-
-    <!-- JavaScript для обрізки -->
+@push('scripts')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
     <script>
-        const photoInput = document.getElementById('photo');
-        const cropContainer = document.getElementById('crop-container');
-        const submitButton = document.getElementById('submit-button');
-        const imageElement = document.getElementById('image-to-crop');
-        let cropper; // Змінна для об'єкта Cropper.js
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('photo-upload-form');
+            const photoInput = document.getElementById('photo');
+            const cropContainer = document.getElementById('crop-container');
+            const submitButton = document.getElementById('submit-button');
+            const imageElement = document.getElementById('image-to-crop');
+            let cropper;
 
-        // Крок 1: Вибір фото
-        photoInput.addEventListener('change', function (event) {
-            const file = event.target.files[0];
-            if (file) {
+            photoInput?.addEventListener('change', function (event) {
+                const file = event.target.files[0];
+
+                if (!file) {
+                    cropContainer?.classList.add('d-none');
+                    submitButton.disabled = true;
+                    return;
+                }
+
                 const reader = new FileReader();
+
                 reader.onload = function (e) {
                     imageElement.src = e.target.result;
-                    cropContainer.style.display = 'block';  // Показуємо контейнер для обрізки
-                    submitButton.disabled = false;         // Дозволяємо відправити форму
+                    cropContainer.classList.remove('d-none');
+                    submitButton.disabled = false;
+
                     if (cropper) {
-                        cropper.destroy();  // Якщо попередній Cropper існує, знищуємо його
+                        cropper.destroy();
                     }
+
                     cropper = new Cropper(imageElement, {
-                        aspectRatio: 1, // Пропорції 1:1 для квадратного обрізання
+                        aspectRatio: 1,
                         viewMode: 1,
                         scalable: true,
                         zoomable: true,
-                        autoCropArea: 1, // Обрізаємо все зображення
+                        autoCropArea: 1,
                         responsive: true,
-                        ready: function () {
-                            // Фіксовані розміри для обрізки
-
-                        },
                     });
                 };
-                reader.readAsDataURL(file); // Завантажуємо фото в елемент img
-            }
-        });
 
-        // Крок 2: Обрізати і передати обрізане фото
-        submitButton.addEventListener('click', function (event) {
-            event.preventDefault(); // Запобігаємо стандартній поведінці форми
-
-            const canvas = cropper.getCroppedCanvas({
-                maxWidth: 2000,
-                maxHeight: 2000,
-                imageSmoothingEnabled: true,
-                imageSmoothingQuality: 'high',
+                reader.readAsDataURL(file);
             });
 
-            const fileType = photoInput.files[0].type; // Отримуємо формат файлу
-            const imageFormat = fileType === 'image/png' ? 'image/png' : 'image/jpeg';
-            const croppedImage = canvas.toDataURL('image/webp', 0.95);            // Створюємо прихований інпут для обрізаного фото
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'cropped_image';
-            hiddenInput.value = croppedImage;
-            document.querySelector('form').appendChild(hiddenInput);
+            form?.addEventListener('submit', function (event) {
+                if (!cropper) {
+                    return;
+                }
 
-            // Відправляємо форму
-            document.querySelector('form').submit();
+                event.preventDefault();
+
+                const canvas = cropper.getCroppedCanvas({
+                    maxWidth: 2000,
+                    maxHeight: 2000,
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high',
+                });
+
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'cropped_image';
+                hiddenInput.value = canvas.toDataURL('image/webp', 0.95);
+                form.appendChild(hiddenInput);
+
+                form.submit();
+            });
         });
     </script>
-@endsection
+@endpush

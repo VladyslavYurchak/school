@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Course;
 use App\Models\Language;
 use App\Models\Lesson;
+use App\Models\LessonTest;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -162,6 +163,50 @@ class AdminLessonContentBlocksTest extends TestCase
         Storage::disk('public')->assertMissing('homework_files/task.pdf');
         Storage::disk('public')->assertExists('homework_files/audio.mp3');
         $this->assertSame(['homework_files/audio.mp3'], $lesson->homework_files);
+    }
+
+    public function test_lesson_content_homework_and_test_pages_use_unified_admin_layout(): void
+    {
+        $lesson = $this->createLesson([
+            'content' => '<p>Main task</p>',
+            'homework_text' => '<p>Homework task</p>',
+            'media_files' => ['lesson_media/worksheet.pdf'],
+            'homework_files' => ['homework_files/task.pdf'],
+        ]);
+
+        $test = LessonTest::create([
+            'lesson_id' => $lesson->id,
+            'question' => 'Choose the correct answer',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+
+        $test->options()->createMany([
+            ['option_text' => 'A', 'is_correct' => true],
+            ['option_text' => 'B', 'is_correct' => false],
+            ['option_text' => 'C', 'is_correct' => false],
+        ]);
+
+        foreach ([
+            route('admin.course.lesson.main.create', $lesson),
+            route('admin.course.lesson.main.edit', $lesson),
+            route('admin.course.lesson.homework.create', $lesson),
+            route('admin.course.lesson.homework.edit', $lesson),
+            route('admin.course.lesson.test.create', $lesson),
+            route('admin.course.lesson.test.edit', [$lesson, $test]),
+            route('admin.course.lesson.edit', $lesson),
+        ] as $url) {
+            $response = $this
+                ->get($url)
+                ->assertOk()
+                ->assertSee('class="admin-page', false)
+                ->assertSee('class="admin-hero"', false)
+                ->assertSee('admin-panel', false)
+                ->assertDontSee('<style>', false)
+                ->assertDontSee('style="', false);
+
+            $this->assertSame(1, substr_count($response->getContent(), '<main class="app-main">'));
+        }
     }
 
     private function createLesson(array $attributes = []): Lesson

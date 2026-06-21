@@ -1,8 +1,8 @@
 @extends('admin.layouts.layout')
 
 @section('content')
-    <div class="app-content p-3">
-        <div class="container-fluid">
+    <div class="admin-page">
+        <div class="admin-page-shell">
 
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                 <div>
@@ -11,22 +11,22 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('admin.testing.tests.index') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('admin.testing.tests.index') }}" class="admin-btn-soft">
                         До тестів
                     </a>
 
-                    <a href="{{ route('admin.testing.tests.questions.index', $test) }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('admin.testing.tests.questions.index', $test) }}" class="admin-btn-soft">
                         Усі питання тесту
                     </a>
 
-                    <a href="{{ route('admin.testing.tests.sections.create', $test) }}" class="btn btn-custom">
+                    <a href="{{ route('admin.testing.tests.sections.create', $test) }}" class="admin-btn-primary">
                         Створити секцію
                     </a>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-body table-responsive">
+            <section class="admin-panel">
+                <div class="admin-panel-body">
                     @php
                         $typeLabels = [
                             'grammar' => 'Grammar',
@@ -42,7 +42,8 @@
                         ];
                     @endphp
 
-                    <table class="table align-middle">
+                    <div class="admin-table-wrap">
+                    <table class="table admin-table">
                         <thead>
                         <tr>
                             <th>ID</th>
@@ -104,14 +105,14 @@
                                 <td>{{ $section->is_active ? 'Так' : 'Ні' }}</td>
 
                                 <td class="text-end">
-                                    <div class="d-flex flex-wrap justify-content-end gap-2">
+                                    <div class="admin-row-actions">
                                         <a href="{{ route('admin.testing.sections.edit', $section) }}"
-                                           class="btn btn-sm btn-primary">
+                                           class="admin-btn-warning">
                                             Редагувати
                                         </a>
 
                                         <a href="{{ route('admin.testing.tests.questions.index', $test) }}"
-                                           class="btn btn-sm btn-outline-secondary">
+                                           class="admin-btn-soft">
                                             Питання
                                         </a>
 
@@ -120,7 +121,7 @@
                                               onsubmit="return confirm('Видалити секцію?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <button type="submit" class="admin-btn-danger">
                                                 Видалити
                                             </button>
                                         </form>
@@ -136,10 +137,11 @@
                         @endforelse
                         </tbody>
                     </table>
+                    </div>
 
-                    {{ $sections->links() }}
+                    {{ $sections->onEachSide(2)->links('admin.pagination.pagination') }}
                 </div>
-            </div>
+            </section>
 
         </div>
     </div>

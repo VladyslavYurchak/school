@@ -5,45 +5,28 @@
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="card">
-                    <div class="card-header">{{ __('Verify Your Email Address') }}</div>
+                    <div class="card-header">Підтвердіть email</div>
 
                     <div class="card-body">
-                        {{-- Новий підхід (Laravel 8+/UI): --}}
-                        @if (session('status') === 'verification-link-sent')
-                            <div class="alert alert-success" role="alert">
-                                {{ __('A fresh verification link has been sent to your email address.') }}
-                            </div>
-                        @endif
-
-                        {{-- Старий підхід (Laravel 6/7/UI): --}}
                         @if (session('resent'))
                             <div class="alert alert-success" role="alert">
-                                {{ __('A fresh verification link has been sent to your email address.') }}
+                                Новий лист для підтвердження надіслано на вашу пошту.
                             </div>
                         @endif
 
-                        <p>{{ __('Before proceeding, please check your email for a verification link.') }}</p>
-                        <p>{{ __('If you did not receive the email') }},</p>
+                        <p>Перед продовженням перевірте, будь ласка, вашу пошту.</p>
+                        <p>Якщо лист не прийшов, ви можете надіслати його ще раз.</p>
 
-                        @if (Route::has('verification.send'))
-                            {{-- Новий маршрут --}}
-                            <form class="d-inline" method="POST" action="{{ route('verification.send') }}">
-                                @csrf
-                                <button type="submit" class="btn btn-link p-0 m-0 align-baseline">
-                                    {{ __('click here to request another') }}
-                                </button>
-                            </form>
-                        @elseif (Route::has('verification.resend'))
-                            {{-- Старий маршрут --}}
+                        @if (Route::has('verification.resend'))
                             <form class="d-inline" method="POST" action="{{ route('verification.resend') }}">
                                 @csrf
-                                <button type="submit" class="btn btn-link p-0 m-0 align-baseline">
-                                    {{ __('click here to request another') }}
+                                <button type="submit" class="btn btn-primary">
+                                    Надіслати лист ще раз
                                 </button>
                             </form>
                         @else
                             <div class="text-muted">
-                                {{ __('Resend route not found. Please check Auth::routes([\'verify\' => true]) in routes/web.php.') }}
+                                Повторне надсилання листа зараз недоступне.
                             </div>
                         @endif
                     </div>

@@ -1,81 +1,53 @@
 @extends('admin.layouts.layout')
 
 @section('styles')
-    {{-- DataTables + Bootstrap 5 theme --}}
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <style>
-        /* Відступ зверху сторінки, якщо хедер фіксований */
-        .app-main { padding-top: 1.25rem; }
-
-        /* Уніфікований вигляд карток/заголовків на сторінках викладача */
-        .page-title {
-            margin-bottom: 1rem;
-            font-weight: 600;
-            letter-spacing: .2px;
-        }
-        .page-subtitle {
-            margin-top: -.25rem;
-            color: #6c757d;
-        }
-
-        /* Таблиця */
-        table.dataTable > thead > tr > th {
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6 !important;
-        }
-
-        /* Пагінація DataTables — відступи та клікабельність */
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            margin: 0 .25rem !important;
-            padding: .375rem .65rem !important;
-            border-radius: .375rem !important;
-            border: 1px solid #dee2e6 !important;
-            background: #fff !important;
-            cursor: pointer;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-            background: #0d6efd !important;
-            color: #fff !important;
-            border-color: #0d6efd !important;
-        }
-
-        /* “Показано від …” — дрібніший та спокійний колір */
-        .dataTables_info { color: #6c757d; }
-
-        /* Поле пошуку та селект кількості на сторінці — вирівнювання */
-        .dataTables_length select { border-radius: .375rem; }
-        .dataTables_filter input { border-radius: .375rem; }
-    </style>
 @endsection
 
 @section('content')
-    <main class="app-main">
-        <div class="container-fluid">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="page-title">Мої студенти</h2>
-                    <div class="page-subtitle">Список активних студентів та їхні контакти</div>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-people"></i>
+                            Викладач
+                        </span>
+                        <h1 class="admin-title">Мої студенти</h1>
+                        <p class="admin-subtitle">Активні студенти, закріплені за вашим профілем викладача.</p>
+                    </div>
+
+                    <div class="admin-actions">
+                        <span class="admin-badge admin-badge-muted">Усього: {{ $students->count() }}</span>
+                    </div>
                 </div>
-                {{-- <a href="{{ route('admin.students.create') }}" class="btn btn-primary">+ Додати студента</a> --}}
-            </div>
+            </section>
 
             @if(session('success'))
-                <div class="alert alert-success mt-3">{{ session('success') }}</div>
+                <div class="alert alert-success">{{ session('success') }}</div>
             @endif
 
-            @if($students->isEmpty())
-                <div class="alert alert-info mt-3">
-                    У вас немає активних студентів.
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Список студентів</h2>
                 </div>
-            @else
-                <div class="card shadow-sm mt-3">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover align-middle w-100" id="students-table">
+
+                <div class="admin-panel-body">
+                    @if($students->isEmpty())
+                        <div class="admin-empty-state">
+                            <div class="admin-empty-icon">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            <h3>Студентів поки немає</h3>
+                            <p>Тут зʼявляться активні студенти, яких адміністратор закріпить за вами.</p>
+                        </div>
+                    @else
+                        <div class="admin-table-wrap">
+                            <table class="table admin-table admin-teacher-table w-100" id="students-table">
                                 <thead>
                                 <tr>
-                                    <th>Ім'я</th>
+                                    <th>Імʼя</th>
                                     <th>Прізвище</th>
                                     <th>Email</th>
                                     <th>Телефон</th>
@@ -96,17 +68,15 @@
                                 @endforeach
                                 </tbody>
                             </table>
-                        </div> {{-- /.table-responsive --}}
-                    </div>
+                        </div>
+                    @endif
                 </div>
-            @endif
+            </section>
         </div>
-    </main>
+    </div>
 @endsection
 
 @section('scripts')
-    {{-- jQuery вже є в layout, але якщо треба — залишаю на випадок відсутності:
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> --}}
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script>
@@ -117,11 +87,10 @@
                 },
                 pageLength: 10,
                 lengthMenu: [5, 10, 25, 50],
-                order: [[1, 'asc']], // Прізвище за замовчуванням
-                // Увімкнути BS5 компонування контролів
-                dom: "<'row mb-2'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                order: [[1, 'asc']],
+                dom: "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                     "<'row'<'col-sm-12'tr>>" +
-                    "<'row mt-2'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+                    "<'row mt-3'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
             });
         });
     </script>

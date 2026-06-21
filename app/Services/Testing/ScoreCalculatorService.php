@@ -97,9 +97,11 @@ class ScoreCalculatorService
 
     public function calculateTestMaxScore(Test $test): float
     {
-        $test->loadMissing('questions.options');
+        $test->loadMissing('sections.questions.options');
 
-        return (float) $test->questions
+        return (float) $test->sections
+            ->where('is_active', true)
+            ->flatMap(fn ($section) => $section->questions)
             ->where('is_active', true)
             ->sum(function (Question $question) {
                 return $this->calculateQuestionMaxScore($question);

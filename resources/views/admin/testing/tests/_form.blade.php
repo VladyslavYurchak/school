@@ -147,10 +147,10 @@
 
 </div>
 
-<div class="mt-3 d-flex flex-wrap gap-2">
-    <button type="submit" class="btn btn-custom">Зберегти</button>
+<div class="admin-form-actions mt-3">
+    <button type="submit" class="admin-btn-primary">Зберегти</button>
 
-    <a href="{{ route('admin.testing.tests.index') }}" class="btn btn-outline-secondary">
+    <a href="{{ route('admin.testing.tests.index') }}" class="admin-btn-soft">
         Скасувати
     </a>
 </div>

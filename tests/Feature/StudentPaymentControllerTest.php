@@ -28,6 +28,8 @@ class StudentPaymentControllerTest extends TestCase
         $student = Student::factory()->create([
             'user_id' => $user->id,
             'subscription_id' => $template->id,
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrenko',
         ]);
 
         StudentSubscription::factory()->create([
@@ -68,6 +70,8 @@ class StudentPaymentControllerTest extends TestCase
         $student = Student::factory()->create([
             'user_id' => $user->id,
             'subscription_id' => $template->id,
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrenko',
         ]);
 
         $response = $this
@@ -85,6 +89,7 @@ class StudentPaymentControllerTest extends TestCase
         $this->assertSame('subscription', $payment->type);
         $this->assertSame('monopay', $payment->provider);
         $this->assertEquals(2800, (float) $payment->amount);
+        $this->assertSame('Оплата за навчання за період серпень 2026 - Ivan Petrenko', $payment->description);
         $this->assertSame($template->id, $payment->payload['subscription_template_id']);
         $this->assertSame('2026-08', $payment->payload['subscription_month']);
     }
@@ -185,6 +190,8 @@ class StudentPaymentControllerTest extends TestCase
         $student = Student::factory()->create([
             'user_id' => $user->id,
             'subscription_id' => $template->id,
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrenko',
         ]);
 
         StudentSubscription::factory()->create([
@@ -220,6 +227,8 @@ class StudentPaymentControllerTest extends TestCase
         $student = Student::factory()->create([
             'user_id' => $user->id,
             'subscription_id' => $template->id,
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrenko',
         ]);
 
         $existingPayment = Payment::create([
@@ -231,6 +240,7 @@ class StudentPaymentControllerTest extends TestCase
             'provider' => 'monopay',
             'provider_order_id' => 'existing-order',
             'provider_payment_id' => 'fresh-invoice',
+            'description' => 'Оплата за навчання за період серпень 2026 - Ivan Petrenko',
             'payload' => [
                 'subscription_template_id' => $template->id,
                 'subscription_month' => '2026-08',
@@ -262,6 +272,8 @@ class StudentPaymentControllerTest extends TestCase
         $student = Student::factory()->create([
             'user_id' => $user->id,
             'subscription_id' => $template->id,
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrenko',
         ]);
 
         $oldPayment = Payment::create([
@@ -273,6 +285,7 @@ class StudentPaymentControllerTest extends TestCase
             'provider' => 'monopay',
             'provider_order_id' => 'old-order',
             'provider_payment_id' => 'old-invoice',
+            'description' => 'Оплата за навчання за період серпень 2026 - Ivan Petrenko',
             'payload' => [
                 'subscription_template_id' => $template->id,
                 'subscription_month' => '2026-08',
@@ -308,6 +321,63 @@ class StudentPaymentControllerTest extends TestCase
         $this->assertSame('2026-08', $newPayment->payload['subscription_month']);
     }
 
+    public function test_student_replaces_pending_subscription_payment_when_description_changed(): void
+    {
+        Carbon::setTestNow('2026-08-15 12:00:00');
+
+        $user = User::factory()->create(['role' => 'student']);
+        $template = SubscriptionTemplate::factory()->create([
+            'price' => 2800,
+            'type' => 'individual',
+        ]);
+
+        $student = Student::factory()->create([
+            'user_id' => $user->id,
+            'subscription_id' => $template->id,
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrenko',
+        ]);
+
+        $oldPayment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 2800,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_order_id' => 'old-description-order',
+            'provider_payment_id' => 'old-description-invoice',
+            'description' => 'Оплата за навчання за період August 2026',
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => '2026-08',
+                'mono_invoice' => [
+                    'invoiceId' => 'old-description-invoice',
+                    'pageUrl' => 'https://example.test/old-description-invoice',
+                ],
+            ],
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->post(route('student.payments.store'), [
+                'subscription_month' => '2026-08',
+            ]);
+
+        $newPayment = Payment::query()
+            ->where('id', '!=', $oldPayment->id)
+            ->firstOrFail();
+
+        $response->assertRedirect(route('student.payments.checkout', $newPayment));
+
+        $oldPayment->refresh();
+
+        $this->assertSame('failed', $oldPayment->status);
+        $this->assertTrue($oldPayment->payload['description_changed_locally']);
+        $this->assertSame('pending', $newPayment->status);
+        $this->assertSame('Оплата за навчання за період серпень 2026 - Ivan Petrenko', $newPayment->description);
+    }
+
     public function test_student_reuses_pending_subscription_payment_without_invoice_yet(): void
     {
         $user = User::factory()->create(['role' => 'student']);
@@ -319,6 +389,8 @@ class StudentPaymentControllerTest extends TestCase
         $student = Student::factory()->create([
             'user_id' => $user->id,
             'subscription_id' => $template->id,
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrenko',
         ]);
 
         $existingPayment = Payment::create([
@@ -329,6 +401,7 @@ class StudentPaymentControllerTest extends TestCase
             'type' => 'subscription',
             'provider' => 'monopay',
             'provider_order_id' => 'no-invoice-order',
+            'description' => 'Оплата за навчання за період серпень 2026 - Ivan Petrenko',
             'payload' => [
                 'subscription_template_id' => $template->id,
                 'subscription_month' => '2026-08',

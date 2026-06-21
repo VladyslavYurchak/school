@@ -125,6 +125,7 @@ class StudentPaymentController extends Controller
         $template = $student->subscriptionTemplate;
         $startDate = Carbon::createFromFormat('Y-m', $data['subscription_month'])->startOfMonth();
         $endDate = (clone $startDate)->endOfMonth();
+        $paymentDescription = $this->subscriptionPaymentDescription($startDate, $student);
 
         $hasActiveSubscription = StudentSubscription::query()
             ->where('student_id', $student->id)
@@ -151,6 +152,18 @@ class StudentPaymentController extends Controller
             ->first();
 
         if ($existingPendingPayment) {
+            if ($existingPendingPayment->description !== $paymentDescription) {
+                $existingPendingPayment->update([
+                    'status' => 'failed',
+                    'payload' => array_merge(
+                        is_array($existingPendingPayment->payload) ? $existingPendingPayment->payload : [],
+                        [
+                            'description_changed_locally' => true,
+                            'description_changed_locally_at' => now()->toISOString(),
+                        ]
+                    ),
+                ]);
+            } else {
             $payload = is_array($existingPendingPayment->payload) ? $existingPendingPayment->payload : [];
             $hasInvoice = $existingPendingPayment->provider_payment_id
                 || !empty($payload['mono_invoice']['invoiceId'])
@@ -170,6 +183,7 @@ class StudentPaymentController extends Controller
                     'expired_locally_at' => now()->toISOString(),
                 ]),
             ]);
+            }
         }
 
         $payment = Payment::create([
@@ -180,7 +194,7 @@ class StudentPaymentController extends Controller
             'type' => 'subscription',
             'provider' => 'monopay',
             'provider_order_id' => (string) Str::uuid(),
-            'description' => 'Оплата абонемента: ' . $template->title,
+            'description' => $paymentDescription,
             'payload' => [
                 'subscription_template_id' => $template->id,
                 'subscription_month' => $data['subscription_month'],
@@ -249,10 +263,41 @@ class StudentPaymentController extends Controller
         for ($month = $start->copy(); $month->lte($end); $month->addMonth()) {
             $months[] = [
                 'value' => $month->format('Y-m'),
-                'label' => $month->translatedFormat('F Y'),
+                'label' => $this->subscriptionPeriodLabel($month),
             ];
         }
 
         return $months;
+    }
+
+    private function subscriptionPeriodLabel(Carbon $month): string
+    {
+        $months = [
+            1 => 'січень',
+            2 => 'лютий',
+            3 => 'березень',
+            4 => 'квітень',
+            5 => 'травень',
+            6 => 'червень',
+            7 => 'липень',
+            8 => 'серпень',
+            9 => 'вересень',
+            10 => 'жовтень',
+            11 => 'листопад',
+            12 => 'грудень',
+        ];
+
+        return $months[(int) $month->month] . ' ' . $month->format('Y');
+    }
+
+    private function subscriptionPaymentDescription(Carbon $month, $student): string
+    {
+        $studentName = trim(($student->first_name ?? '') . ' ' . ($student->last_name ?? ''));
+
+        if ($studentName === '') {
+            $studentName = $student->full_name;
+        }
+
+        return 'Оплата за навчання за період ' . $this->subscriptionPeriodLabel($month) . ' - ' . $studentName;
     }
 }

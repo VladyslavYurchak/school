@@ -112,6 +112,30 @@ class AdminCourseLessonStructureTest extends TestCase
         ]);
     }
 
+    public function test_lesson_creation_rejects_an_empty_correct_test_answer(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+
+        $this->actingAs($admin)
+            ->post(route('admin.course.lesson.store', $course), [
+                'lesson_type' => 'Test',
+                'title' => 'Invalid quiz lesson',
+                'description' => 'Lesson description',
+                'tests' => [[
+                    'question' => 'Choose an answer',
+                    'answers' => ['A', 'B', 'C', ''],
+                    'correct_answer' => 3,
+                ]],
+            ])
+            ->assertSessionHasErrors('tests.0.correct_answer');
+
+        $this->assertDatabaseMissing('lessons', [
+            'course_id' => $course->id,
+            'title' => 'Invalid quiz lesson',
+        ]);
+    }
+
     public function test_admin_can_create_published_paid_course_with_description(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -213,8 +237,67 @@ class AdminCourseLessonStructureTest extends TestCase
             ->assertOk()
             ->assertSee($lesson->title)
             ->assertSee(route('admin.course.lesson.edit', $lesson), false)
-            ->assertSee('Ред. урок')
-            ->assertSee('Ред. дом.завд.');
+            ->assertSee('Редагувати')
+            ->assertSee('Домашнє');
+    }
+
+    public function test_admin_course_and_lesson_pages_use_unified_admin_layout(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+        $lesson = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Unified lesson',
+            'description' => 'Unified description',
+            'content' => 'Lesson content',
+            'lesson_type' => 'Reading',
+            'position' => 1,
+            'is_published' => true,
+        ]);
+
+        foreach ([
+            route('admin.course.create'),
+            route('admin.course.edit', $course),
+            route('admin.course.show', $course),
+            route('admin.course.lesson.create', $course),
+            route('admin.course.lesson.edit', $lesson),
+            route('admin.course.lesson.show', $lesson),
+        ] as $url) {
+            $response = $this
+                ->actingAs($admin)
+                ->get($url)
+                ->assertOk()
+                ->assertSee('class="admin-page"', false)
+                ->assertSee('class="admin-hero"', false)
+                ->assertSee('admin-panel', false);
+
+            $this->assertSame(1, substr_count($response->getContent(), '<main class="app-main">'));
+        }
+    }
+
+    public function test_admin_lesson_show_renders_rich_text_without_visible_html_tags(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+        $lesson = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Rich lesson',
+            'description' => 'Rich description',
+            'content' => '<p>Record yourself counting from 1 to 20.</p>',
+            'homework_text' => '<p>Practice the same numbers at home.</p>',
+            'lesson_type' => 'Reading',
+            'position' => 2,
+            'is_published' => true,
+        ]);
+
+        $this
+            ->actingAs($admin)
+            ->get(route('admin.course.lesson.show', $lesson))
+            ->assertOk()
+            ->assertSee('<p>Record yourself counting from 1 to 20.</p>', false)
+            ->assertSee('<p>Practice the same numbers at home.</p>', false)
+            ->assertDontSee('&lt;p&gt;Record yourself counting from 1 to 20.&lt;/p&gt;', false)
+            ->assertDontSee('&lt;p&gt;Practice the same numbers at home.&lt;/p&gt;', false);
     }
 
     public function test_admin_can_update_lesson_price_position_and_publish_status(): void
@@ -287,6 +370,28 @@ class AdminCourseLessonStructureTest extends TestCase
         $this
             ->get(route('courses.lessons.show', [$course, $draftLesson]))
             ->assertNotFound();
+    }
+
+    public function test_lesson_order_rejects_lessons_from_another_course(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+        $otherCourse = $this->createCourse(['title' => 'Other course']);
+        $foreignLesson = Lesson::create([
+            'course_id' => $otherCourse->id,
+            'title' => 'Foreign lesson',
+            'description' => 'Must not move',
+            'lesson_type' => 'Reading',
+            'position' => 9,
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.course.lesson.updateOrder', $course), [
+                'lessons' => [['id' => $foreignLesson->id, 'position' => 1]],
+            ])
+            ->assertUnprocessable();
+
+        $this->assertSame(9, $foreignLesson->fresh()->position);
     }
 
     private function createCourse(array $attributes = []): Course

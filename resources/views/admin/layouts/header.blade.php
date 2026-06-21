@@ -10,7 +10,7 @@
             </a>
 
             <div class="header-brand d-none d-sm-flex flex-column">
-                <span class="header-title">Admin Panel</span>
+                <span class="header-title">Панель керування</span>
                 <span class="header-subtitle">Korporatsiia Mov</span>
             </div>
         </div>

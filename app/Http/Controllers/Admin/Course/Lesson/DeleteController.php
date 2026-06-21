@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Course\Lesson;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lesson;
+use Illuminate\Support\Facades\Storage;
 
 class DeleteController extends Controller
 {
@@ -11,6 +12,12 @@ class DeleteController extends Controller
     {
         $lesson = Lesson::findOrFail($lessonId);
         $courseId = $lesson->course_id;
+
+        $lesson->contentBlocks()
+            ->whereNotNull('media_path')
+            ->pluck('media_path')
+            ->each(fn (string $path) => Storage::disk('public')->delete($path));
+
         $lesson->delete();
 
         // Перенумерація уроків після видалення

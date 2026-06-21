@@ -1,112 +1,96 @@
 @extends('admin.layouts.layout')
+
 @section('content')
-    <main class="app-main">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light border-bottom d-flex align-items-center">
-                <h3 class="mb-0 text-dark">Домашня частина уроку: {{ $lesson->title }}</h3>
-                <a href="{{ route('admin.course.show', $lesson->course_id) }}" class="btn btn-outline-dark btn-sm ms-auto">
-                    ← Назад
-                </a>
-            </div>
-
-            <div class="card-body">
-                <form action="{{ route('admin.course.lesson.homework.store', $lesson->id) }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-
-                    <!-- Текст -->
-                    <div class="mb-4">
-                        <label for="homework_text" class="form-label fw-semibold">Текст домашнього завдання</label>
-                        <textarea
-                            name="homework_text"
-                            id="homework_editor"
-                            class="form-control"
-                        >{{ old('homework_text') }}</textarea>
+    <div class="admin-page">
+        <div class="admin-page-shell">
+            <section class="admin-hero">
+                <div class="admin-hero-content">
+                    <div>
+                        <span class="admin-eyebrow">
+                            <i class="bi bi-house-check"></i>
+                            Домашнє завдання
+                        </span>
+                        <h1 class="admin-title">{{ $lesson->title }}</h1>
+                        <p class="admin-subtitle">Текст домашнього завдання, файли та відео.</p>
                     </div>
 
-                    <!-- Файли -->
-                    <div class="mb-4">
-                        <label for="homework_files" class="form-label fw-semibold">Додати файли</label>
-                        <input type="file" name="homework_files[]" id="homework_files" class="form-control border-secondary" multiple>
+                    <div class="admin-actions">
+                        <a href="{{ route('admin.course.lesson.edit', $lesson->id) }}" class="admin-btn-soft">
+                            <i class="bi bi-pencil"></i>
+                            Редагувати урок
+                        </a>
+                        <a href="{{ route('admin.course.show', $lesson->course_id) }}" class="admin-btn-soft">
+                            <i class="bi bi-arrow-left"></i>
+                            До курсу
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <form action="{{ route('admin.course.lesson.homework.store', $lesson->id) }}" method="POST" enctype="multipart/form-data" class="admin-panel admin-form">
+                @csrf
+
+                <div class="admin-panel-header">
+                    <h2 class="admin-panel-title">Домашня частина</h2>
+                </div>
+
+                <div class="admin-panel-body">
+                    <div class="admin-form-section">
+                        <label for="homework_text" class="admin-form-label">Текст домашнього завдання</label>
+                        <textarea name="homework_text" id="homework_editor" class="form-control">{{ old('homework_text') }}</textarea>
+                    </div>
+
+                    <div class="admin-form-section">
+                        <label for="homework_files" class="admin-form-label">Додати файли</label>
+                        <input type="file" name="homework_files[]" id="homework_files" class="form-control" multiple>
 
                         @if(!empty($lesson->homework_files))
-                            <p class="mt-3 fw-semibold">Завантажені файли:</p>
-                            <div class="d-flex flex-wrap gap-2">
-                                @foreach(($lesson->homework_files ?? []) as $file)
-                                    <a href="{{ asset('storage/' . $file) }}" target="_blank"
-                                       class="badge bg-light text-dark border px-3 py-2">
-                                        📎 {{ basename($file) }}
-                                    </a>
-                                @endforeach
+                            <div class="admin-content-box mt-3">
+                                <strong>Завантажені файли:</strong>
+                                <ul class="admin-file-list mt-2">
+                                    @foreach(($lesson->homework_files ?? []) as $file)
+                                        <li>
+                                            <a href="{{ asset('storage/' . $file) }}" target="_blank" rel="noopener">
+                                                <i class="bi bi-paperclip"></i>
+                                                {{ basename($file) }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
                             </div>
                         @endif
                     </div>
 
-                    <!-- Відео -->
-                    <div class="mb-4">
-                        <label for="homework_video_url" class="form-label fw-semibold">Посилання на відео</label>
-                        <input type="url" name="homework_video_url" id="homework_video_url"
-                               class="form-control border-secondary"
-                               value="{{ old('homework_video_url', $lesson->homework_video_url) }}">
+                    <div class="admin-form-section">
+                        <label for="homework_video_url" class="admin-form-label">Посилання на відео</label>
+                        <input type="url" name="homework_video_url" id="homework_video_url" class="form-control" value="{{ old('homework_video_url', $lesson->homework_video_url) }}">
                     </div>
 
-                    <!-- Кнопки -->
-                    <div class="d-flex justify-content-end mt-4">
-                        <a href="{{ route('admin.course.show', $lesson->course_id) }}" class="btn btn-outline-secondary me-2">Назад</a>
-                        <button type="submit" class="btn btn-outline-dark">Зберегти</button>
+                    <div class="admin-form-actions">
+                        <a href="{{ route('admin.course.show', $lesson->course_id) }}" class="admin-btn-soft">
+                            <i class="bi bi-x-lg"></i>
+                            Скасувати
+                        </a>
+                        <button type="submit" class="admin-btn-primary">
+                            <i class="bi bi-check2"></i>
+                            Зберегти
+                        </button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
-    </main>
-
-    <style>
-        .form-control, .form-select {
-            border-radius: 6px;
-            box-shadow: none;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #6c757d;
-            box-shadow: 0 0 0 0.1rem rgba(108,117,125,.25);
-        }
-        .btn {
-            border-radius: 6px;
-        }
-    </style>
+    </div>
 
     <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const editorConfig = {
-                toolbar: [
-                    'heading',
-                    '|',
-                    'bold',
-                    'italic',
-                    'link',
-                    'bulletedList',
-                    'numberedList',
-                    'blockQuote',
-                    '|',
-                    'undo',
-                    'redo'
-                ]
+                toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|', 'undo', 'redo']
             };
 
-            if (document.querySelector('#content_editor')) {
-                ClassicEditor
-                    .create(document.querySelector('#content_editor'), editorConfig)
-                    .catch(error => {
-                        console.error(error);
-                    });
-            }
-
-            if (document.querySelector('#homework_editor')) {
-                ClassicEditor
-                    .create(document.querySelector('#homework_editor'), editorConfig)
-                    .catch(error => {
-                        console.error(error);
-                    });
+            const homeworkEditor = document.querySelector('#homework_editor');
+            if (homeworkEditor) {
+                ClassicEditor.create(homeworkEditor, editorConfig).catch(error => console.error(error));
             }
         });
     </script>
