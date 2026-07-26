@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail; // ⬅️ додали
+use Database\Factories\UserFactory; // ⬅️ додали
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable implements MustVerifyEmail // ⬅️ додали implements
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -21,7 +22,7 @@ class User extends Authenticatable implements MustVerifyEmail // ⬅️ дода
         'name',
         'email',
         'password',
-        'role'
+        'role',
     ];
 
     /**
@@ -68,6 +69,7 @@ class User extends Authenticatable implements MustVerifyEmail // ⬅️ дода
     {
         return $this->role === 'student';
     }
+
     public function student()
     {
         return $this->hasOne(Student::class);
@@ -78,6 +80,16 @@ class User extends Authenticatable implements MustVerifyEmail // ⬅️ дода
         return $this->belongsToMany(Course::class, 'user_course')
             ->withPivot('status', 'paid_amount')
             ->withTimestamps();
+    }
+
+    public function vocabularyProgress()
+    {
+        return $this->hasMany(UserVocabularyProgress::class);
+    }
+
+    public function socialAccounts()
+    {
+        return $this->hasMany(SocialAccount::class);
     }
 
     public function teacher()

@@ -87,6 +87,12 @@ class CourseController extends Controller
                 ->where('is_active', true)
                 ->orderBy('position')
                 ->orderBy('id'),
+            'vocabularyItems',
+            'exercises' => fn ($query) => $query
+                ->where('is_active', true)
+                ->with('items')
+                ->orderBy('position')
+                ->orderBy('id'),
         ]);
 
         $lastTestAttempt = null;

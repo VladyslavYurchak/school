@@ -7,15 +7,16 @@ use App\Models\Lesson;
 use App\Models\Payment;
 use App\Models\StudentSubscription;
 use App\Models\SubscriptionTemplate;
+use App\Services\MonoPayPaymentProcessor;
 use App\Services\MonoPayService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class StudentPaymentController extends Controller
 {
-    private const MONOPAY_INVOICE_VALIDITY_SECONDS = 3600;
     private const PAYMENT_MONTH_PAST_LIMIT = 2;
     private const PAYMENT_MONTH_FUTURE_LIMIT = 2;
 
@@ -77,6 +78,14 @@ class StudentPaymentController extends Controller
         abort_if(!$template && !$course && !$lesson, 422, 'Payment item was not found.');
 
         $existingMono = $payload['mono_invoice'] ?? null;
+
+        if ($payment->hasMonoPayInvoice() && !$payment->hasReusableMonoPayInvoice()) {
+            $payment->failExpiredMonoPayInvoice();
+
+            return redirect()
+                ->route('student.dashboard')
+                ->with('error', 'Термін дії рахунку минув. Створіть новий платіж.');
+        }
 
         if (
             $payment->provider_payment_id &&
@@ -163,27 +172,12 @@ class StudentPaymentController extends Controller
                         ]
                     ),
                 ]);
-            } else {
-            $payload = is_array($existingPendingPayment->payload) ? $existingPendingPayment->payload : [];
-            $hasInvoice = $existingPendingPayment->provider_payment_id
-                || !empty($payload['mono_invoice']['invoiceId'])
-                || !empty($payload['mono_invoice']['pageUrl']);
-
-            $invoiceIsFresh = !$hasInvoice
-                || $existingPendingPayment->updated_at->gt(now()->subSeconds(self::MONOPAY_INVOICE_VALIDITY_SECONDS));
-
-            if ($invoiceIsFresh) {
+            } elseif ($existingPendingPayment->hasReusableMonoPayInvoice()) {
                 return redirect()->route('student.payments.checkout', $existingPendingPayment);
+            } else {
+                $existingPendingPayment->failExpiredMonoPayInvoice();
             }
 
-            $existingPendingPayment->update([
-                'status' => 'failed',
-                'payload' => array_merge($payload, [
-                    'expired_locally' => true,
-                    'expired_locally_at' => now()->toISOString(),
-                ]),
-            ]);
-            }
         }
 
         $payment = Payment::create([
@@ -204,11 +198,62 @@ class StudentPaymentController extends Controller
         return redirect()->route('student.payments.checkout', $payment);
     }
 
-    public function result(Request $request): RedirectResponse
+    public function result(
+        Request $request,
+        MonoPayService $monoPay,
+        MonoPayPaymentProcessor $processor
+    ): RedirectResponse
     {
+        $user = $request->user();
+
+        abort_unless($user && $user->isStudent(), 403);
+
+        $student = $user->student;
+        $paymentId = $request->integer('payment');
+        $payment = $paymentId && $student
+            ? Payment::query()
+                ->whereKey($paymentId)
+                ->where('student_id', $student->id)
+                ->first()
+            : null;
+
+        if (!$payment) {
+            return redirect()
+                ->route('student.dashboard')
+                ->with('error', 'Не вдалося визначити платіж.');
+        }
+
+        if (
+            in_array($payment->status, ['pending', 'failed'], true)
+            && $payment->provider_payment_id
+        ) {
+            try {
+                $invoice = $monoPay->getInvoiceStatus($payment->provider_payment_id);
+
+                if (!$processor->invoiceMatchesPayment($payment, $invoice)) {
+                    throw new \RuntimeException('MonoPay invoice does not match the local payment.');
+                }
+
+                $processor->process($payment, $invoice);
+                $payment->refresh();
+            } catch (\Throwable $e) {
+                Log::error('MONOPAY RETURN STATUS CHECK ERROR', [
+                    'payment_id' => $payment->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $message = match ($payment->status) {
+            'paid' => 'Оплату успішно зараховано.',
+            'failed' => 'Оплату не завершено. Спробуйте створити новий платіж.',
+            'refunded' => 'Платіж повернено.',
+            default => 'Платіж ще обробляється. Статус оновиться автоматично.',
+        };
+
         return redirect()
             ->route('student.dashboard')
-            ->with('success', 'Якщо оплата пройшла успішно, вона скоро з’явиться у вашому кабінеті.');
+            ->with($payment->status === 'paid' ? 'success' : 'error', $message);
     }
 
     private function defaultPaymentMonth($student): string

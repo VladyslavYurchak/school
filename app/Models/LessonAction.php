@@ -26,7 +26,7 @@ class LessonAction extends Model
 
     public function lesson()
     {
-        return $this->belongsTo(PlannedLesson::class, 'lesson_id');
+        return $this->belongsTo(PlannedLesson::class, 'lesson_id')->withTrashed();
     }
 
     public function user()

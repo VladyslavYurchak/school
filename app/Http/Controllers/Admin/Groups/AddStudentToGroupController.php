@@ -19,6 +19,10 @@ class AddStudentToGroupController extends Controller
         // 1) Дістаємо студента
         $student = Student::findOrFail($request->student_id);
 
+        if ($group->type === 'pair' && $group->students()->count() >= 2) {
+            return redirect()->back()->with('error', 'У парі може бути не більше двох студентів.');
+        }
+
         // 2) Переконуємось, що у групи валідний тип
         $groupType = $group->type ?? null; // очікуємо 'group' або 'pair'
         if (!in_array($groupType, ['group', 'pair'], true)) {

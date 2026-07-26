@@ -29,6 +29,10 @@
                 </div>
             </section>
 
+            @if(session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
+            @endif
+
             <section class="admin-panel">
                 <div class="admin-panel-header">
                     <h2 class="admin-panel-title">Дані курсу</h2>
@@ -102,17 +106,31 @@
                                                    class="btn btn-sm {{ $lesson->tests()->exists() ? 'btn-outline-secondary' : 'btn-outline-success' }}">
                                                     {{ $lesson->tests()->exists() ? 'Тест' : 'Додати тест' }}
                                                 </a>
+                                                <a href="{{ route('admin.course.lesson.vocabulary.index', $lesson->id) }}"
+                                                   class="btn btn-sm {{ $lesson->vocabulary_items_count > 0 ? 'btn-outline-secondary' : 'btn-outline-success' }}">
+                                                    {{ $lesson->vocabulary_items_count > 0 ? 'Словник (' . $lesson->vocabulary_items_count . ')' : 'Додати слова' }}
+                                                </a>
+                                                <a href="{{ route('admin.course.lesson.exercises.index', $lesson->id) }}"
+                                                   class="btn btn-sm {{ $lesson->exercises_count > 0 ? 'btn-outline-secondary' : 'btn-outline-success' }}">
+                                                    {{ $lesson->exercises_count > 0 ? 'Вправи (' . $lesson->exercises_count . ')' : 'Додати вправу' }}
+                                                </a>
                                                 <a href="{{ $hasHomework ? route('admin.course.lesson.homework.edit', $lesson->id) : route('admin.course.lesson.homework.create', $lesson->id) }}"
                                                    class="btn btn-sm {{ $hasHomework ? 'btn-outline-warning' : 'btn-outline-success' }}">
                                                     {{ $hasHomework ? 'Домашнє' : 'Додати домашнє' }}
                                                 </a>
-                                                <form action="{{ route('admin.course.lesson.delete', $lesson->id) }}" method="POST">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Ви впевнені?')">
-                                                        Видалити
-                                                    </button>
-                                                </form>
+                                                @if($lesson->hasPurchaseHistory())
+                                                    <span class="admin-badge admin-badge-muted" title="Зніміть урок з публікації замість видалення">
+                                                        Є оплати
+                                                    </span>
+                                                @else
+                                                    <form action="{{ route('admin.course.lesson.delete', $lesson->id) }}" method="POST">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Ви впевнені?')">
+                                                            Видалити
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

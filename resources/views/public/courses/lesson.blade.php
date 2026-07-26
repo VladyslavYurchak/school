@@ -135,6 +135,240 @@
                         @endforelse
                     </div>
 
+                    @if($lesson->vocabularyItems->isNotEmpty())
+                        <section class="lesson-system-block lesson-system-block--vocabulary">
+                            <div class="lesson-system-heading">
+                                <span class="lesson-system-icon"><i class="bi bi-translate"></i></span>
+                                <div>
+                                    <div class="lesson-system-kicker">Слова до уроку</div>
+                                    <h2>Словник</h2>
+                                </div>
+                            </div>
+
+                            <div class="lesson-vocabulary-grid">
+                                @foreach($lesson->vocabularyItems as $item)
+                                    <article class="lesson-vocabulary-card">
+                                        <div class="lesson-vocabulary-card-header">
+                                            <div>
+                                                <h3>{{ $item->term }}</h3>
+                                                <div class="lesson-vocabulary-translation">{{ $item->translation }}</div>
+                                            </div>
+
+                                            @if($item->pivot->is_required)
+                                                <span class="lesson-vocabulary-badge">Обов’язково</span>
+                                            @endif
+                                        </div>
+
+                                        @if($item->transcription || $item->part_of_speech)
+                                            <div class="lesson-vocabulary-meta">
+                                                @if($item->transcription)
+                                                    <span>{{ $item->transcription }}</span>
+                                                @endif
+
+                                                @if($item->part_of_speech)
+                                                    <span>{{ $item->part_of_speech }}</span>
+                                                @endif
+                                            </div>
+                                        @endif
+
+                                        @if($item->explanation)
+                                            <p class="lesson-vocabulary-explanation">{{ $item->explanation }}</p>
+                                        @endif
+
+                                        @if($item->example)
+                                            <blockquote class="lesson-vocabulary-example">
+                                                <span>{{ $item->example }}</span>
+                                                @if($item->example_translation)
+                                                    <small>{{ $item->example_translation }}</small>
+                                                @endif
+                                            </blockquote>
+                                        @endif
+
+                                        @if($item->pivot->note)
+                                            <p class="lesson-vocabulary-note">{{ $item->pivot->note }}</p>
+                                        @endif
+                                    </article>
+                                @endforeach
+                            </div>
+                        </section>
+                    @endif
+
+                    @foreach($lesson->exercises as $exercise)
+                        @if($exercise->type === \App\Models\LessonExercise::TYPE_MATCHING)
+                            <section class="lesson-system-block lesson-system-block--exercise"
+                                     data-matching-exercise
+                                     data-exercise-id="{{ $exercise->id }}">
+                                <div class="lesson-system-heading">
+                                    <span class="lesson-system-icon"><i class="bi bi-intersect"></i></span>
+                                    <div>
+                                        <div class="lesson-system-kicker">Інтерактивна вправа</div>
+                                        <h2>{{ $exercise->title }}</h2>
+                                    </div>
+                                </div>
+
+                                @if($exercise->description)
+                                    <p class="lesson-exercise-description">{{ $exercise->description }}</p>
+                                @endif
+
+                                <div class="lesson-matching-status" aria-live="polite">
+                                    <span data-matching-progress>З’єднано: 0 / {{ $exercise->items->count() }}</span>
+                                    <button type="button" class="lesson-matching-reset" data-matching-reset>
+                                        <i class="bi bi-shuffle"></i> Перемішати
+                                    </button>
+                                </div>
+
+                                <div class="lesson-matching-board">
+                                    <div class="lesson-matching-column" data-matching-prompts>
+                                        @foreach($exercise->items as $item)
+                                            <button type="button" class="lesson-matching-option"
+                                                    data-pair-id="{{ $item->id }}">
+                                                {{ $item->prompt }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                    <div class="lesson-matching-column" data-matching-answers>
+                                        @foreach($exercise->items as $item)
+                                            <button type="button" class="lesson-matching-option"
+                                                    data-pair-id="{{ $item->id }}">
+                                                {{ $item->answer }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                <div class="lesson-matching-complete" data-matching-complete hidden>
+                                    <i class="bi bi-check2-circle"></i>
+                                    <strong>Готово! Усі пари з’єднано правильно.</strong>
+                                </div>
+                            </section>
+                        @elseif($exercise->type === \App\Models\LessonExercise::TYPE_FILL_BLANK)
+                            @php($answerMode = data_get($exercise->settings, 'answer_mode', 'typing'))
+                            <section class="lesson-system-block lesson-system-block--fill-blank"
+                                     data-fill-blank-exercise
+                                     data-exercise-id="{{ $exercise->id }}">
+                                <div class="lesson-system-heading">
+                                    <span class="lesson-system-icon"><i class="bi bi-input-cursor-text"></i></span>
+                                    <div>
+                                        <div class="lesson-system-kicker">Інтерактивна вправа</div>
+                                        <h2>{{ $exercise->title }}</h2>
+                                    </div>
+                                </div>
+
+                                @if($exercise->description)
+                                    <p class="lesson-exercise-description">{{ $exercise->description }}</p>
+                                @endif
+
+                                <div class="lesson-fill-blank-list">
+                                    @foreach($exercise->items as $item)
+                                        @php([$beforeBlank, $afterBlank] = explode('___', $item->prompt, 2))
+                                        <div class="lesson-fill-blank-item"
+                                             data-fill-blank-item
+                                             data-answer="{{ $item->answer }}">
+                                            <span class="lesson-fill-blank-number">{{ $loop->iteration }}</span>
+                                            <div class="lesson-fill-blank-sentence">
+                                                <span>{{ $beforeBlank }}</span>
+                                                @if($answerMode === \App\Models\LessonExercise::ANSWER_MODE_CHOICE)
+                                                    <select class="lesson-fill-blank-control" data-fill-blank-control
+                                                            aria-label="{{ $exercise->title }}: відповідь до завдання {{ $loop->iteration }}">
+                                                        <option value="">Оберіть...</option>
+                                                        @foreach($exercise->items as $optionItem)
+                                                            <option value="{{ $optionItem->answer }}">{{ $optionItem->answer }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                @else
+                                                    <input type="text" class="lesson-fill-blank-control"
+                                                           data-fill-blank-control autocomplete="off"
+                                                           aria-label="{{ $exercise->title }}: відповідь до завдання {{ $loop->iteration }}">
+                                                @endif
+                                                <span>{{ $afterBlank }}</span>
+                                            </div>
+                                            <span class="lesson-fill-blank-feedback" data-fill-blank-feedback aria-live="polite"></span>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <div class="lesson-fill-blank-actions">
+                                    <button type="button" class="lesson-submit-button" data-fill-blank-check>
+                                        <i class="bi bi-check2-circle"></i> Перевірити
+                                    </button>
+                                    <button type="button" class="lesson-matching-reset" data-fill-blank-reset>
+                                        <i class="bi bi-arrow-counterclockwise"></i> Спробувати ще раз
+                                    </button>
+                                    <strong class="lesson-fill-blank-result" data-fill-blank-result aria-live="polite"></strong>
+                                </div>
+                            </section>
+                        @elseif($exercise->type === \App\Models\LessonExercise::TYPE_WORD_ORDER)
+                            <section class="lesson-system-block lesson-system-block--word-order"
+                                     data-word-order-exercise
+                                     data-exercise-id="{{ $exercise->id }}">
+                                <div class="lesson-system-heading">
+                                    <span class="lesson-system-icon"><i class="bi bi-sort-down"></i></span>
+                                    <div>
+                                        <div class="lesson-system-kicker">Інтерактивна вправа</div>
+                                        <h2>{{ $exercise->title }}</h2>
+                                    </div>
+                                </div>
+
+                                @if($exercise->description)
+                                    <p class="lesson-exercise-description">{{ $exercise->description }}</p>
+                                @endif
+
+                                <div class="lesson-word-order-list">
+                                    @foreach($exercise->items as $item)
+                                        @php($tokens = preg_split('/\s+/u', trim($item->answer), -1, PREG_SPLIT_NO_EMPTY))
+                                        <div class="lesson-word-order-item"
+                                             data-word-order-item
+                                             data-answer="{{ $item->answer }}">
+                                            <div class="lesson-word-order-item-header">
+                                                <span class="lesson-fill-blank-number">{{ $loop->iteration }}</span>
+                                                @if($item->prompt)
+                                                    <p>{{ $item->prompt }}</p>
+                                                @else
+                                                    <p>Складіть правильне речення</p>
+                                                @endif
+                                            </div>
+
+                                            <div class="lesson-word-order-selected"
+                                                 data-word-order-selected
+                                                 aria-label="{{ $exercise->title }}: складене речення {{ $loop->iteration }}">
+                                                <span class="lesson-word-order-placeholder">Натискайте слова нижче</span>
+                                            </div>
+
+                                            <div class="lesson-word-order-bank" data-word-order-bank>
+                                                @foreach($tokens as $tokenIndex => $token)
+                                                    <button type="button" class="lesson-word-order-token"
+                                                            data-token-index="{{ $tokenIndex }}">
+                                                        {{ $token }}
+                                                    </button>
+                                                @endforeach
+                                            </div>
+
+                                            <span class="lesson-word-order-feedback"
+                                                  data-word-order-feedback aria-live="polite"></span>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <div class="lesson-fill-blank-actions">
+                                    <button type="button" class="lesson-submit-button" data-word-order-check>
+                                        <i class="bi bi-check2-circle"></i> Перевірити
+                                    </button>
+                                    <button type="button" class="lesson-matching-reset" data-word-order-reset>
+                                        <i class="bi bi-arrow-counterclockwise"></i> Спробувати ще раз
+                                    </button>
+                                    <strong class="lesson-fill-blank-result" data-word-order-result aria-live="polite"></strong>
+                                </div>
+                            </section>
+                        @elseif(in_array($exercise->type, [
+                            \App\Models\LessonExercise::TYPE_TRANSFORMATION,
+                            \App\Models\LessonExercise::TYPE_DICTATION,
+                        ], true))
+                            @include('public.courses.partials.text-answer-exercise', ['exercise' => $exercise])
+                        @elseif($exercise->type === \App\Models\LessonExercise::TYPE_TRUE_FALSE)
+                            @include('public.courses.partials.true-false-exercise', ['exercise' => $exercise])
+                        @endif
+                    @endforeach
+
                     @if($lesson->tests->count())
                         <section class="lesson-system-block lesson-system-block--tests">
                             <div class="lesson-system-heading">

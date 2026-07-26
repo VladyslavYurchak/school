@@ -1,12 +1,14 @@
 @extends('public.layouts.main')
 
 @section('content')
-    <div class="container py-4">
-        <h1 class="mb-4">Оплата</h1>
-
-        <div class="card">
-            <div class="card-body">
-                <p>Переадресовуємо вас на сторінку оплати...</p>
+    <div class="auth-page">
+        <div class="auth-card text-center">
+            <div class="auth-card-header mb-0">
+                <span class="auth-card-icon">
+                    <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                </span>
+                <h1 class="auth-card-title">Переходимо до оплати</h1>
+                <p class="auth-card-text">Зараз відкриється захищена сторінка MonoPay. Не закривайте це вікно.</p>
             </div>
         </div>
     </div>

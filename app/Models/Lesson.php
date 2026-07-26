@@ -42,12 +42,31 @@ class Lesson extends Model
 
     public function tests()
     {
-        return $this->hasMany(\App\Models\LessonTest::class);
+        return $this->hasMany(\App\Models\LessonTest::class)->orderBy('position')->orderBy('id');
     }
 
     public function contentBlocks()
     {
         return $this->hasMany(LessonContentBlock::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function vocabularyItems()
+    {
+        return $this->belongsToMany(VocabularyItem::class, 'lesson_vocabulary_items')
+            ->withPivot(['is_required', 'note', 'position'])
+            ->withTimestamps()
+            ->orderByPivot('position')
+            ->orderBy('vocabulary_items.id');
+    }
+
+    public function vocabularyLinks()
+    {
+        return $this->hasMany(LessonVocabularyItem::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function exercises()
+    {
+        return $this->hasMany(LessonExercise::class)->orderBy('position')->orderBy('id');
     }
 
     public function users()
@@ -92,6 +111,16 @@ class Lesson extends Model
             ->exists();
     }
 
+    public function hasPurchaseHistory(): bool
+    {
+        return $this->users()
+            ->whereIn('user_lesson.status', ['paid', 'refunded'])
+            ->exists()
+            || Payment::query()
+                ->whereIn('status', ['pending', 'paid', 'refunded'])
+                ->where('payload->lesson_id', $this->id)
+                ->exists();
+    }
 
 
 }

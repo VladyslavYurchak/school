@@ -31,7 +31,7 @@ class MonoPayService
                 'destination' => $payment->description,
                 'comment' => $payment->description,
             ],
-            'redirectUrl' => route('student.payments.result'),
+            'redirectUrl' => route('student.payments.result', ['payment' => $payment->id]),
             'webHookUrl' => config('services.monopay.webhook_url') ?: route('monopay.webhook'),
             'validity' => 3600,
             'paymentType' => 'debit',

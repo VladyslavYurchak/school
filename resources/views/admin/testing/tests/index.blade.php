@@ -40,6 +40,7 @@
                                     <th>Мова</th>
                                     <th>Макс. бал</th>
                                     <th>Активний</th>
+                                    <th>На сайті</th>
                                     <th class="text-end">Дії</th>
                                 </tr>
                                 </thead>
@@ -52,6 +53,13 @@
                                         <td>{{ $test->max_score }}</td>
                                         <td>
                                             @if($test->is_active)
+                                                <span class="admin-badge admin-badge-free">Так</span>
+                                            @else
+                                                <span class="admin-badge admin-badge-muted">Ні</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($test->is_public)
                                                 <span class="admin-badge admin-badge-free">Так</span>
                                             @else
                                                 <span class="admin-badge admin-badge-muted">Ні</span>

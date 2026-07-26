@@ -27,7 +27,6 @@
                 <i class="bi bi-box-arrow-right"></i>
                 <span class="d-none d-lg-inline">Вийти з кабінету адміністратора</span>
                 <span class="d-none d-md-inline d-lg-none">Вийти</span>
-                <span class="d-inline d-md-none">Вийти</span>
             </a>
         </div>
     </div>

@@ -2,7 +2,7 @@
     <div id="attendanceTableWrapper">
         @if($students->count() > 0)
             <div class="table-responsive shadow rounded">
-                <table class="table table-bordered table-striped align-middle">
+                <table class="table table-bordered table-striped align-middle admin-data-table admin-data-table-attendance">
                     <thead>
                     <tr>
                         <th>Ім'я</th>
@@ -19,16 +19,19 @@
                         @php
                             $sid = $student->id;
                             $studentFullName = $student->full_name ?? ($student->first_name . ' ' . $student->last_name);
+                            $monthlySubscription = $monthlySubscriptions->get($sid);
                         @endphp
                         <tr>
                             <td>{{ $student->first_name }}</td>
                             <td>{{ $student->last_name }}</td>
-                            <td>{{ $student->teacher?->full_name ?? '—' }}</td>
+                            <td>{{ $monthlySubscription?->teacher?->full_name ?? $student->teacher?->full_name ?? '—' }}</td>
                             <td>
-                                @if($student->subscriptionTemplate)
-                                    {{ $student->subscriptionTemplate->title }}
-                                    ({{ $student->subscriptionTemplate->lessons_per_week }} р/т)
-                                    ({{ number_format($student->subscriptionTemplate->price, 2, ',', ' ') }} грн)
+                                @if($monthlySubscription)
+                                    {{ $monthlySubscription->subscription_title ?? $monthlySubscription->subscriptionTemplate?->title ?? 'Абонемент' }}
+                                    @if($monthlySubscription->subscription_lessons_per_week ?? $monthlySubscription->subscriptionTemplate?->lessons_per_week)
+                                        ({{ $monthlySubscription->subscription_lessons_per_week ?? $monthlySubscription->subscriptionTemplate?->lessons_per_week }} р/т)
+                                    @endif
+                                    ({{ number_format($monthlySubscription->price, 2, ',', ' ') }} грн)
                                 @else
                                     —
                                 @endif
@@ -38,7 +41,8 @@
                             <td>
                                 <button class="btn btn-link p-0 student-calendar-btn"
                                         data-student-id="{{ $sid }}"
-                                        data-student-name="{{ $studentFullName }}">
+                                        data-student-name="{{ $studentFullName }}"
+                                        data-calendar-date="{{ sprintf('%04d-%02d-01', $selectedYear, $selectedMonth) }}">
                                     КАЛЕНДАР
                                 </button>
                             </td>
@@ -47,14 +51,6 @@
                     </tbody>
                 </table>
 
-                <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const form = document.getElementById('attendanceFilterForm');
-                        form.querySelectorAll('select').forEach(select => {
-                            select.addEventListener('change', () => form.submit());
-                        });
-                    });
-                </script>
             </div>
         @else
             <div class="alert alert-info">Студенти не знайдені.</div>

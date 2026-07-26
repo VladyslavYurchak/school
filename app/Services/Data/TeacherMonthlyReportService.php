@@ -4,13 +4,27 @@ declare(strict_types=1);
 
 namespace App\Services\Data;
 
+use App\Enums\LessonLogStatus;
 use App\Models\Teacher;
 
 class TeacherMonthlyReportService
 {
     public function build(int $year, int $month): array
     {
-        $teachers = Teacher::query()->orderBy('id')->get();
+        $teachers = Teacher::query()
+            ->where(function ($query) use ($year, $month) {
+                $query->where('is_active', true)
+                    ->orWhereHas('lessonLogs', function ($logs) use ($year, $month) {
+                        $logs->whereYear('date', $year)
+                            ->whereMonth('date', $month)
+                            ->whereIn('status', [
+                                LessonLogStatus::Completed->value,
+                                LessonLogStatus::Charged->value,
+                            ]);
+                    });
+            })
+            ->orderBy('id')
+            ->get();
 
         $rows = [];
         $totals = [

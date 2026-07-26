@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ContentBlockController extends Controller
@@ -96,6 +97,18 @@ class ContentBlockController extends Controller
                 Rule::exists('lesson_content_blocks', 'id')->where('lesson_id', $lesson->id),
             ],
         ]);
+
+        $currentBlockIds = $lesson->contentBlocks()->pluck('id')->all();
+        $submittedBlockIds = array_map('intval', $data['blocks']);
+
+        sort($currentBlockIds);
+        sort($submittedBlockIds);
+
+        if ($currentBlockIds !== $submittedBlockIds) {
+            throw ValidationException::withMessages([
+                'blocks' => 'The submitted block order must include every block from this lesson.',
+            ]);
+        }
 
         foreach ($data['blocks'] as $index => $blockId) {
             LessonContentBlock::query()

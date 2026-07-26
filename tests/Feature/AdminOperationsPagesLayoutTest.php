@@ -94,6 +94,27 @@ class AdminOperationsPagesLayoutTest extends TestCase
             ->assertSee('calendar.refetchEvents()', false);
     }
 
+    public function test_teachers_page_lists_more_than_ten_teachers_without_double_pagination(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        for ($i = 1; $i <= 12; $i++) {
+            Teacher::factory()->create([
+                'first_name' => 'Teacher',
+                'last_name' => sprintf('Number %02d', $i),
+            ]);
+        }
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.teachers.index'))
+            ->assertOk()
+            ->assertSee('Усього: 12')
+            ->assertSee('Number 01')
+            ->assertSee('Number 12');
+
+        $this->assertSame(12, substr_count($response->getContent(), '<tr>') - 1);
+    }
+
     public function test_admin_testing_inner_pages_use_unified_layout(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -92,6 +92,36 @@
                                 </div>
                             @endfor
                         </div>
+
+                        <div id="subscriptionActions{{ $student->id }}" class="alert alert-light border mt-3 d-none">
+                            <div class="fw-semibold mb-2" id="subscriptionActionsTitle{{ $student->id }}"></div>
+                            <p class="small text-muted mb-3">
+                                Перенесення зберігає той самий платіж. Скасування використовуйте лише після ручного повернення коштів.
+                            </p>
+
+                            <div class="d-flex flex-wrap align-items-end gap-2">
+                                <div>
+                                    <label for="subscriptionMoveTarget{{ $student->id }}" class="form-label small fw-semibold mb-1">
+                                        Перенести на місяць
+                                    </label>
+                                    <input
+                                        type="month"
+                                        id="subscriptionMoveTarget{{ $student->id }}"
+                                        class="form-control"
+                                    >
+                                </div>
+
+                                <button type="button" class="btn btn-outline-primary" onclick="moveSubscription('{{ $student->id }}')">
+                                    <i class="bi bi-calendar2-week"></i>
+                                    Перенести
+                                </button>
+
+                                <button type="button" class="btn btn-outline-danger" onclick="cancelPayment('{{ $student->id }}')">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                    Повернення виконано вручну
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Поразова оплата --}}

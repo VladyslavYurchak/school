@@ -10,11 +10,29 @@ class DeleteController extends Controller
 {
     public function __invoke(Course $course)
     {
-        $course->lessons()
-            ->with('contentBlocks:id,lesson_id,media_path')
-            ->get()
+        if ($course->hasPurchaseHistory()) {
+            return redirect()
+                ->route('admin.course.index')
+                ->with('error', 'Курс має історію оплат і не може бути видалений. Зніміть його з публікації.');
+        }
+
+        $lessons = $course->lessons()
+            ->with([
+                'contentBlocks:id,lesson_id,media_path',
+                'exercises.items:id,lesson_exercise_id,audio_path',
+            ])
+            ->get();
+
+        $lessons
             ->flatMap->contentBlocks
             ->pluck('media_path')
+            ->filter()
+            ->each(fn (string $path) => Storage::disk('public')->delete($path));
+
+        $lessons
+            ->flatMap->exercises
+            ->flatMap->items
+            ->pluck('audio_path')
             ->filter()
             ->each(fn (string $path) => Storage::disk('public')->delete($path));
 

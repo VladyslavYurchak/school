@@ -15,4 +15,9 @@ class Language extends \Illuminate\Database\Eloquent\Model
     {
         return $this->hasMany(Course::class);
     }
+
+    public function vocabularyItems()
+    {
+        return $this->hasMany(VocabularyItem::class);
+    }
 }

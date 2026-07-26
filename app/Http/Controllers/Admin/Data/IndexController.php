@@ -8,21 +8,38 @@ use App\Models\Payment;
 use App\Models\Student;
 use App\Models\StudentSubscription;
 use Carbon\Carbon;
-use App\Services\Data\TeacherMonthlyReportService; // ✅ додаємо
+use App\Services\Data\TeacherMonthlyReportService;
 use Illuminate\Http\Request;
 
 class IndexController extends Controller
 {
     public function __invoke(Request $request, TeacherMonthlyReportService $svc)
     {
-        $selectedMonth = (int) ($request->input('month') ?? now()->month);
-        $selectedYear  = (int) ($request->input('year')  ?? now()->year);
+        $validated = $request->validate([
+            'month' => ['nullable', 'integer', 'between:1,12'],
+            'year' => ['nullable', 'integer', 'between:2022,' . (now()->year + 1)],
+        ]);
+
+        $selectedMonth = (int) ($validated['month'] ?? now()->month);
+        $selectedYear = (int) ($validated['year'] ?? now()->year);
 
         $monthStart = Carbon::create($selectedYear, $selectedMonth, 1)->startOfMonth()->toDateString();
         $monthEnd   = Carbon::create($selectedYear, $selectedMonth, 1)->endOfMonth()->toDateString();
 
         // === Студенти для attendance ===
-        $students = Student::with(['teacher', 'subscriptionTemplate'])->get();
+        $students = Student::query()
+            ->with('teacher')
+            ->where(function ($query) use ($selectedYear, $selectedMonth) {
+                $query->where('is_active', true)
+                    ->orWhereHas('lessonLogs', function ($logs) use ($selectedYear, $selectedMonth) {
+                        $logs->whereYear('date', $selectedYear)
+                            ->whereMonth('date', $selectedMonth)
+                            ->whereIn('status', ['completed', 'charged']);
+                    });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
 
         $lessonLogs = LessonLog::whereIn('student_id', $students->pluck('id'))
             ->whereIn('status', ['completed', 'charged'])
@@ -39,32 +56,21 @@ class IndexController extends Controller
             }
         }
 
-        $singlePaymentsCount = [];
-        foreach ($students as $student) {
-            $singlePaymentsCount[$student->id] = StudentSubscription::where('student_id', $student->id)
-                ->whereNull('subscription_template_id')
-                ->count();
-        }
-
-        // Пробні за місяць по студенту
-        $trialCountsByStudent = [];
-        $trialCostsByStudent  = [];
-        LessonLog::query()
-            ->whereBetween('date', [$monthStart, $monthEnd])
-            ->whereIn('status', ['completed', 'charged'])
-            ->where('lesson_type', 'trial')
+        $monthlySubscriptions = StudentSubscription::query()
+            ->with(['subscriptionTemplate', 'teacher'])
+            ->whereIn('student_id', $students->pluck('id'))
+            ->where('type', 'subscription')
+            ->where('status', 'active')
+            ->whereYear('start_date', $selectedYear)
+            ->whereMonth('start_date', $selectedMonth)
+            ->orderByDesc('id')
             ->get()
-            ->groupBy('student_id')
-            ->each(function ($logs, $sid) use (&$trialCountsByStudent, &$trialCostsByStudent) {
-                $trialCountsByStudent[$sid] = $logs->count();
-                $trialCostsByStudent[$sid]  = (float) $logs->sum('teacher_payout_amount');
-            });
+            ->keyBy('student_id');
 
-        // ✅ отримуємо готове зведення з сервіс
         $report = $svc->build($selectedYear, $selectedMonth);
 
         $schoolPayments = StudentSubscription::query()
-            ->with(['student.teacher', 'subscriptionTemplate', 'payment'])
+            ->with(['student', 'teacher', 'subscriptionTemplate', 'payment'])
             ->where('status', 'active')
             ->whereYear('start_date', $selectedYear)
             ->whereMonth('start_date', $selectedMonth)
@@ -89,12 +95,9 @@ class IndexController extends Controller
 
         return view('admin.data.index', [
             'students'              => $students,
-            'singlePaymentsCount'   => $singlePaymentsCount,
             'totalLessonsCount'     => $totalLessonsCount,
             'monthLessonsCount'     => $monthLessonsCount,
-            'trialCountsByStudent'  => $trialCountsByStudent,
-            'trialCostsByStudent'   => $trialCostsByStudent,
-            'teachers'      => collect(array_column($report['rows'], 'teacher')),
+            'monthlySubscriptions'  => $monthlySubscriptions,
             'selectedMonth'         => $selectedMonth,
             'selectedYear'          => $selectedYear,
             'reports'       => $report['rows'],

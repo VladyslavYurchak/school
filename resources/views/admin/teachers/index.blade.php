@@ -61,7 +61,7 @@
                                     <td>{{ $teacher->last_name }}</td>
                                     <td>{{ $teacher->first_name }}</td>
                                     <td>{{ $teacher->phone ?? '-' }}</td>
-                                    <td>{{ $teacher->user->email ?? $teacher->email ?? '-' }}</td>
+                                    <td>{{ $teacher->user?->email ?? $teacher->email ?? '-' }}</td>
                                     <td>{{ $teacher->lesson_price ? number_format($teacher->lesson_price, 2) . ' грн' : '-' }}</td>
                                     <td>{{ $teacher->group_lesson_price ? number_format($teacher->group_lesson_price, 2) . ' грн' : '-' }}</td>
                                     <td>{{ $teacher->pair_lesson_price ? number_format($teacher->pair_lesson_price, 2) . ' грн' : '-' }}</td>

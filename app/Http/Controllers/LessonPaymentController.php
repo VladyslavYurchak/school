@@ -54,7 +54,11 @@ class LessonPaymentController extends Controller
             ->first();
 
         if ($existingPayment) {
-            return redirect()->route('student.payments.checkout', $existingPayment);
+            if ($existingPayment->hasReusableMonoPayInvoice()) {
+                return redirect()->route('student.payments.checkout', $existingPayment);
+            }
+
+            $existingPayment->failExpiredMonoPayInvoice();
         }
 
         $payment = Payment::create([

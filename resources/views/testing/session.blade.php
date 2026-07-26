@@ -1,62 +1,70 @@
 @extends('public.layouts.main')
 
 @section('content')
-    <div class="container py-4">
+    <div class="container testing-page">
+        <div class="testing-shell">
+            <header class="testing-heading">
+                <div class="testing-kicker">Безкоштовне визначення рівня</div>
+                <h1>Тестування з іноземної мови</h1>
+                <div class="testing-step">Частина {{ $step }} з {{ $totalSteps }}</div>
+            </header>
 
-        <div class="text-center mb-4">
-            <h1>Тестування на визначення рівня іноземної мови</h1>
-            <p class="text-muted mb-1">
-                Частина {{ $step }} з {{ $totalSteps }}
-            </p>
-        </div>
-
-        @if(!empty($timeLimitMinutes))
-            <div class="alert alert-warning d-flex justify-content-between align-items-center mb-4">
-                <span>Час на тестування:</span>
-                <strong id="test-timer">--:--</strong>
-            </div>
-        @endif
-
-        <div class="mb-4">
-            <div class="progress" style="height: 10px;">
-                <div class="progress-bar" role="progressbar"
-                     style="width: {{ ($step / $totalSteps) * 100 }}%;"
-                     aria-valuenow="{{ ($step / $totalSteps) * 100 }}"
-                     aria-valuemin="0" aria-valuemax="100">
-                </div>
-            </div>
-        </div>
-
-        <form action="{{ route('testing.session.submit', $session) }}" method="POST">
-            @csrf
-            <input type="hidden" name="step" value="{{ $step }}">
-
-            <div class="card mb-4">
-                <div class="card-header">
-                    <strong>{{ $currentAttempt->test->title }}</strong>
+            <div class="testing-meta">
+                <div class="testing-progress"
+                     role="progressbar"
+                     aria-label="Прогрес тестування"
+                     aria-valuenow="{{ $step }}"
+                     aria-valuemin="1"
+                     aria-valuemax="{{ $totalSteps }}">
+                    <div class="testing-progress-bar" style="width: {{ ($step / $totalSteps) * 100 }}%"></div>
                 </div>
 
-                <div class="card-body">
+                @if(!empty($timeLimitMinutes))
+                    <div class="testing-timer">
+                        <span>Залишилось часу</span>
+                        <strong id="test-timer">--:--</strong>
+                    </div>
+                @endif
+            </div>
 
-                    <div class="mb-4">
-                        <h4>{{ $currentSection->title }}</h4>
+            @if($errors->any())
+                <div class="alert alert-danger" role="alert">
+                    Будь ласка, дайте відповідь на всі обов’язкові питання.
+                </div>
+            @endif
+
+            <form action="{{ route('testing.session.submit', $session) }}" method="POST" id="testing-form">
+                @csrf
+                <input type="hidden" name="step" value="{{ $step }}">
+
+                <article class="testing-card">
+                    <div class="testing-card-header">
+                        {{ $currentAttempt->test->title }}
+                    </div>
+
+                    <div class="testing-card-body">
+                        @if($step === 1 && $currentAttempt->test->intro_text)
+                            <div class="testing-intro">{{ $currentAttempt->test->intro_text }}</div>
+                        @endif
+
+                        <h2 class="testing-section-title">{{ $currentSection->title }}</h2>
 
                         @if($currentSection->instruction_text)
-                            <div class="text-muted mb-3" style="white-space: pre-line;">{{ $currentSection->instruction_text }}</div>
+                            <div class="testing-instructions">{{ $currentSection->instruction_text }}</div>
                         @endif
 
                         @if($currentSection->description)
-                            <div class="testing-section-text mb-4">
+                            <div class="testing-section-text">
                                 {{ $currentSection->description }}
                             </div>
                         @endif
 
                         @if($currentSection->media_type === 'youtube' && $currentSection->media_url)
-                            <div class="ratio ratio-16x9 mb-3">
+                            <div class="ratio ratio-16x9 mb-4">
                                 <iframe
                                     src="{{ str_contains($currentSection->media_url, 'watch?v=')
-                    ? str_replace('watch?v=', 'embed/', $currentSection->media_url)
-                    : $currentSection->media_url }}"
+                                        ? str_replace('watch?v=', 'embed/', $currentSection->media_url)
+                                        : $currentSection->media_url }}"
                                     title="{{ $currentSection->media_title ?? $currentSection->title }}"
                                     allowfullscreen>
                                 </iframe>
@@ -70,35 +78,37 @@
                                     : asset('storage/' . $currentSection->media_url);
                             @endphp
 
-                            <div class="alert alert-light border mb-3">
+                            <div class="testing-question mb-4">
                                 @if($currentSection->media_title)
                                     <div class="fw-semibold mb-2">{{ $currentSection->media_title }}</div>
                                 @endif
-                                <audio controls class="w-100" src="{{ $audioSrc }}"></audio>
+                                <audio controls preload="metadata" class="w-100" src="{{ $audioSrc }}"></audio>
                             </div>
                         @endif
 
-                        @foreach($currentSection->questions->where('is_active', true) as $question)
-                            <div class="mb-4 p-3 border rounded">
-                                <div class="fw-semibold mb-2">
-                                    {{ $question->question_text }}
-                                </div>
+                        @foreach($displayQuestions as $question)
+                            <fieldset class="testing-question">
+                                <legend class="testing-question-title">
+                                    {{ $loop->iteration }}. {{ $question->question_text }}
+                                    @if($question->is_required)
+                                        <span class="testing-required" aria-label="Обов’язкове питання">*</span>
+                                    @endif
+                                </legend>
 
                                 @if($question->helper_text)
-                                    <div class="text-muted small mb-2">
-                                        {{ $question->helper_text }}
-                                    </div>
+                                    <div class="text-muted small mb-3">{{ $question->helper_text }}</div>
                                 @endif
 
-                                @if($question->type === 'single_choice' || $question->type === 'true_false')
+                                @if(in_array($question->type, ['single_choice', 'true_false'], true))
                                     @foreach($question->options as $option)
-                                        <div class="form-check">
+                                        <div class="form-check testing-option">
                                             <input class="form-check-input"
                                                    type="radio"
                                                    name="answers[{{ $question->id }}]"
                                                    value="{{ $option->id }}"
                                                    id="q{{ $question->id }}_{{ $option->id }}"
-                                                   required>
+                                                   @checked((string) old("answers.{$question->id}") === (string) $option->id)
+                                                   @required($question->is_required)>
                                             <label class="form-check-label"
                                                    for="q{{ $question->id }}_{{ $option->id }}">
                                                 {{ $option->option_text }}
@@ -107,12 +117,13 @@
                                     @endforeach
                                 @elseif($question->type === 'multiple_choice')
                                     @foreach($question->options as $option)
-                                        <div class="form-check">
+                                        <div class="form-check testing-option">
                                             <input class="form-check-input"
                                                    type="checkbox"
                                                    name="answers[{{ $question->id }}][]"
                                                    value="{{ $option->id }}"
-                                                   id="q{{ $question->id }}_{{ $option->id }}">
+                                                   id="q{{ $question->id }}_{{ $option->id }}"
+                                                   @checked(in_array((string) $option->id, array_map('strval', old("answers.{$question->id}", [])), true))>
                                             <label class="form-check-label"
                                                    for="q{{ $question->id }}_{{ $option->id }}">
                                                 {{ $option->option_text }}
@@ -123,46 +134,46 @@
                                     <input type="text"
                                            name="answers[{{ $question->id }}]"
                                            class="form-control"
-                                           required>
+                                           value="{{ old("answers.{$question->id}") }}"
+                                           @required($question->is_required)>
                                 @elseif($question->type === 'long_text')
                                     <textarea name="answers[{{ $question->id }}]"
                                               class="form-control"
                                               rows="4"
-                                              required></textarea>
+                                              @required($question->is_required)>{{ old("answers.{$question->id}") }}</textarea>
                                 @endif
-                            </div>
+                            </fieldset>
                         @endforeach
                     </div>
+                </article>
+
+                <div class="testing-actions">
+                    <button type="submit" class="btn-brand testing-submit">
+                        {{ $step < $totalSteps ? 'Продовжити' : 'Завершити тестування' }}
+                        <i class="bi {{ $step < $totalSteps ? 'bi-arrow-right' : 'bi-check-lg' }}"></i>
+                    </button>
                 </div>
-            </div>
-
-            <div class="text-center">
-                <button type="submit" class="btn btn-register">
-                    {{ $step < $totalSteps ? 'Далі' : 'Завершити тестування' }}
-                </button>
-            </div>
-        </form>
-
+            </form>
+        </div>
     </div>
 
     @if(!empty($timeLimitMinutes) && !empty($startedAt))
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 const timerElement = document.getElementById('test-timer');
-                const form = document.querySelector('form');
-
+                const form = document.getElementById('testing-form');
                 const startedAt = {{ $startedAt }} * 1000;
-                const limitMinutes = {{ (int) $timeLimitMinutes }};
-                const deadline = startedAt + (limitMinutes * 60 * 1000);
+                const deadline = startedAt + ({{ (int) $timeLimitMinutes }} * 60 * 1000);
+                let submitted = false;
 
                 function updateTimer() {
-                    const now = Date.now();
-                    const diff = deadline - now;
+                    const diff = deadline - Date.now();
 
                     if (diff <= 0) {
                         timerElement.textContent = '00:00';
 
-                        if (form) {
+                        if (form && !submitted) {
+                            submitted = true;
                             form.submit();
                         }
 
@@ -183,25 +194,4 @@
             });
         </script>
     @endif
-
-    <style>
-        .testing-section-text {
-            background: #ffffff;
-            border: 1px solid #dbe4ef;
-            border-radius: 10px;
-            color: #182230;
-            font-size: 1.05rem;
-            line-height: 1.8;
-            padding: 1.25rem;
-            white-space: pre-line;
-        }
-
-        @media (max-width: 576px) {
-            .testing-section-text {
-                font-size: 1rem;
-                line-height: 1.7;
-                padding: 1rem;
-            }
-        }
-    </style>
 @endsection

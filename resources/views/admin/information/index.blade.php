@@ -10,6 +10,9 @@
         use Illuminate\Support\Str;
 
         $showWeekView = $view === 'week';
+        $dataTableOrder = $showWeekView
+            ? [[0, 'asc'], [1, 'asc']]
+            : [[0, 'asc']];
         $periodTitle = $showWeekView
             ? 'Заняття за тиждень: ' . $startOfWeek->translatedFormat('d.m.Y') . ' - ' . $endOfWeek->translatedFormat('d.m.Y')
             : 'Заняття за день: ' . Carbon::parse($date)->translatedFormat('d.m.Y');
@@ -133,7 +136,7 @@
                                     @endphp
                                     <tr>
                                         @if($showWeekView)
-                                            <td>{{ $formatDate($log->date) }}</td>
+                                            <td data-order="{{ Carbon::parse($log->date)->format('Y-m-d') }}">{{ $formatDate($log->date) }}</td>
                                         @endif
                                         <td>{{ $formatTime($log->time) }}</td>
                                         <td><span class="admin-badge admin-badge-muted">{{ $typeLabel }}</span></td>
@@ -202,7 +205,7 @@
                                     @endphp
                                     <tr>
                                         @if($showWeekView)
-                                            <td>{{ $formatDate($lesson->start_date) }}</td>
+                                            <td data-order="{{ Carbon::parse($lesson->start_date)->format('Y-m-d') }}">{{ $formatDate($lesson->start_date) }}</td>
                                         @endif
                                         <td>{{ $formatTime($lesson->start_date) }}</td>
                                         <td><span class="admin-badge admin-badge-muted">{{ $typeLabel }}</span></td>
@@ -238,7 +241,7 @@
                     language: lang,
                     pageLength: 10,
                     lengthMenu: [5, 10, 25, 50],
-                    order: [[0, 'asc']],
+                    order: @json($dataTableOrder),
                     dom
                 });
             }
@@ -248,7 +251,7 @@
                     language: lang,
                     pageLength: 10,
                     lengthMenu: [5, 10, 25, 50],
-                    order: [[0, 'asc']],
+                    order: @json($dataTableOrder),
                     dom
                 });
             }

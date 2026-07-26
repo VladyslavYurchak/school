@@ -3,10 +3,10 @@ function selectMonth(studentId, month, el) {
     const monthText = new Date(month + '-01').toLocaleString('uk-UA', { year: 'numeric', month: 'long' });
 
     if (isPaid) {
-        if (confirm(`Даний місяць (${monthText}) вже оплачений. Бажаєте скасувати оплату?`)) {
-            cancelPayment(studentId, month);
-        }
+        showSubscriptionActions(studentId, month, monthText);
     } else {
+        hideSubscriptionActions(studentId);
+
         if (confirm(`Оплатити місяць: ${monthText}?`)) {
             const input = document.getElementById('selectedMonthInput' + studentId);
             const form = document.getElementById('paymentForm' + studentId);
@@ -19,7 +19,79 @@ function selectMonth(studentId, month, el) {
     }
 }
 
-function cancelPayment(studentId, month) {
+function showSubscriptionActions(studentId, month, monthText) {
+    const actions = document.getElementById(`subscriptionActions${studentId}`);
+    const title = document.getElementById(`subscriptionActionsTitle${studentId}`);
+    const target = document.getElementById(`subscriptionMoveTarget${studentId}`);
+
+    if (!actions || !title || !target) {
+        return;
+    }
+
+    actions.dataset.sourceMonth = month;
+    title.textContent = `Оплачений місяць: ${monthText}`;
+
+    const nextMonth = new Date(month + '-01');
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    target.value = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}`;
+
+    actions.classList.remove('d-none');
+    actions.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideSubscriptionActions(studentId) {
+    const actions = document.getElementById(`subscriptionActions${studentId}`);
+
+    if (actions) {
+        actions.classList.add('d-none');
+        delete actions.dataset.sourceMonth;
+    }
+}
+
+function moveSubscription(studentId) {
+    const actions = document.getElementById(`subscriptionActions${studentId}`);
+    const target = document.getElementById(`subscriptionMoveTarget${studentId}`);
+    const sourceMonth = actions?.dataset.sourceMonth;
+    const targetMonth = target?.value;
+
+    if (!sourceMonth || !targetMonth) {
+        alert('Виберіть місяць, на який потрібно перенести абонемент.');
+        return;
+    }
+
+    if (!confirm('Перенести абонемент і пов’язаний платіж на вибраний місяць?')) {
+        return;
+    }
+
+    fetch(`/admin/students/${studentId}/subscriptions/${sourceMonth}/move`, {
+        method: 'PUT',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ target_month: targetMonth }),
+    })
+        .then(handlePaymentResponse)
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        })
+        .catch(error => alert(error.message));
+}
+
+function cancelPayment(studentId) {
+    const actions = document.getElementById(`subscriptionActions${studentId}`);
+    const month = actions?.dataset.sourceMonth;
+
+    if (!month) {
+        return;
+    }
+
+    if (!confirm('Підтверджуєте, що кошти вже повернено вручну? Після проведеного або зарахованого заняття скасування буде заборонено.')) {
+        return;
+    }
+
     fetch(`/admin/students/${studentId}/subscriptions/${month}`, {
         method: 'DELETE',
         headers: {
@@ -27,19 +99,22 @@ function cancelPayment(studentId, month) {
             'Accept': 'application/json',
         },
     })
-        .then(response => {
-            if (response.ok) {
-                alert('Оплата успішно скасована.');
-                location.reload();
-            } else {
-                return response.json().then(data => {
-                    throw new Error(data.message || 'Помилка при скасуванні оплати');
-                });
-            }
+        .then(handlePaymentResponse)
+        .then(data => {
+            alert(data.message);
+            location.reload();
         })
-        .catch(error => {
-            alert(error.message);
-        });
+        .catch(error => alert(error.message));
+}
+
+function handlePaymentResponse(response) {
+    return response.json().catch(() => ({})).then(data => {
+        if (!response.ok) {
+            throw new Error(data.message || 'Не вдалося виконати дію з абонементом.');
+        }
+
+        return data;
+    });
 }
 
 function setupPaymentToggle(studentId) {
@@ -148,6 +223,7 @@ document.addEventListener('shown.bs.modal', function (event) {
 
 window.selectMonth = selectMonth;
 window.cancelPayment = cancelPayment;
+window.moveSubscription = moveSubscription;
 window.setupPaymentToggle = setupPaymentToggle;
 window.loadSinglePayments = loadSinglePayments;
 window.submitSinglePayment = submitSinglePayment;

@@ -168,10 +168,8 @@ class Teacher extends Model
     public function getSubscriptionSumByLessonTypes(array $types, int $year, int $month): float
     {
         $query = StudentSubscription::query()
-            // учні саме цього викладача
-            ->whereHas('student', function ($q) {
-                $q->where('teacher_id', $this->id);
-            })
+            // Keep historical revenue with the teacher recorded when the subscription was created.
+            ->where('teacher_id', $this->id)
             // підписки, що стосуються цього місяця
             ->whereYear('start_date', $year)
             ->whereMonth('start_date', $month)
@@ -181,10 +179,7 @@ class Teacher extends Model
 
         if (!empty($types)) {
             $query->where(function ($q) use ($types) {
-                // 1) усе, що має шаблон потрібного типу (individual/group/pair)
-                $q->whereHas('subscriptionTemplate', function ($subQ) use ($types) {
-                    $subQ->whereIn('type', $types); // type з subscription_templates
-                });
+                $q->whereIn('lesson_type', $types);
 
                 // 2) plus: поразові без шаблону рахуємо як individual
                 if (in_array('individual', $types, true)) {

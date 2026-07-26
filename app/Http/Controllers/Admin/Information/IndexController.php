@@ -7,14 +7,20 @@ use App\Models\LessonLog;
 use App\Models\PlannedLesson;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class IndexController extends Controller
 {
     public function __invoke(Request $request)
     {
 
-        $date = $request->input('date', now()->toDateString());
-        $view = $request->input('view', 'day');
+        $validated = $request->validate([
+            'date' => ['nullable', 'date_format:Y-m-d'],
+            'view' => ['nullable', Rule::in(['day', 'week'])],
+        ]);
+
+        $date = $validated['date'] ?? now()->toDateString();
+        $view = $validated['view'] ?? 'day';
 
         if ($view === 'week') {
             $startOfWeek = Carbon::parse($date)->startOfWeek(Carbon::MONDAY);
@@ -22,6 +28,7 @@ class IndexController extends Controller
 
             $logs = LessonLog::with(['student','teacher','group'])
                 ->whereBetween('date', [$startOfWeek, $endOfWeek])
+                ->whereIn('status', ['completed', 'charged'])
                 ->orderBy('date')
                 ->orderBy('time')
                 ->get();
@@ -40,6 +47,7 @@ class IndexController extends Controller
         // день
         $logs = LessonLog::with(['student', 'teacher', 'group'])
             ->whereDate('date', $date)
+            ->whereIn('status', ['completed', 'charged'])
             ->orderBy('time')
             ->get();
 

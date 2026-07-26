@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CoursePaymentController;
@@ -22,6 +23,15 @@ Route::get('/rules', [SchoolRulePageController::class, 'index'])->name('rules.in
 Route::get('/teachers', [TeacherPageController::class, 'index'])->name('teachers.index');
 
 Auth::routes(['verify' => true]);
+
+Route::middleware('guest')->prefix('auth')->group(function () {
+    Route::get('/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('social.redirect');
+    Route::get('/{provider}/callback', [SocialAuthController::class, 'callback'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('social.callback');
+});
 
 Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
 Route::get('/courses/{course}', [CourseController::class, 'show'])->name('courses.show');

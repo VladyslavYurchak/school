@@ -74,6 +74,59 @@ class CourseLessonAccessTest extends TestCase
             ->assertSee($lesson->title);
     }
 
+    public function test_separately_purchased_lesson_does_not_unlock_course_or_sibling_lesson(): void
+    {
+        [$course, $lesson] = $this->createCourseWithLesson(
+            ['price' => 500],
+            ['price' => 200]
+        );
+        $sibling = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Sibling lesson',
+            'description' => 'Sibling',
+            'content' => 'Sibling content',
+            'position' => 2,
+            'price' => 200,
+            'is_published' => true,
+        ]);
+        $user = User::factory()->create(['role' => 'student']);
+        $user->lessons()->attach($lesson->id, [
+            'status' => 'paid',
+            'paid_amount' => 200,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('courses.lessons.show', [$course, $lesson]))
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->get(route('courses.lessons.show', [$course, $sibling]))
+            ->assertRedirect(route('courses.show', $course));
+
+        $this->assertFalse($course->isAvailableFor($user));
+    }
+
+    public function test_refunded_course_and_lesson_do_not_grant_access(): void
+    {
+        [$course, $lesson] = $this->createCourseWithLesson(
+            ['price' => 500],
+            ['price' => 200]
+        );
+        $user = User::factory()->create(['role' => 'student']);
+        $user->courses()->attach($course->id, [
+            'status' => 'refunded',
+            'paid_amount' => 500,
+        ]);
+        $user->lessons()->attach($lesson->id, [
+            'status' => 'refunded',
+            'paid_amount' => 200,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('courses.lessons.show', [$course, $lesson]))
+            ->assertRedirect(route('courses.show', $course));
+    }
+
     private function createCourseWithLesson(array $courseAttributes = [], array $lessonAttributes = []): array
     {
         $language = Language::create(['name' => 'English']);

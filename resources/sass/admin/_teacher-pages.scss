@@ -48,6 +48,8 @@
 
 .admin-calendar-shell {
     min-height: 720px;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 .admin-calendar-shell .fc {

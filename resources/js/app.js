@@ -2,3 +2,8 @@ import './admin/course/lesson/test/test-options';
 import './admin/course/lesson/test/sortable-tests';
 import './admin/data/student-calendar';
 import './admin/students/payment';
+import './public/lesson-matching';
+import './public/lesson-fill-blank';
+import './public/lesson-word-order';
+import './public/lesson-text-answer';
+import './public/lesson-true-false';

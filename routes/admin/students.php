@@ -14,6 +14,8 @@ Route::prefix('admin')->middleware('admin')->group(function () {
             ->name('subscriptions.store');
         Route::delete('/{student}/subscriptions/{month}', \App\Http\Controllers\Admin\Students\Subscription\DestroyController::class)
             ->name('subscriptions.destroyMonth');
+        Route::put('/{student}/subscriptions/{month}/move', \App\Http\Controllers\Admin\Students\Subscription\MoveController::class)
+            ->name('subscriptions.moveMonth');
         Route::get('/{student}/single-payments', \App\Http\Controllers\Admin\Students\Subscription\Single\IndexController::class)
             ->name('subscriptions.single.index');
         Route::delete('/{student}/single-payments/{payment}', \App\Http\Controllers\Admin\Students\Subscription\Single\DestroyController::class)

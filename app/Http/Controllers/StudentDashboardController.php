@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\LessonStatus;
+use App\Models\PlannedLesson;
 use Illuminate\Http\Request;
 
 class StudentDashboardController extends Controller
@@ -23,12 +25,28 @@ class StudentDashboardController extends Controller
 
         abort_if(!$student, 404, 'Студента не знайдено.');
 
+        $upcomingLessons = PlannedLesson::query()
+            ->with(['teacher', 'group'])
+            ->where('status', LessonStatus::Planned->value)
+            ->where('start_date', '>=', now())
+            ->where(function ($query) use ($student) {
+                $query->where('student_id', $student->id);
+
+                if ($student->group_id) {
+                    $query->orWhere('group_id', $student->group_id);
+                }
+            })
+            ->orderBy('start_date')
+            ->limit(20)
+            ->get();
+
         return view('student.dashboard', [
             'student' => $student,
             'teacher' => $student->teacher,
             'subscription' => $student->activeSubscription,
             'payments' => $student->payments,
             'lessonLogs' => $student->lessonLogs,
+            'upcomingLessons' => $upcomingLessons,
             'courses' => $user->courses()->with('language')->wherePivot('status', 'paid')->get(),
             'lessons' => $user->lessons()
                 ->with('course.language')

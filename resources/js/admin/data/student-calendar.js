@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
         button.addEventListener('click', function () {
             const studentId = this.dataset.studentId;
             const studentName = this.dataset.studentName;
+            const calendarDate = this.dataset.calendarDate;
 
             document.getElementById('studentCalendarLabel').textContent = 'Відвідуваність: ' + studentName;
 
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         const calendarEl = document.getElementById('studentCalendar');
                         calendar = new FullCalendar.Calendar(calendarEl, {
                             initialView: 'dayGridMonth',
+                            initialDate: calendarDate,
                             locale: 'uk',
                             height: 500,
                             events: data,
@@ -53,4 +55,3 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
-

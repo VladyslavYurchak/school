@@ -72,6 +72,15 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ route('courses.index') }}">Доступні курси</a></li>
+                            @auth
+                                @if(Auth::user()->isStudent())
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('student.vocabulary.learn') }}">
+                                            Мій словник
+                                        </a>
+                                    </li>
+                                @endif
+                            @endauth
                         </ul>
                     </li>
 
@@ -132,6 +141,14 @@
 </header>
 
 <main class="site-main">
+    @if(session('error'))
+        <div class="container pt-3">
+            <div class="alert alert-danger mb-0" role="alert">
+                {{ session('error') }}
+            </div>
+        </div>
+    @endif
+
     @if(session('trial_request_success'))
         <div class="container pt-3">
             <div class="alert alert-success mb-0">

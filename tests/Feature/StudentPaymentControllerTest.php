@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\Course;
+use App\Models\Language;
 use App\Models\Payment;
 use App\Models\Student;
 use App\Models\StudentSubscription;
 use App\Models\SubscriptionTemplate;
 use App\Models\User;
+use App\Services\MonoPayService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -450,5 +453,187 @@ class StudentPaymentControllerTest extends TestCase
         $this->assertSame($student->id, $payment->student_id);
         $this->assertSame($assignedTemplate->id, $payment->payload['subscription_template_id']);
         $this->assertEquals(2800, (float) $payment->amount);
+    }
+
+    public function test_return_from_monopay_recovers_subscription_when_webhook_was_not_delivered(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+        $template = SubscriptionTemplate::factory()->create([
+            'price' => 2800,
+            'lessons_per_week' => 2,
+            'type' => 'individual',
+        ]);
+        $student = Student::factory()->create([
+            'user_id' => $user->id,
+            'subscription_id' => $template->id,
+        ]);
+        $payment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 2800,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'subscription-invoice',
+            'provider_order_id' => 'subscription-order',
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => '2026-08',
+            ],
+        ]);
+
+        $this->mock(MonoPayService::class, function ($mock) {
+            $mock->shouldReceive('getInvoiceStatus')
+                ->once()
+                ->with('subscription-invoice')
+                ->andReturn([
+                    'invoiceId' => 'subscription-invoice',
+                    'reference' => 'subscription-order',
+                    'status' => 'success',
+                    'amount' => 280000,
+                    'ccy' => 980,
+                ]);
+        });
+
+        $this->actingAs($user)
+            ->get(route('student.payments.result', ['payment' => $payment->id]))
+            ->assertRedirect(route('student.dashboard'))
+            ->assertSessionHas('success', 'Оплату успішно зараховано.');
+
+        $this->assertSame('paid', $payment->fresh()->status);
+        $this->assertDatabaseHas('student_subscriptions', [
+            'student_id' => $student->id,
+            'payment_id' => $payment->id,
+            'subscription_template_id' => $template->id,
+            'status' => 'active',
+        ]);
+    }
+
+    public function test_return_from_monopay_recovers_course_access_when_webhook_was_not_delivered(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+        $student = Student::factory()->create(['user_id' => $user->id]);
+        $language = Language::create(['name' => 'English']);
+        $course = Course::create([
+            'title' => 'Paid course',
+            'description' => 'Course',
+            'language_id' => $language->id,
+            'price' => 900,
+            'is_published' => true,
+        ]);
+        $payment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 900,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'single',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'course-invoice',
+            'provider_order_id' => 'course-order',
+            'payload' => [
+                'course_id' => $course->id,
+                'user_id' => $user->id,
+            ],
+        ]);
+
+        $this->mock(MonoPayService::class, function ($mock) {
+            $mock->shouldReceive('getInvoiceStatus')
+                ->once()
+                ->with('course-invoice')
+                ->andReturn([
+                    'invoiceId' => 'course-invoice',
+                    'reference' => 'course-order',
+                    'status' => 'success',
+                    'amount' => 90000,
+                    'ccy' => 980,
+                ]);
+        });
+
+        $this->actingAs($user)
+            ->get(route('student.payments.result', ['payment' => $payment->id]))
+            ->assertRedirect(route('student.dashboard'));
+
+        $this->assertSame('paid', $payment->fresh()->status);
+        $this->assertDatabaseHas('user_course', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'status' => 'paid',
+            'paid_amount' => 900,
+        ]);
+    }
+
+    public function test_return_from_monopay_does_not_credit_mismatched_invoice(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+        $template = SubscriptionTemplate::factory()->create(['price' => 2800]);
+        $student = Student::factory()->create([
+            'user_id' => $user->id,
+            'subscription_id' => $template->id,
+        ]);
+        $payment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 2800,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'invoice-mismatch',
+            'provider_order_id' => 'expected-order',
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => '2026-08',
+            ],
+        ]);
+
+        $this->mock(MonoPayService::class, function ($mock) {
+            $mock->shouldReceive('getInvoiceStatus')
+                ->once()
+                ->andReturn([
+                    'invoiceId' => 'invoice-mismatch',
+                    'reference' => 'another-order',
+                    'status' => 'success',
+                    'amount' => 280000,
+                    'ccy' => 980,
+                ]);
+        });
+
+        $this->actingAs($user)
+            ->get(route('student.payments.result', ['payment' => $payment->id]))
+            ->assertRedirect(route('student.dashboard'))
+            ->assertSessionHas('error');
+
+        $this->assertSame('pending', $payment->fresh()->status);
+        $this->assertDatabaseCount('student_subscriptions', 0);
+    }
+
+    public function test_student_cannot_reconcile_another_students_payment(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+        Student::factory()->create(['user_id' => $user->id]);
+
+        $otherStudent = Student::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'student'])->id,
+        ]);
+        $payment = Payment::create([
+            'student_id' => $otherStudent->id,
+            'amount' => 100,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'single',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'other-invoice',
+            'provider_order_id' => 'other-order',
+        ]);
+
+        $this->mock(MonoPayService::class, function ($mock) {
+            $mock->shouldNotReceive('getInvoiceStatus');
+        });
+
+        $this->actingAs($user)
+            ->get(route('student.payments.result', ['payment' => $payment->id]))
+            ->assertRedirect(route('student.dashboard'))
+            ->assertSessionHas('error', 'Не вдалося визначити платіж.');
+
+        $this->assertSame('pending', $payment->fresh()->status);
     }
 }

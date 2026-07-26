@@ -10,12 +10,23 @@ class LevelDetectorService
     public function detectFromSession(Session $session): array
     {
         $session->loadMissing([
+            'attempts.test.sections.questions',
             'attempts.answers.question',
         ]);
 
-        $answers = $session->attempts
+        $questions = $session->attempts
+            ->flatMap(fn (Attempt $attempt) => $attempt->test->sections)
+            ->where('is_active', true)
+            ->flatMap(fn ($section) => $section->questions)
+            ->where('is_active', true)
+            ->filter(fn ($question) => filled($question->difficulty_level))
+            ->unique('id');
+
+        $correctQuestionIds = $session->attempts
             ->flatMap(fn (Attempt $attempt) => $attempt->answers)
-            ->filter(fn ($answer) => $answer->question && $answer->question->difficulty_level);
+            ->where('is_correct', true)
+            ->pluck('question_id')
+            ->unique();
 
         $levelOrder = config('testing.level_order', ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
         $thresholds = config('testing.level_thresholds', []);
@@ -23,12 +34,14 @@ class LevelDetectorService
         $stats = [];
 
         foreach ($levelOrder as $level) {
-            $levelAnswers = $answers->filter(
-                fn ($answer) => strtoupper((string) $answer->question->difficulty_level) === $level
+            $levelQuestions = $questions->filter(
+                fn ($question) => strtoupper((string) $question->difficulty_level) === $level
             );
 
-            $total = $levelAnswers->count();
-            $correct = $levelAnswers->where('is_correct', true)->count();
+            $total = $levelQuestions->count();
+            $correct = $levelQuestions
+                ->whereIn('id', $correctQuestionIds)
+                ->count();
             $percent = $total > 0 ? round(($correct / $total) * 100, 2) : 0;
 
             $stats[$level] = [

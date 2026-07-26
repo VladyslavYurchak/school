@@ -68,4 +68,31 @@ class Course extends Model
             ->withPivot('status', 'paid_amount')
             ->withTimestamps();
     }
+
+    public function hasPurchaseHistory(): bool
+    {
+        if ($this->users()->whereIn('user_course.status', ['paid', 'refunded'])->exists()) {
+            return true;
+        }
+
+        if ($this->lessons()
+            ->whereHas('users', fn ($query) => $query
+                ->whereIn('user_lesson.status', ['paid', 'refunded']))
+            ->exists()) {
+            return true;
+        }
+
+        $lessonIds = $this->lessons()->pluck('lessons.id');
+
+        return Payment::query()
+            ->whereIn('status', ['pending', 'paid', 'refunded'])
+            ->where(function ($query) use ($lessonIds) {
+                $query->where('payload->course_id', $this->id);
+
+                if ($lessonIds->isNotEmpty()) {
+                    $query->orWhereIn('payload->lesson_id', $lessonIds);
+                }
+            })
+            ->exists();
+    }
 }

@@ -8,6 +8,7 @@ use App\Http\Requests\Post\FilterRequest;
 use App\Models\Event;
 use App\Models\Photo;
 use App\Models\Post;
+use App\Models\Testing\Test as TestingTest;
 
 class IndexController extends BaseController
 {
@@ -34,6 +35,16 @@ class IndexController extends BaseController
             ->take(8)
             ->get();
 
-        return view('public.index', compact('posts', 'events', 'photos'));
+        $availableTestingLanguages = TestingTest::query()
+            ->publiclyAvailable()
+            ->distinct()
+            ->pluck('language_code');
+
+        return view('public.index', compact(
+            'posts',
+            'events',
+            'photos',
+            'availableTestingLanguages'
+        ));
     }
 }

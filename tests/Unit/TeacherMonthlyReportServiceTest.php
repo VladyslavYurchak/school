@@ -321,4 +321,70 @@ class TeacherMonthlyReportServiceTest extends TestCase
         $this->assertEquals(0.0, $row['rev_trial']);
         $this->assertEquals(-300.0, $row['inc_trial']);
     }
+
+    public function test_subscription_revenue_stays_with_the_snapshotted_teacher_after_student_transfer(): void
+    {
+        $originalTeacher = Teacher::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'teacher'])->id,
+        ]);
+        $newTeacher = Teacher::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'teacher'])->id,
+        ]);
+        $template = SubscriptionTemplate::factory()->create([
+            'type' => 'individual',
+        ]);
+        $student = Student::factory()->create([
+            'teacher_id' => $originalTeacher->id,
+        ]);
+
+        $subscription = StudentSubscription::factory()->create([
+            'student_id' => $student->id,
+            'subscription_template_id' => $template->id,
+            'status' => 'active',
+            'price' => 3200,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+        ]);
+
+        $this->assertSame($originalTeacher->id, $subscription->teacher_id);
+        $this->assertSame('individual', $subscription->lesson_type);
+
+        $student->update(['teacher_id' => $newTeacher->id]);
+        $template->update(['type' => 'group', 'title' => 'Changed later']);
+
+        $rows = collect((new TeacherMonthlyReportService())->build(2026, 6)['rows'])
+            ->keyBy(fn ($row) => $row['teacher']->id);
+
+        $this->assertEquals(3200.0, $rows[$originalTeacher->id]['rev_individual']);
+        $this->assertEquals(0.0, $rows[$newTeacher->id]['rev_individual']);
+    }
+
+    public function test_inactive_teacher_is_only_included_when_the_teacher_has_month_activity(): void
+    {
+        $teacherWithActivity = Teacher::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'teacher'])->id,
+            'is_active' => false,
+        ]);
+        $teacherWithoutActivity = Teacher::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'teacher'])->id,
+            'is_active' => false,
+        ]);
+
+        LessonLog::factory()->create([
+            'teacher_id' => $teacherWithActivity->id,
+            'status' => 'completed',
+            'date' => '2026-06-12',
+        ]);
+        LessonLog::factory()->create([
+            'teacher_id' => $teacherWithoutActivity->id,
+            'status' => 'completed',
+            'date' => '2026-05-12',
+        ]);
+
+        $teacherIds = collect((new TeacherMonthlyReportService())->build(2026, 6)['rows'])
+            ->pluck('teacher.id');
+
+        $this->assertTrue($teacherIds->contains($teacherWithActivity->id));
+        $this->assertFalse($teacherIds->contains($teacherWithoutActivity->id));
+    }
 }

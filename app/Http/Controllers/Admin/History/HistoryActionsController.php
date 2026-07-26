@@ -16,10 +16,17 @@ final class HistoryActionsController extends Controller
         $teachers = Teacher::orderBy('last_name')->get(['id', 'first_name', 'last_name']);
 
         $logs = LessonAction::query()
-            ->with(['lesson', 'user', 'lesson.teacher'])
+            ->with([
+                'lesson.student',
+                'lesson.group',
+                'lesson.teacher',
+                'user',
+            ])
             ->when($teacherId, function ($q) use ($teacherId) {
-                $q->whereHas('lesson', function ($q2) use ($teacherId) {
-                    $q2->where('teacher_id', $teacherId);
+                $q->where(function ($filtered) use ($teacherId) {
+                    $filtered->whereHas('lesson', function ($lesson) use ($teacherId) {
+                        $lesson->where('teacher_id', $teacherId);
+                    })->orWhere('meta->teacher_id', (int) $teacherId);
                 });
             })
             ->orderByDesc('created_at')

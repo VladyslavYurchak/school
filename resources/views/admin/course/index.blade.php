@@ -32,6 +32,9 @@
             @if(session('success'))
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
+            @if(session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
+            @endif
 
             <section class="admin-panel">
                 <div class="admin-panel-header">
@@ -140,13 +143,19 @@
                                                 <a href="{{ route('admin.course.edit', $course->id) }}" class="btn btn-sm btn-outline-primary">
                                                     Редагувати
                                                 </a>
-                                                <form action="{{ route('admin.course.delete', $course->id) }}" method="POST">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Ви впевнені?')">
-                                                        Видалити
-                                                    </button>
-                                                </form>
+                                                @if($course->hasPurchaseHistory())
+                                                    <span class="admin-badge admin-badge-muted" title="Зніміть курс з публікації замість видалення">
+                                                        Є оплати
+                                                    </span>
+                                                @else
+                                                    <form action="{{ route('admin.course.delete', $course->id) }}" method="POST">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Ви впевнені?')">
+                                                            Видалити
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

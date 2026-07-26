@@ -80,8 +80,22 @@ class MonoPayWebhookControllerTest extends TestCase
         $this->postSignedMonoWebhook([
             'invoiceId' => 'invoice-123',
             'reference' => $payment->provider_order_id,
+            'status' => 'expired',
+        ])->assertOk();
+
+        $this->assertSame('paid', $payment->fresh()->status);
+        $this->assertSame('active', $subscription->fresh()->status);
+
+        $this->postSignedMonoWebhook([
+            'invoiceId' => 'invoice-123',
+            'reference' => $payment->provider_order_id,
             'status' => 'reversed',
         ])->assertOk();
+
+        $this->assertSame('refunded', $payment->fresh()->status);
+        $this->assertSame('cancelled', $subscription->fresh()->status);
+
+        $this->postSignedMonoWebhook($payload)->assertOk();
 
         $this->assertSame('refunded', $payment->fresh()->status);
         $this->assertSame('cancelled', $subscription->fresh()->status);
@@ -252,6 +266,20 @@ class MonoPayWebhookControllerTest extends TestCase
             ],
         ]);
 
+        $competingCoursePayment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 900,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'single',
+            'provider' => 'monopay',
+            'provider_order_id' => 'competing-course-order',
+            'payload' => [
+                'course_id' => $course->id,
+                'user_id' => $student->user_id,
+            ],
+        ]);
+
         $this->postSignedMonoWebhook([
             'invoiceId' => 'course-invoice',
             'reference' => $coursePayment->provider_order_id,
@@ -270,6 +298,11 @@ class MonoPayWebhookControllerTest extends TestCase
             'status' => 'paid',
             'paid_amount' => 900,
         ]);
+        $this->assertSame('failed', $competingCoursePayment->fresh()->status);
+        $this->assertSame(
+            $coursePayment->id,
+            $competingCoursePayment->fresh()->payload['superseded_by_paid_payment_id']
+        );
 
         $this->assertDatabaseHas('user_lesson', [
             'user_id' => $student->user_id,
@@ -303,6 +336,72 @@ class MonoPayWebhookControllerTest extends TestCase
             'lesson_id' => $lesson->id,
             'status' => 'refunded',
         ]);
+    }
+
+    public function test_webhook_rejects_amount_mismatch_without_crediting_payment(): void
+    {
+        $template = SubscriptionTemplate::factory()->create(['price' => 2500]);
+        $student = Student::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'student'])->id,
+            'subscription_id' => $template->id,
+        ]);
+        $payment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 2500,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'amount-invoice',
+            'provider_order_id' => 'amount-order',
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => '2026-08',
+            ],
+        ]);
+
+        $this->postSignedMonoWebhook([
+            'invoiceId' => 'amount-invoice',
+            'reference' => 'amount-order',
+            'status' => 'success',
+            'amount' => 1,
+            'ccy' => 980,
+        ])->assertBadRequest();
+
+        $this->assertSame('pending', $payment->fresh()->status);
+        $this->assertDatabaseCount('student_subscriptions', 0);
+    }
+
+    public function test_webhook_keeps_payment_pending_when_purchased_item_cannot_be_fulfilled(): void
+    {
+        $student = Student::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'student'])->id,
+        ]);
+        $payment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 500,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'single',
+            'provider' => 'monopay',
+            'provider_payment_id' => 'missing-course-invoice',
+            'provider_order_id' => 'missing-course-order',
+            'payload' => [
+                'course_id' => 999999,
+                'user_id' => $student->user_id,
+            ],
+        ]);
+
+        $this->postSignedMonoWebhook([
+            'invoiceId' => 'missing-course-invoice',
+            'reference' => 'missing-course-order',
+            'status' => 'success',
+            'amount' => 50000,
+            'ccy' => 980,
+        ])->assertStatus(409);
+
+        $this->assertSame('pending', $payment->fresh()->status);
+        $this->assertDatabaseCount('user_course', 0);
     }
 
     private function postSignedMonoWebhook(array $payload, string $publicKeyFormat = 'base64')

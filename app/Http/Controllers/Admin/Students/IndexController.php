@@ -26,9 +26,13 @@ class IndexController extends Controller
             ->orderBy('name')
             ->get();
 
-        $subscriptions = StudentSubscription::all()->groupBy('student_id');
+        $subscriptions = StudentSubscription::query()
+            ->where('status', 'active')
+            ->get()
+            ->groupBy('student_id');
 
         $singlePaymentsCount = StudentSubscription::whereNull('subscription_template_id')
+            ->where('status', 'active')
             ->selectRaw('student_id, COUNT(*) as cnt')
             ->groupBy('student_id')
             ->pluck('cnt', 'student_id');

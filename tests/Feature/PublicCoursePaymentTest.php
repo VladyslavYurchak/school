@@ -205,6 +205,63 @@ class PublicCoursePaymentTest extends TestCase
         $this->assertDatabaseCount('payments', 1);
     }
 
+    public function test_expired_course_invoice_is_failed_and_replaced(): void
+    {
+        $course = $this->createCourse(['price' => 1000]);
+        $user = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($user)->post(route('courses.buy', $course));
+        $oldPayment = Payment::firstOrFail();
+        $oldPayment->forceFill([
+            'provider_payment_id' => 'expired-course-invoice',
+            'payload' => array_merge($oldPayment->payload, [
+                'mono_invoice' => [
+                    'invoiceId' => 'expired-course-invoice',
+                    'pageUrl' => 'https://pay.example/expired-course',
+                ],
+            ]),
+            'created_at' => now()->subHours(2),
+            'updated_at' => now()->subHours(2),
+        ])->save();
+
+        $response = $this->actingAs($user)->post(route('courses.buy', $course));
+        $newPayment = Payment::query()->whereKeyNot($oldPayment->id)->firstOrFail();
+
+        $response->assertRedirect(route('student.payments.checkout', $newPayment));
+        $this->assertSame('failed', $oldPayment->fresh()->status);
+        $this->assertTrue($oldPayment->fresh()->payload['expired_locally']);
+        $this->assertSame('pending', $newPayment->status);
+    }
+
+    public function test_expired_lesson_invoice_is_failed_and_replaced(): void
+    {
+        $course = $this->createCourse(['price' => 1000]);
+        $lesson = $this->createLesson($course, ['price' => 300]);
+        $user = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($user)->post(route('lessons.buy', $lesson));
+        $oldPayment = Payment::firstOrFail();
+        $oldPayment->forceFill([
+            'provider_payment_id' => 'expired-lesson-invoice',
+            'payload' => array_merge($oldPayment->payload, [
+                'mono_invoice' => [
+                    'invoiceId' => 'expired-lesson-invoice',
+                    'pageUrl' => 'https://pay.example/expired-lesson',
+                ],
+            ]),
+            'created_at' => now()->subHours(2),
+            'updated_at' => now()->subHours(2),
+        ])->save();
+
+        $response = $this->actingAs($user)->post(route('lessons.buy', $lesson));
+        $newPayment = Payment::query()->whereKeyNot($oldPayment->id)->firstOrFail();
+
+        $response->assertRedirect(route('student.payments.checkout', $newPayment));
+        $this->assertSame('failed', $oldPayment->fresh()->status);
+        $this->assertTrue($oldPayment->fresh()->payload['expired_locally']);
+        $this->assertSame('pending', $newPayment->status);
+    }
+
     private function createCourse(array $attributes = []): Course
     {
         $language = Language::create(['name' => 'English']);

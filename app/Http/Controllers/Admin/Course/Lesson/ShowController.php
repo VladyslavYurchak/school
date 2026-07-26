@@ -9,7 +9,7 @@ class ShowController extends Controller
 {
     public function __invoke(Lesson $lesson)
     {
-        $lesson->load(['course', 'contentBlocks']);
+        $lesson->load(['course', 'contentBlocks', 'vocabularyItems', 'exercises.items']);
 
         $mediaFiles = is_string($lesson->media_files)
             ? json_decode($lesson->media_files, true)
@@ -22,7 +22,9 @@ class ShowController extends Controller
         $tests = $lesson->tests()->with('options')->orderBy('position')->get();
 
         $blocks = $lesson->contentBlocks;
+        $vocabularyItems = $lesson->vocabularyItems;
+        $exercises = $lesson->exercises;
 
-        return view('admin.course.lesson.show', compact('lesson', 'blocks', 'mediaFiles', 'homeworkFiles', 'tests'));
+        return view('admin.course.lesson.show', compact('lesson', 'blocks', 'vocabularyItems', 'exercises', 'mediaFiles', 'homeworkFiles', 'tests'));
     }
 }

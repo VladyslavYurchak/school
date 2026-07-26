@@ -1,5 +1,5 @@
 <div class="table-responsive">
-    <table class="table table-bordered align-middle">
+    <table class="table table-bordered align-middle admin-data-table admin-data-table-income">
         <thead>
         <tr>
             <th rowspan="2">Викладач</th>

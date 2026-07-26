@@ -15,6 +15,8 @@
 
 /.phpunit.cache
 /.phpunit.result.cache
+/.rnd
+/storage/framework/*.sqlite
 /.idea/
 
 Homestead.yaml

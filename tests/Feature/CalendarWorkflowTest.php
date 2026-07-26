@@ -113,6 +113,63 @@ class CalendarWorkflowTest extends TestCase
         $this->assertLessonLogStatus($lesson, $students[0], LessonLogStatus::Charged);
         $this->assertLessonLogStatus($lesson, $students[1], LessonLogStatus::Completed);
         $this->assertLessonLogStatus($lesson, $students[2], LessonLogStatus::Charged);
+
+        $this->assertEquals(900.0, (float) LessonLog::where('lesson_id', $lesson->id)->sum('teacher_payout_amount'));
+        $this->assertDatabaseHas('lesson_logs', [
+            'lesson_id' => $lesson->id,
+            'teacher_rate_amount_at_charge' => 900,
+            'teacher_payout_basis' => 'per_lesson',
+        ]);
+    }
+
+    public function test_pair_attendance_uses_pair_rate_and_splits_it_between_students(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser([
+            'group_lesson_price' => 900,
+            'pair_lesson_price' => 700,
+        ]);
+
+        $pair = Group::factory()->pair()->create([
+            'teacher_id' => $teacher->id,
+        ]);
+
+        $students = Student::factory()
+            ->count(2)
+            ->sequence(
+                ['teacher_id' => $teacher->id, 'group_id' => $pair->id],
+                ['teacher_id' => $teacher->id, 'group_id' => $pair->id],
+            )
+            ->create();
+
+        $lesson = PlannedLesson::factory()->pair()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $pair->id,
+            'start_date' => '2026-06-10 12:00:00',
+            'end_date' => '2026-06-10 13:00:00',
+            'status' => LessonStatus::Planned,
+            'lesson_type' => LessonType::Pair,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-attendance'), [
+                'group_id' => $pair->id,
+                'lesson_id' => $lesson->id,
+                'date' => '2026-06-10',
+                'time' => '12:00',
+                'present_students' => [$students[0]->id],
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $logs = LessonLog::where('lesson_id', $lesson->id)->orderBy('student_id')->get();
+
+        $this->assertCount(2, $logs);
+        $this->assertEquals(700.0, (float) $logs->sum('teacher_payout_amount'));
+        $this->assertEquals(350.0, (float) $logs[0]->teacher_payout_amount);
+        $this->assertEquals(350.0, (float) $logs[1]->teacher_payout_amount);
+        $this->assertTrue($logs->every(fn (LessonLog $log) => $log->lesson_type === LessonType::Pair->value));
+        $this->assertTrue($logs->every(fn (LessonLog $log) => (float) $log->teacher_rate_amount_at_charge === 700.0));
     }
 
     public function test_group_reschedule_preserves_original_duration_and_soft_deletes_old_lesson(): void

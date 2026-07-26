@@ -38,103 +38,196 @@
         ];
     @endphp
 
-    <div class="container py-4">
-        <h1 class="mb-4">Кабінет учня</h1>
+    <div class="account-page">
+        <div class="container">
+            <header class="account-header">
+                <div>
+                    <h1 class="account-header-title">Кабінет учня</h1>
+                    <p class="account-header-text">Ваше навчання, курси та історія оплат в одному місці.</p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('student.vocabulary.learn') }}" class="btn-brand-outline">
+                        <i class="bi bi-translate" aria-hidden="true"></i>
+                        Мій словник
+                    </a>
+                    <a href="{{ route('student.payments.index') }}" class="btn-brand">
+                        <i class="bi bi-credit-card" aria-hidden="true"></i>
+                        Перейти до оплати
+                    </a>
+                </div>
+            </header>
 
-        <div class="row g-4">
+            <div class="row g-4">
             <div class="col-lg-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h4 class="card-title mb-3">Мій викладач</h4>
+                <section class="account-panel">
+                    <h2 class="account-panel-title">
+                        <i class="bi bi-person-video3" aria-hidden="true"></i>
+                        Мій викладач
+                    </h2>
 
-                        @if($teacher)
-                            <p class="mb-2"><strong>Ім’я:</strong> {{ $teacher->full_name }}</p>
-                            <p class="mb-2"><strong>Телефон:</strong> {{ $teacher->phone ?: '—' }}</p>
-                            <p class="mb-2"><strong>Email:</strong> {{ $teacher->email ?: ($teacher->user->email ?? '—') }}</p>
-                            <p class="mb-0"><strong>Нотатка:</strong> {{ $teacher->note ?: '—' }}</p>
-                        @else
-                            <p class="mb-0">Викладача ще не призначено.</p>
-                        @endif
-                    </div>
-                </div>
+                    @if($teacher)
+                        <dl class="account-details">
+                            <div class="account-detail">
+                                <dt>Ім’я</dt>
+                                <dd>{{ $teacher->full_name }}</dd>
+                            </div>
+                            <div class="account-detail">
+                                <dt>Телефон</dt>
+                                <dd>{{ $teacher->phone ?: '—' }}</dd>
+                            </div>
+                            <div class="account-detail">
+                                <dt>Email</dt>
+                                <dd>{{ $teacher->email ?: ($teacher->user->email ?? '—') }}</dd>
+                            </div>
+                        </dl>
+                    @else
+                        <p class="account-empty">Викладача ще не призначено.</p>
+                    @endif
+                </section>
             </div>
 
             <div class="col-lg-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h4 class="card-title mb-3">Мій абонемент</h4>
+                <section class="account-panel">
+                    <h2 class="account-panel-title">
+                        <i class="bi bi-calendar-check" aria-hidden="true"></i>
+                        Мій абонемент
+                    </h2>
 
-                        @if($subscription)
-                            <p class="mb-2">
-                                <strong>Абонемент:</strong>
-                                {{ $subscription->subscriptionTemplate->title ?? 'Поразова оплата' }}
-                            </p>
-                            <p class="mb-2"><strong>Статус:</strong> {{ $subscriptionStatusLabels[$subscription->status] ?? $subscription->status }}</p>
-                            <p class="mb-2"><strong>Період:</strong> {{ $subscription->start_date->format('d.m.Y') }} — {{ $subscription->end_date->format('d.m.Y') }}</p>
-                            <a href="{{ route('student.payments.index') }}" class="btn btn-primary">
-                                Продовжити абонемент
-                            </a>
-                        @else
-                            <p class="mb-3">Активного абонемента немає.</p>
-
-                            <a href="{{ route('student.payments.index') }}" class="btn btn-primary">
-                                Перейти до оплати
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h4 class="card-title mb-3">Мої курси</h4>
-
-                        @if(($courses ?? collect())->count())
-                            <div class="list-group">
-                                @foreach($courses as $course)
-                                    <a href="{{ route('courses.show', $course) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                        <span>{{ $course->title }}</span>
-                                        <span class="badge text-bg-primary">{{ $course->language->name ?? '' }}</span>
-                                    </a>
-                                @endforeach
+                    @if($subscription)
+                        <dl class="account-details mb-3">
+                            <div class="account-detail">
+                                <dt>Абонемент</dt>
+                                <dd>{{ $subscription->subscriptionTemplate->title ?? 'Поразова оплата' }}</dd>
                             </div>
-                        @else
-                            <p class="mb-0">Оплачених курсів поки немає.</p>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h4 class="card-title mb-3">Мої окремі уроки</h4>
-
-                        @if(($lessons ?? collect())->count())
-                            <div class="list-group">
-                                @foreach($lessons as $lesson)
-                                    <a href="{{ route('courses.lessons.show', [$lesson->course, $lesson]) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                        <span>{{ $lesson->title }}</span>
-                                        <span class="badge text-bg-secondary">{{ $lesson->course->title ?? '' }}</span>
-                                    </a>
-                                @endforeach
+                            <div class="account-detail">
+                                <dt>Статус</dt>
+                                <dd>
+                                    <span class="account-status account-status--{{ $subscription->status }}">
+                                        {{ $subscriptionStatusLabels[$subscription->status] ?? $subscription->status }}
+                                    </span>
+                                </dd>
                             </div>
-                        @else
-                            <p class="mb-0">Окремо оплачених уроків поки немає.</p>
-                        @endif
-                    </div>
-                </div>
+                            <div class="account-detail">
+                                <dt>Період</dt>
+                                <dd>{{ $subscription->start_date->format('d.m.Y') }} — {{ $subscription->end_date->format('d.m.Y') }}</dd>
+                            </div>
+                        </dl>
+                        <a href="{{ route('student.payments.index') }}" class="btn-brand-outline">
+                            Продовжити абонемент
+                        </a>
+                    @else
+                        <p class="account-empty mb-3">Активного абонемента немає.</p>
+                        <a href="{{ route('student.payments.index') }}" class="btn-brand-outline">
+                            Перейти до оплати
+                        </a>
+                    @endif
+                </section>
             </div>
 
             <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h4 class="card-title mb-3">Мої заняття</h4>
+                <section class="account-panel">
+                    <h2 class="account-panel-title">
+                        <i class="bi bi-journal-bookmark" aria-hidden="true"></i>
+                        Мої курси
+                    </h2>
 
-                        @if($lessonLogs->count())
-                            <div class="table-responsive">
-                                <table class="table align-middle">
+                    @if(($courses ?? collect())->count())
+                        <div class="account-list">
+                            @foreach($courses as $course)
+                                <a href="{{ route('courses.show', $course) }}" class="account-list-link">
+                                    <span class="account-list-title">{{ $course->title }}</span>
+                                    <span class="account-list-meta">{{ $course->language->name ?? '' }}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="account-empty">Оплачених курсів поки немає.</p>
+                    @endif
+                </section>
+            </div>
+
+            <div class="col-12">
+                <section class="account-panel">
+                    <h2 class="account-panel-title">
+                        <i class="bi bi-play-btn" aria-hidden="true"></i>
+                        Мої окремі уроки
+                    </h2>
+
+                    @if(($lessons ?? collect())->count())
+                        <div class="account-list">
+                            @foreach($lessons as $lesson)
+                                <a href="{{ route('courses.lessons.show', [$lesson->course, $lesson]) }}" class="account-list-link">
+                                    <span class="account-list-title">{{ $lesson->title }}</span>
+                                    <span class="account-list-meta">{{ $lesson->course->title ?? '' }}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="account-empty">Окремо оплачених уроків поки немає.</p>
+                    @endif
+                </section>
+            </div>
+
+            <div class="col-12">
+                <section class="account-panel">
+                    <h2 class="account-panel-title">
+                        <i class="bi bi-calendar-event" aria-hidden="true"></i>
+                        Найближчі заняття
+                    </h2>
+
+                    @if($upcomingLessons->count())
+                        <div class="account-table-wrap">
+                            <table class="account-table">
+                                <thead>
+                                <tr>
+                                    <th>Дата і час</th>
+                                    <th>Заняття</th>
+                                    <th>Формат</th>
+                                    <th>Викладач</th>
+                                    <th>Група</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach($upcomingLessons as $lesson)
+                                    <tr>
+                                        <td data-label="Дата і час">
+                                            <strong>{{ $lesson->start_date->format('d.m.Y') }}</strong>
+                                            <span class="account-table-secondary">
+                                                {{ $lesson->start_date->format('H:i') }}
+                                                @if($lesson->end_date)
+                                                    — {{ $lesson->end_date->format('H:i') }}
+                                                @endif
+                                            </span>
+                                        </td>
+                                        <td data-label="Заняття">{{ $lesson->title }}</td>
+                                        <td data-label="Формат">
+                                            <span class="account-status account-status--planned">
+                                                {{ $lessonTypeLabels[$lesson->lesson_type->value] ?? $lesson->lesson_type->value }}
+                                            </span>
+                                        </td>
+                                        <td data-label="Викладач">{{ $lesson->teacher?->full_name ?: '—' }}</td>
+                                        <td data-label="Група">{{ $lesson->group?->name ?: 'Особисто' }}</td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="account-empty">Найближчих запланованих занять поки немає.</p>
+                    @endif
+                </section>
+            </div>
+
+            <div class="col-12">
+                <section class="account-panel">
+                    <h2 class="account-panel-title">
+                        <i class="bi bi-clock-history" aria-hidden="true"></i>
+                        Мої заняття
+                    </h2>
+
+                    @if($lessonLogs->count())
+                        <div class="account-table-wrap">
+                            <table class="account-table">
                                     <thead>
                                     <tr>
                                         <th>Дата</th>
@@ -146,30 +239,31 @@
                                     <tbody>
                                     @foreach($lessonLogs as $log)
                                         <tr>
-                                            <td>{{ \Carbon\Carbon::parse($log->date)->format('d.m.Y') }}</td>
-                                            <td>{{ $lessonTypeLabels[$log->lesson_type] ?? ($log->lesson_type ?? '—') }}</td>
-                                            <td>{{ $lessonLogStatusLabels[$log->status] ?? ($log->status ?? '—') }}</td>
-                                            <td>{{ $log->comment ?? '—' }}</td>
+                                            <td data-label="Дата">{{ \Carbon\Carbon::parse($log->date)->format('d.m.Y') }}</td>
+                                            <td data-label="Тип">{{ $lessonTypeLabels[$log->lesson_type] ?? ($log->lesson_type ?? '—') }}</td>
+                                            <td data-label="Статус">{{ $lessonLogStatusLabels[$log->status] ?? ($log->status ?? '—') }}</td>
+                                            <td data-label="Коментар">{{ $log->comment ?? '—' }}</td>
                                         </tr>
                                     @endforeach
                                     </tbody>
-                                </table>
-                            </div>
-                        @else
-                            <p class="mb-0">Занять поки немає.</p>
-                        @endif
-                    </div>
-                </div>
+                            </table>
+                        </div>
+                    @else
+                        <p class="account-empty">Занять поки немає.</p>
+                    @endif
+                </section>
             </div>
 
             <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h4 class="card-title mb-3">Мої оплати</h4>
+                <section class="account-panel">
+                    <h2 class="account-panel-title">
+                        <i class="bi bi-receipt" aria-hidden="true"></i>
+                        Мої оплати
+                    </h2>
 
-                        @if($payments->count())
-                            <div class="table-responsive">
-                                <table class="table align-middle">
+                    @if($payments->count())
+                        <div class="account-table-wrap">
+                            <table class="account-table">
                                     <thead>
                                     <tr>
                                         <th>Дата</th>
@@ -182,22 +276,26 @@
                                     <tbody>
                                     @foreach($payments as $payment)
                                         <tr>
-                                            <td>{{ optional($payment->paid_at)->format('d.m.Y H:i') ?: $payment->created_at->format('d.m.Y H:i') }}</td>
-                                            <td>{{ number_format($payment->amount, 2, ',', ' ') }} {{ $payment->currency }}</td>
-                                            <td>{{ $paymentTypeLabels[$payment->type] ?? $payment->type }}</td>
-                                            <td>{{ $paymentStatusLabels[$payment->status] ?? $payment->status }}</td>
-                                            <td>{{ $payment->description ?: '—' }}</td>
+                                            <td data-label="Дата">{{ optional($payment->paid_at)->format('d.m.Y H:i') ?: $payment->created_at->format('d.m.Y H:i') }}</td>
+                                            <td data-label="Сума">{{ number_format($payment->amount, 2, ',', ' ') }} {{ $payment->currency }}</td>
+                                            <td data-label="Тип">{{ $paymentTypeLabels[$payment->type] ?? $payment->type }}</td>
+                                            <td data-label="Статус">
+                                                <span class="account-status account-status--{{ $payment->status }}">
+                                                    {{ $paymentStatusLabels[$payment->status] ?? $payment->status }}
+                                                </span>
+                                            </td>
+                                            <td data-label="Опис">{{ $payment->description ?: '—' }}</td>
                                         </tr>
                                     @endforeach
                                     </tbody>
-                                </table>
-                            </div>
-                        @else
-                            <p class="mb-0">Оплат поки немає.</p>
-                        @endif
-                    </div>
-                </div>
+                            </table>
+                        </div>
+                    @else
+                        <p class="account-empty">Оплат поки немає.</p>
+                    @endif
+                </section>
             </div>
+        </div>
         </div>
     </div>
 @endsection

@@ -81,7 +81,7 @@ class MarkGroupAttendanceController extends Controller
                 $basis    = 'per_lesson';
 
                 $baseRate = (float) (
-                $lessonType === LessonType::Pair
+                $type === LessonType::Pair->value
                     ? ($teacher?->pair_lesson_price ?? 0)
                     : ($teacher?->group_lesson_price ?? 0)
                 );

@@ -83,6 +83,62 @@
                 </div>
             </section>
 
+            @if($vocabularyItems->isNotEmpty())
+                <section class="admin-panel">
+                    <div class="admin-panel-header">
+                        <h2 class="admin-panel-title">Словник уроку</h2>
+                        <a href="{{ route('admin.course.lesson.vocabulary.index', $lesson) }}" class="admin-btn-soft">
+                            <i class="bi bi-translate"></i> Керувати словами
+                        </a>
+                    </div>
+                    <div class="admin-panel-body">
+                        <div class="lesson-vocabulary-preview-grid">
+                            @foreach($vocabularyItems as $item)
+                                <div class="lesson-vocabulary-preview-item">
+                                    <div>
+                                        <strong>{{ $item->term }}</strong>
+                                        @if($item->transcription)<span class="text-muted">{{ $item->transcription }}</span>@endif
+                                    </div>
+                                    <div>{{ $item->translation }}</div>
+                                    @if($item->pivot->is_required)
+                                        <span class="admin-badge admin-badge-warning">Обов’язкове</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </section>
+            @endif
+
+            @if($exercises->isNotEmpty())
+                <section class="admin-panel">
+                    <div class="admin-panel-header">
+                        <h2 class="admin-panel-title">Інтерактивні вправи</h2>
+                        <a href="{{ route('admin.course.lesson.exercises.index', $lesson) }}" class="admin-btn-soft">
+                            <i class="bi bi-puzzle"></i> Керувати вправами
+                        </a>
+                    </div>
+                    <div class="admin-panel-body">
+                        <div class="lesson-exercise-preview-grid">
+                            @foreach($exercises as $exercise)
+                                <div class="lesson-exercise-preview-item {{ $exercise->is_active ? '' : 'opacity-50' }}">
+                                    <div>
+                                        <strong>{{ $exercise->title }}</strong>
+                                        <span class="admin-badge admin-badge-muted">Пар: {{ $exercise->items->count() }}</span>
+                                        @unless($exercise->is_active)
+                                            <span class="admin-badge admin-badge-warning">Приховано</span>
+                                        @endunless
+                                    </div>
+                                    @if($exercise->description)
+                                        <p>{{ $exercise->description }}</p>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </section>
+            @endif
+
             @if($tests->count() > 0)
                 <section class="admin-panel">
                     <div class="admin-panel-header">

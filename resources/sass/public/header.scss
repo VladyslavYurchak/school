@@ -137,3 +137,50 @@
     color: #fff;
     transform: translateY(-1px);
 }
+
+@media (max-width: 575.98px) {
+    .topbar {
+        padding: 10px 0;
+    }
+
+    .topbar-inner {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px 12px;
+    }
+
+    .site-logo {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        justify-self: center;
+    }
+
+    .site-logo img {
+        max-height: 52px;
+    }
+
+    .btn-register {
+        grid-column: 1;
+        grid-row: 2;
+        width: 100%;
+        min-height: 42px;
+        padding: 9px 12px;
+        font-size: 13px;
+        line-height: 1.2;
+    }
+
+    .social-icons {
+        grid-column: 2;
+        grid-row: 2;
+        justify-content: flex-end;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .social-icons a {
+        width: 34px;
+        height: 34px;
+        font-size: 15px;
+        flex: 0 0 34px;
+    }
+}

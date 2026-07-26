@@ -9,6 +9,8 @@ class Payment extends Model
 {
     use HasFactory;
 
+    public const MONOPAY_INVOICE_VALIDITY_SECONDS = 3600;
+
     protected $fillable = [
         'student_id',
         'amount',
@@ -41,5 +43,35 @@ class Payment extends Model
     public function isPaid(): bool
     {
         return $this->status === 'paid';
+    }
+
+    public function hasMonoPayInvoice(): bool
+    {
+        $payload = is_array($this->payload) ? $this->payload : [];
+
+        return (bool) (
+            $this->provider_payment_id
+            || data_get($payload, 'mono_invoice.invoiceId')
+            || data_get($payload, 'mono_invoice.pageUrl')
+        );
+    }
+
+    public function hasReusableMonoPayInvoice(): bool
+    {
+        return !$this->hasMonoPayInvoice()
+            || $this->updated_at->gt(now()->subSeconds(self::MONOPAY_INVOICE_VALIDITY_SECONDS));
+    }
+
+    public function failExpiredMonoPayInvoice(): void
+    {
+        $payload = is_array($this->payload) ? $this->payload : [];
+
+        $this->update([
+            'status' => 'failed',
+            'payload' => array_merge($payload, [
+                'expired_locally' => true,
+                'expired_locally_at' => now()->toISOString(),
+            ]),
+        ]);
     }
 }

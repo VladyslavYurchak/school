@@ -14,6 +14,7 @@ use App\Models\Student;
 use App\Models\SubscriptionTemplate;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Models\VocabularyItem;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -479,6 +480,35 @@ function devStudentOnlineLearningContent(): array
         ['Blue pencil', false],
     ]);
 
+    devLessonVocabulary($lessonOne, [
+        [
+            'term' => 'greeting',
+            'translation' => 'привітання',
+            'transcription' => '/ˈɡriːtɪŋ/',
+            'part_of_speech' => 'noun',
+            'explanation' => 'A word or phrase you use when you meet someone.',
+            'example' => 'Hello is a common greeting.',
+            'example_translation' => 'Hello - це поширене привітання.',
+            'is_required' => true,
+        ],
+        [
+            'term' => 'introduce yourself',
+            'translation' => 'представитися',
+            'part_of_speech' => 'phrase',
+            'explanation' => 'To tell someone your name and basic information about you.',
+            'example' => 'Please introduce yourself to the group.',
+            'example_translation' => 'Будь ласка, представся групі.',
+            'note' => 'Useful for first conversations.',
+            'is_required' => true,
+        ],
+        [
+            'term' => 'nice to meet you',
+            'translation' => 'приємно познайомитися',
+            'part_of_speech' => 'phrase',
+            'is_required' => false,
+        ],
+    ]);
+
     devOnlineLesson($course, [
         'title' => 'Dev Lesson 2: Numbers',
         'position' => 2,
@@ -573,4 +603,33 @@ function devLessonTest(Lesson $lesson, int $position, string $question, array $o
     }
 
     return $test;
+}
+
+function devLessonVocabulary(Lesson $lesson, array $items): void
+{
+    $lesson->loadMissing('course');
+    $lesson->vocabularyItems()->detach();
+
+    foreach ($items as $index => $data) {
+        $item = VocabularyItem::updateOrCreate(
+            [
+                'language_id' => $lesson->course->language_id,
+                'term' => $data['term'],
+            ],
+            [
+                'translation' => $data['translation'],
+                'transcription' => $data['transcription'] ?? null,
+                'part_of_speech' => $data['part_of_speech'] ?? null,
+                'explanation' => $data['explanation'] ?? null,
+                'example' => $data['example'] ?? null,
+                'example_translation' => $data['example_translation'] ?? null,
+            ]
+        );
+
+        $lesson->vocabularyItems()->attach($item, [
+            'position' => $index + 1,
+            'is_required' => (bool) ($data['is_required'] ?? false),
+            'note' => $data['note'] ?? null,
+        ]);
+    }
 }

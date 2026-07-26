@@ -215,6 +215,21 @@ class AdminLessonBlockBuilderTest extends TestCase
         $this->assertFalse($first->fresh()->is_active);
     }
 
+    public function test_block_reorder_requires_complete_list_of_current_lesson_blocks(): void
+    {
+        $lesson = $this->createLesson();
+        $first = $this->createTextBlock($lesson, 'First', 1);
+        $second = $this->createTextBlock($lesson, 'Second', 2);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.course.lesson.blocks.order', $lesson), [
+                'blocks' => [$second->id],
+            ])
+            ->assertUnprocessable();
+
+        $this->assertSame([$first->id, $second->id], $lesson->contentBlocks()->pluck('id')->all());
+    }
+
     public function test_destroying_media_block_deletes_file_and_normalizes_positions(): void
     {
         $lesson = $this->createLesson();
@@ -273,13 +288,53 @@ class AdminLessonBlockBuilderTest extends TestCase
             'is_active' => true,
         ]);
         Storage::disk('public')->put($block->media_path, 'audio');
+        $exercise = $lesson->exercises()->create([
+            'type' => 'dictation',
+            'title' => 'Dictation',
+            'position' => 1,
+            'is_active' => true,
+        ]);
+        $exerciseItem = $exercise->items()->create([
+            'prompt' => '',
+            'answer' => 'Hello.',
+            'audio_path' => 'lesson-exercises/audio/hello.mp3',
+            'position' => 1,
+        ]);
+        Storage::disk('public')->put($exerciseItem->audio_path, 'audio');
 
         $this->actingAs($this->admin)
             ->delete(route('admin.course.lesson.delete', $lesson))
             ->assertRedirect(route('admin.course.show', $lesson->course_id));
 
         Storage::disk('public')->assertMissing($block->media_path);
+        Storage::disk('public')->assertMissing($exerciseItem->audio_path);
         $this->assertDatabaseMissing('lesson_content_blocks', ['id' => $block->id]);
+        $this->assertDatabaseMissing('lesson_exercise_items', ['id' => $exerciseItem->id]);
+    }
+
+    public function test_deleting_course_removes_dictation_audio(): void
+    {
+        $lesson = $this->createLesson();
+        $exercise = $lesson->exercises()->create([
+            'type' => 'dictation',
+            'title' => 'Dictation',
+            'position' => 1,
+            'is_active' => true,
+        ]);
+        $exerciseItem = $exercise->items()->create([
+            'prompt' => '',
+            'answer' => 'Good morning.',
+            'audio_path' => 'lesson-exercises/audio/morning.mp3',
+            'position' => 1,
+        ]);
+        Storage::disk('public')->put($exerciseItem->audio_path, 'audio');
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.course.delete', $lesson->course))
+            ->assertRedirect(route('admin.course.index'));
+
+        Storage::disk('public')->assertMissing($exerciseItem->audio_path);
+        $this->assertDatabaseMissing('lesson_exercise_items', ['id' => $exerciseItem->id]);
     }
 
     private function createLesson(?Course $course = null): Lesson

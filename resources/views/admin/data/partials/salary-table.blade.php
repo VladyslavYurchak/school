@@ -1,4 +1,5 @@
-<table class="table table-striped table-bordered align-middle">
+<div class="table-responsive">
+    <table class="table table-striped table-bordered align-middle admin-data-table admin-data-table-salary">
     <thead>
     <tr>
         <th>Викладач</th>
@@ -36,4 +37,5 @@
         </tr>
         </tfoot>
     @endisset
-</table>
+    </table>
+</div>

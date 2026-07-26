@@ -13,8 +13,27 @@ class UpdateController extends Controller
     {
         $validated = $request->validated();
 
-        // якщо тип не передано — залишаємо старий або дефолт 'group'
         $validated['type'] = $validated['type'] ?? $group->type ?? 'group';
+
+        $students = $group->students()->with('subscriptionTemplate')->get();
+
+        if ($validated['type'] === 'pair' && $students->count() > 2) {
+            return redirect()->back()->withInput()->with(
+                'error',
+                'Неможливо змінити тип на парний: у групі більше двох студентів.'
+            );
+        }
+
+        $hasMismatchedSubscription = $students->contains(function ($student) use ($validated) {
+            return $student->subscriptionTemplate?->type !== $validated['type'];
+        });
+
+        if ($hasMismatchedSubscription) {
+            return redirect()->back()->withInput()->with(
+                'error',
+                'Тип групи не відповідає призначеним абонементам студентів.'
+            );
+        }
 
         $group->update($validated);
 

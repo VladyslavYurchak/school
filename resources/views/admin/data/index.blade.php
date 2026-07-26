@@ -8,7 +8,7 @@
 
 @section('content')
     <div class="admin-page">
-        <div class="admin-page-shell">
+        <div class="admin-page-shell admin-data-page">
             <section class="admin-hero">
                 <div class="admin-hero-content">
                     <div>
@@ -43,7 +43,7 @@
                         <div class="admin-field">
                             <label for="year">Рік</label>
                             <select name="year" id="year" class="form-select">
-                                @for ($y = now()->year; $y >= 2022; $y--)
+                                @for ($y = now()->year + 1; $y >= 2022; $y--)
                                     <option value="{{ $y }}" {{ request('year', now()->year) == $y ? 'selected' : '' }}>{{ $y }}</option>
                                 @endfor
                             </select>
@@ -107,4 +107,13 @@
 
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('attendanceFilterForm');
+
+            form?.querySelectorAll('select').forEach(select => {
+                select.addEventListener('change', () => form.submit());
+            });
+        });
+    </script>
 @endsection

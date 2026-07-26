@@ -1,37 +1,30 @@
 @extends('public.layouts.main')
 
 @section('content')
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">Підтвердіть email</div>
+    <div class="auth-page">
+        <div class="auth-card">
+            <header class="auth-card-header">
+                <span class="auth-card-icon">
+                    <i class="bi bi-envelope-check" aria-hidden="true"></i>
+                </span>
+                <h1 class="auth-card-title">Підтвердіть email</h1>
+                <p class="auth-card-text">Перевірте пошту та відкрийте посилання з листа, щоб активувати акаунт.</p>
+            </header>
 
-                    <div class="card-body">
-                        @if (session('resent'))
-                            <div class="alert alert-success" role="alert">
-                                Новий лист для підтвердження надіслано на вашу пошту.
-                            </div>
-                        @endif
-
-                        <p>Перед продовженням перевірте, будь ласка, вашу пошту.</p>
-                        <p>Якщо лист не прийшов, ви можете надіслати його ще раз.</p>
-
-                        @if (Route::has('verification.resend'))
-                            <form class="d-inline" method="POST" action="{{ route('verification.resend') }}">
-                                @csrf
-                                <button type="submit" class="btn btn-primary">
-                                    Надіслати лист ще раз
-                                </button>
-                            </form>
-                        @else
-                            <div class="text-muted">
-                                Повторне надсилання листа зараз недоступне.
-                            </div>
-                        @endif
-                    </div>
+            @if (session('resent'))
+                <div class="alert alert-success" role="alert">
+                    Новий лист для підтвердження надіслано на вашу пошту.
                 </div>
-            </div>
+            @endif
+
+            @if (Route::has('verification.resend'))
+                <form method="POST" action="{{ route('verification.resend') }}">
+                    @csrf
+                    <button type="submit" class="btn-brand w-100">Надіслати лист ще раз</button>
+                </form>
+            @else
+                <p class="account-empty text-center">Повторне надсилання листа зараз недоступне.</p>
+            @endif
         </div>
     </div>
 @endsection

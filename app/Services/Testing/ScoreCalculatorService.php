@@ -92,7 +92,7 @@ class ScoreCalculatorService
             return 0;
         }
 
-        return round(($rawScore / $maxScore) * 100, 2);
+        return round(max(0, min(100, ($rawScore / $maxScore) * 100)), 2);
     }
 
     public function calculateTestMaxScore(Test $test): float

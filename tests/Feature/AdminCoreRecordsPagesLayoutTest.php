@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Group;
 use App\Models\Student;
+use App\Models\StudentSubscription;
 use App\Models\SubscriptionTemplate;
 use App\Models\Teacher;
 use App\Models\User;
@@ -73,6 +74,28 @@ class AdminCoreRecordsPagesLayoutTest extends TestCase
             ->assertSee('data-bs-target="#studentModal'.$student->id.'"', false)
             ->assertSee('data-bs-target="#paymentModal'.$student->id.'"', false)
             ->assertSee('window.activeStudentIds', false);
+    }
+
+    public function test_cancelled_subscription_does_not_mark_current_month_as_paid(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create(['is_active' => true]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $student->id,
+            'status' => 'cancelled',
+            'start_date' => now()->startOfMonth()->toDateString(),
+            'end_date' => now()->endOfMonth()->toDateString(),
+            'price' => 2500,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.students.index'))
+            ->assertOk()
+            ->assertViewHas('paidMonthsByStudent', function ($months) use ($student) {
+                return ($months[$student->id] ?? []) === [];
+            })
+            ->assertSee('table-danger', false);
     }
 
     public function test_student_edit_page_uses_unified_layout_and_single_form(): void

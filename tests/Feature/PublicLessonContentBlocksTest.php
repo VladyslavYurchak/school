@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Course;
 use App\Models\Language;
 use App\Models\Lesson;
+use App\Models\VocabularyItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -135,6 +136,131 @@ class PublicLessonContentBlocksTest extends TestCase
 
         $this->assertLessThan($testPosition, $materialPosition);
         $this->assertLessThan($homeworkPosition, $testPosition);
+    }
+
+    public function test_public_lesson_renders_vocabulary_after_materials_and_before_tests(): void
+    {
+        [$course, $lesson] = $this->createFreeLesson();
+
+        $lesson->contentBlocks()->create([
+            'type' => 'text',
+            'title' => 'Lesson material marker',
+            'content' => '<p>Main explanation</p>',
+            'position' => 1,
+            'is_active' => true,
+        ]);
+
+        $second = VocabularyItem::create([
+            'language_id' => $course->language_id,
+            'term' => 'challenge',
+            'translation' => 'виклик',
+            'transcription' => '/challenge/',
+            'part_of_speech' => 'noun',
+            'explanation' => 'Something that tests your ability.',
+            'example' => 'Learning English is a challenge.',
+            'example_translation' => 'Вивчення англійської - це виклик.',
+        ]);
+        $first = VocabularyItem::create([
+            'language_id' => $course->language_id,
+            'term' => 'goal',
+            'translation' => 'ціль',
+        ]);
+
+        $lesson->vocabularyItems()->attach($second, [
+            'position' => 2,
+            'is_required' => false,
+            'note' => 'Useful extra word.',
+        ]);
+        $lesson->vocabularyItems()->attach($first, [
+            'position' => 1,
+            'is_required' => true,
+            'note' => null,
+        ]);
+
+        $test = $lesson->tests()->create([
+            'question' => 'Test marker',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+        $test->options()->createMany([
+            ['option_text' => 'A', 'is_correct' => true],
+            ['option_text' => 'B', 'is_correct' => false],
+            ['option_text' => 'C', 'is_correct' => false],
+        ]);
+
+        $html = $this->get(route('courses.lessons.show', [$course, $lesson]))
+            ->assertOk()
+            ->assertSee('Слова до уроку')
+            ->assertSee('Словник')
+            ->assertSee('goal')
+            ->assertSee('ціль')
+            ->assertSee('challenge')
+            ->assertSee('виклик')
+            ->assertSee('/challenge/')
+            ->assertSee('noun')
+            ->assertSee('Something that tests your ability.')
+            ->assertSee('Learning English is a challenge.')
+            ->assertSee('Вивчення англійської - це виклик.')
+            ->assertSee('Useful extra word.')
+            ->assertSee('Обов’язково')
+            ->assertSee('lesson-system-block--vocabulary', false)
+            ->getContent();
+
+        $materialPosition = strpos($html, 'Lesson material marker');
+        $vocabularyPosition = strpos($html, 'Слова до уроку');
+        $firstWordPosition = strpos($html, 'goal');
+        $secondWordPosition = strpos($html, 'challenge');
+        $testPosition = strpos($html, 'Test marker');
+
+        $this->assertLessThan($vocabularyPosition, $materialPosition);
+        $this->assertLessThan($firstWordPosition, $vocabularyPosition);
+        $this->assertLessThan($secondWordPosition, $firstWordPosition);
+        $this->assertLessThan($testPosition, $secondWordPosition);
+    }
+
+    public function test_public_lesson_hides_vocabulary_block_when_no_words_are_attached(): void
+    {
+        [$course, $lesson] = $this->createFreeLesson();
+
+        $this->get(route('courses.lessons.show', [$course, $lesson]))
+            ->assertOk()
+            ->assertDontSee('Слова до уроку')
+            ->assertDontSee('lesson-system-block--vocabulary', false);
+    }
+
+    public function test_public_lesson_renders_tests_in_position_order(): void
+    {
+        [$course, $lesson] = $this->createFreeLesson();
+
+        $second = $lesson->tests()->create([
+            'question' => 'Second question marker',
+            'position' => 2,
+            'is_multiple_choice' => false,
+        ]);
+        $first = $lesson->tests()->create([
+            'question' => 'First question marker',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+
+        foreach ([$second, $first] as $test) {
+            $test->options()->createMany([
+                ['option_text' => 'A', 'is_correct' => true],
+                ['option_text' => 'B', 'is_correct' => false],
+                ['option_text' => 'C', 'is_correct' => false],
+            ]);
+        }
+
+        $html = $this->get(route('courses.lessons.show', [$course, $lesson]))
+            ->assertOk()
+            ->assertSee('First question marker')
+            ->assertSee('Second question marker')
+            ->getContent();
+
+        $this->assertLessThan(
+            strpos($html, 'Second question marker'),
+            strpos($html, 'First question marker')
+        );
     }
 
     private function createFreeLesson(): array

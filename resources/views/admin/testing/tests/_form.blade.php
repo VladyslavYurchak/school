@@ -140,7 +140,7 @@
                        value="1"
                        id="show_result_immediately"
                     @checked(old('show_result_immediately', $test->show_result_immediately ?? true))>
-                <label class="form-check-label" for="show_result_immediately">Показувати результат одразу</label>
+                <label class="form-check-label" for="show_result_immediately">Показувати правильні відповіді після тесту</label>
             </div>
         </div>
     </div>

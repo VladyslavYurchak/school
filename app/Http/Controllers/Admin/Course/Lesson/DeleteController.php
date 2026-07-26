@@ -13,9 +13,23 @@ class DeleteController extends Controller
         $lesson = Lesson::findOrFail($lessonId);
         $courseId = $lesson->course_id;
 
+        if ($lesson->hasPurchaseHistory()) {
+            return redirect()
+                ->route('admin.course.show', $courseId)
+                ->with('error', 'Урок має історію оплат і не може бути видалений. Зніміть його з публікації.');
+        }
+
         $lesson->contentBlocks()
             ->whereNotNull('media_path')
             ->pluck('media_path')
+            ->each(fn (string $path) => Storage::disk('public')->delete($path));
+
+        $lesson->exercises()
+            ->with('items:id,lesson_exercise_id,audio_path')
+            ->get()
+            ->flatMap->items
+            ->pluck('audio_path')
+            ->filter()
             ->each(fn (string $path) => Storage::disk('public')->delete($path));
 
         $lesson->delete();

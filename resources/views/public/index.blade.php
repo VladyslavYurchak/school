@@ -157,28 +157,32 @@
                             Перевірте свої знання іноземної мови та дізнайтесь свій орієнтовний рівень просто зараз.
                         </p>
 
-                        <div class="row g-3 mt-1">
-                            <div class="col-md-4">
-                                <form action="{{ route('testing.start', 'en') }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="btn btn-brand w-100">Англійська</button>
-                                </form>
-                            </div>
+                        @php
+                            $testingLanguageLabels = [
+                                'en' => 'Англійська',
+                                'fr' => 'Французька',
+                                'zh' => 'Китайська',
+                            ];
+                        @endphp
 
-                            <div class="col-md-4">
-                                <form action="{{ route('testing.start', 'fr') }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="btn btn-brand w-100">Французька</button>
-                                </form>
+                        @if($availableTestingLanguages->isNotEmpty())
+                            <div class="row g-3 mt-1">
+                                @foreach($testingLanguageLabels as $code => $label)
+                                    @if($availableTestingLanguages->contains($code))
+                                        <div class="col-sm-6 col-md-4">
+                                            <form action="{{ route('testing.start', $code) }}" method="POST">
+                                                @csrf
+                                                <button type="submit" class="btn btn-brand w-100">{{ $label }}</button>
+                                            </form>
+                                        </div>
+                                    @endif
+                                @endforeach
                             </div>
-
-                            <div class="col-md-4">
-                                <form action="{{ route('testing.start', 'zh') }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="btn btn-brand w-100">Китайська</button>
-                                </form>
+                        @else
+                            <div class="alert alert-light border mt-3 mb-0">
+                                Нове тестування вже готується. Спробуйте трохи пізніше.
                             </div>
-                        </div>
+                        @endif
 
                         <div class="info-links mt-4">
                             <a href="#"

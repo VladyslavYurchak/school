@@ -9,10 +9,12 @@ class IndexController extends Controller
 {
     public function __invoke()
     {
+        $teachers = Teacher::with('user')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
 
-        $teachers = Teacher::with('user')->paginate(10); // 10 записів на сторінку
         return view('admin.teachers.index', compact('teachers'));
     }
 
 }
-

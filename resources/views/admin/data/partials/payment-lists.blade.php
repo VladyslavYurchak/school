@@ -10,13 +10,13 @@
 @endphp
 
 <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
         <h3 class="h5 mb-0">Оплати навчання в школі</h3>
         <strong>{{ number_format($schoolPaymentsTotal ?? 0, 2, ',', ' ') }} UAH</strong>
     </div>
 
     <div class="table-responsive">
-        <table class="table table-bordered align-middle">
+        <table class="table table-bordered align-middle admin-data-table admin-data-table-school-payments">
             <thead>
             <tr>
                 <th>Учень</th>
@@ -36,9 +36,9 @@
                 @endphp
                 <tr>
                     <td>{{ $payment->student?->full_name ?? '-' }}</td>
-                    <td>{{ $payment->student?->teacher?->full_name ?? '-' }}</td>
+                    <td>{{ $payment->teacher?->full_name ?? '-' }}</td>
                     <td>{{ $schoolPaymentTypeLabels[$payment->type] ?? $payment->type }}</td>
-                    <td>{{ $payment->subscriptionTemplate?->title ?? 'Разове індивідуальне заняття' }}</td>
+                    <td>{{ $payment->subscription_title ?? $payment->subscriptionTemplate?->title ?? 'Разове індивідуальне заняття' }}</td>
                     <td>
                         {{ optional($payment->start_date)->format('d.m.Y') }}
                         -
@@ -59,13 +59,13 @@
 </div>
 
 <div>
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
         <h3 class="h5 mb-0">Оплати курсів та онлайн-уроків</h3>
         <strong>{{ number_format($onlineProductPaymentsTotal ?? 0, 2, ',', ' ') }} UAH</strong>
     </div>
 
     <div class="table-responsive">
-        <table class="table table-bordered align-middle">
+        <table class="table table-bordered align-middle admin-data-table admin-data-table-online-payments">
             <thead>
             <tr>
                 <th>Учень</th>

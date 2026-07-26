@@ -10,6 +10,13 @@
             'cancelled' => ['label' => 'Скасовано', 'class' => 'admin-badge-paid'],
             'completed' => ['label' => 'Проведено', 'class' => 'admin-badge-free'],
         ];
+
+        $lessonTypeLabels = [
+            'individual' => 'Індивідуальне',
+            'group' => 'Групове',
+            'pair' => 'Парне',
+            'trial' => 'Пробне',
+        ];
     @endphp
 
     <div class="admin-page">
@@ -74,6 +81,7 @@
                                     <th>Стара дата</th>
                                     <th>Нова дата</th>
                                     <th>Урок</th>
+                                    <th>Учень / група</th>
                                     <th>Викладач</th>
                                     <th>Хто виконав</th>
                                     <th>Записано</th>
@@ -86,6 +94,17 @@
                                             'label' => $log->action,
                                             'class' => 'admin-badge-muted',
                                         ];
+                                        $meta = is_array($log->meta) ? $log->meta : [];
+                                        $lessonType = $log->lesson?->lesson_type;
+                                        $lessonType = $lessonType instanceof \BackedEnum ? $lessonType->value : $lessonType;
+                                        $lessonType ??= $meta['lesson_type'] ?? null;
+                                        $studentName = $log->lesson?->student?->full_name ?? ($meta['student_name'] ?? null);
+                                        $groupName = $log->lesson?->group?->name ?? ($meta['group_name'] ?? null);
+                                        $teacherName = $log->lesson?->teacher?->full_name ?? ($meta['teacher_name'] ?? null);
+                                        $lessonTitle = $log->lesson?->title ?? ($meta['lesson_title'] ?? null);
+                                        $studentId = $log->lesson?->student_id ?? ($meta['student_id'] ?? null);
+                                        $groupId = $log->lesson?->group_id ?? ($meta['group_id'] ?? null);
+                                        $teacherId = $log->lesson?->teacher_id ?? ($meta['teacher_id'] ?? null);
                                     @endphp
                                     <tr>
                                         <td>{{ $log->id }}</td>
@@ -95,20 +114,25 @@
                                         <td>{{ $log->lesson_datetime ? $log->lesson_datetime->format('d.m.Y H:i') : '-' }}</td>
                                         <td>{{ $log->new_lesson_datetime ? $log->new_lesson_datetime->format('d.m.Y H:i') : '-' }}</td>
                                         <td>
-                                            @if($log->lesson)
-                                                <strong>#{{ $log->lesson->id }}</strong><br>
-                                                <span class="text-muted">{{ $log->lesson->title ?? '-' }}</span>
-                                            @else
-                                                <span class="text-muted">Урок видалено</span>
-                                            @endif
+                                            <strong>#{{ $log->lesson_id }}</strong>
+                                            <span class="admin-badge admin-badge-muted">
+                                                {{ $lessonTypeLabels[$lessonType] ?? ($lessonType ?: 'Тип не вказано') }}
+                                            </span>
+                                            <br>
+                                            <span class="text-muted">{{ $lessonTitle ?: 'Назву не вказано' }}</span>
                                         </td>
                                         <td>
-                                            @if($log->lesson && $log->lesson->teacher)
-                                                {{ $log->lesson->teacher->last_name }} {{ $log->lesson->teacher->first_name }}
+                                            @if(in_array($lessonType, ['group', 'pair'], true))
+                                                <strong>{{ $lessonType === 'pair' ? 'Пара' : 'Група' }}:</strong>
+                                                {{ $groupName ?: ($groupId ? "#{$groupId} (видалена)" : 'не вказана') }}
+                                            @elseif($lessonType === 'trial' && !$studentName)
+                                                Пробне заняття без учня
                                             @else
-                                                -
+                                                <strong>Учень:</strong>
+                                                {{ $studentName ?: ($studentId ? "#{$studentId} (видалений)" : 'не вказаний') }}
                                             @endif
                                         </td>
+                                        <td>{{ $teacherName ?: ($teacherId ? "#{$teacherId} (видалений)" : '-') }}</td>
                                         <td>{{ $log->user?->name ?? 'system' }}</td>
                                         <td>{{ $log->created_at->format('d.m.Y H:i') }}</td>
                                     </tr>

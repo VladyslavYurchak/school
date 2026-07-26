@@ -35,7 +35,11 @@ class IndexController extends Controller
             }
             // Фолбеки на випадок відсутності snapshot:
             if (!is_null($log->group_id)) {
-                return (float) ($log->teacher_rate_amount_at_charge ?? $teacher->group_lesson_price ?? 0);
+                $fallbackRate = $log->lesson_type === 'pair'
+                    ? $teacher->pair_lesson_price
+                    : $teacher->group_lesson_price;
+
+                return (float) ($log->teacher_rate_amount_at_charge ?? $fallbackRate ?? 0);
             }
             return (float) ($log->teacher_rate_amount_at_charge ?? $teacher->lesson_price ?? 0);
         };
@@ -110,7 +114,11 @@ class IndexController extends Controller
             } else {
                 // Snapshot суми відсутній: додаємо ставку рівно ОДИН раз на сесію, щоб не множити на студентів.
                 if ($seenSessionsPerGroup[$groupName][$sessionKey]['amount_added'] === false) {
-                    $amount = (float) ($log->teacher_rate_amount_at_charge ?? $teacher->group_lesson_price ?? 0);
+                    $fallbackRate = $log->lesson_type === 'pair'
+                        ? $teacher->pair_lesson_price
+                        : $teacher->group_lesson_price;
+
+                    $amount = (float) ($log->teacher_rate_amount_at_charge ?? $fallbackRate ?? 0);
                     $groupRows[$groupName]['groupEarned'] += $amount;
                     $groupRows[$groupName]['totalEarned'] += $amount;
                     $seenSessionsPerGroup[$groupName][$sessionKey]['amount_added'] = true;

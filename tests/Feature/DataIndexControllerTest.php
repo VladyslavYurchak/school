@@ -185,31 +185,6 @@ class DataIndexControllerTest extends TestCase
                 $monthLessonsCount[$studentB->id] === 1;
         });
 
-        // === singlePaymentsCount ===
-        $response->assertViewHas('singlePaymentsCount', function ($singlePaymentsCount) use ($studentA, $studentB) {
-            // studentA: 2 поразові
-            // studentB: 1 поразова
-            return
-                $singlePaymentsCount[$studentA->id] === 2 &&
-                $singlePaymentsCount[$studentB->id] === 1;
-        });
-
-        // === trialCountsByStudent ===
-        $response->assertViewHas('trialCountsByStudent', function ($trialCountsByStudent) {
-            // всі trial-и в цьому місяці лягають під ключ null
-            return
-                isset($trialCountsByStudent[null]) &&
-                $trialCountsByStudent[null] === 3;
-        });
-
-        // === trialCostsByStudent ===
-        $response->assertViewHas('trialCostsByStudent', function ($trialCostsByStudent) {
-            // сума виплат по trial-уроках у цьому місяці: 100 + 150 + 200 = 450
-            return
-                isset($trialCostsByStudent[null]) &&
-                (int) $trialCostsByStudent[null] === 450;
-        });
-
         $response->assertViewHas('reports');
         $response->assertViewHas('reportTotals');
     }
@@ -315,5 +290,109 @@ class DataIndexControllerTest extends TestCase
         });
 
         $response->assertViewHas('onlineProductPaymentsTotal', 900.0);
+    }
+
+    public function test_data_index_uses_historical_subscription_and_keeps_inactive_students_with_month_activity(): void
+    {
+        $oldTeacher = Teacher::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'teacher'])->id,
+        ]);
+        $newTeacher = Teacher::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'teacher'])->id,
+        ]);
+        $oldTemplate = SubscriptionTemplate::factory()->create([
+            'title' => 'Old monthly plan',
+            'type' => 'individual',
+        ]);
+        $newTemplate = SubscriptionTemplate::factory()->create([
+            'title' => 'New monthly plan',
+            'type' => 'group',
+        ]);
+
+        $student = Student::factory()->create([
+            'teacher_id' => $oldTeacher->id,
+            'subscription_id' => $oldTemplate->id,
+            'is_active' => true,
+        ]);
+
+        $oldSubscription = StudentSubscription::factory()->create([
+            'student_id' => $student->id,
+            'subscription_template_id' => $oldTemplate->id,
+            'status' => 'active',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
+        ]);
+
+        $oldTemplate->update([
+            'title' => 'Renamed template',
+            'type' => 'pair',
+            'lessons_per_week' => 4,
+        ]);
+
+        $student->update([
+            'teacher_id' => $newTeacher->id,
+            'subscription_id' => $newTemplate->id,
+            'is_active' => false,
+        ]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $student->id,
+            'subscription_template_id' => $newTemplate->id,
+            'status' => 'active',
+            'start_date' => '2026-07-01',
+            'end_date' => '2026-07-31',
+        ]);
+
+        LessonLog::factory()->create([
+            'student_id' => $student->id,
+            'teacher_id' => $oldTeacher->id,
+            'status' => 'completed',
+            'date' => '2026-06-15',
+        ]);
+
+        $inactiveWithoutActivity = Student::factory()->create([
+            'teacher_id' => $newTeacher->id,
+            'is_active' => false,
+        ]);
+
+        $response = $this->get(route('admin.data.index', [
+            'month' => 6,
+            'year' => 2026,
+        ]));
+
+        $response->assertOk();
+        $response->assertViewHas('students', function ($students) use ($student, $inactiveWithoutActivity) {
+            return $students->contains('id', $student->id)
+                && !$students->contains('id', $inactiveWithoutActivity->id);
+        });
+        $response->assertViewHas('monthlySubscriptions', function ($subscriptions) use ($student, $oldSubscription, $oldTeacher) {
+            $subscription = $subscriptions->get($student->id);
+
+            return $subscription?->is($oldSubscription)
+                && $subscription->teacher_id === $oldTeacher->id
+                && $subscription->subscription_title === 'Old monthly plan'
+                && $subscription->lesson_type === 'individual';
+        });
+    }
+
+    public function test_data_index_rejects_invalid_period_values(): void
+    {
+        $this->from(route('admin.data.index'))
+            ->get(route('admin.data.index', ['month' => 13, 'year' => 2021]))
+            ->assertRedirect(route('admin.data.index'))
+            ->assertSessionHasErrors(['month', 'year']);
+    }
+
+    public function test_data_index_allows_selecting_next_year(): void
+    {
+        $nextYear = now()->year + 1;
+
+        $this->get(route('admin.data.index', [
+            'month' => 1,
+            'year' => $nextYear,
+        ]))
+            ->assertOk()
+            ->assertViewHas('selectedYear', $nextYear)
+            ->assertSee((string) $nextYear);
     }
 }
