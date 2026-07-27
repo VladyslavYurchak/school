@@ -23,7 +23,11 @@ class StudentDashboardController extends Controller
             ])
             ->first();
 
-        abort_if(!$student, 404, 'Студента не знайдено.');
+        if (! $student) {
+            return view('student.pending-profile', [
+                'user' => $user,
+            ]);
+        }
 
         $upcomingLessons = PlannedLesson::query()
             ->with(['teacher', 'group'])

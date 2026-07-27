@@ -62,10 +62,6 @@ class SocialAuthController extends Controller
             ->first();
 
         if ($account) {
-            if (! $account->user->isStudent()) {
-                return $this->staffFailure();
-            }
-
             return $this->login($request, $account->user);
         }
 
@@ -73,7 +69,7 @@ class SocialAuthController extends Controller
             ->whereRaw('LOWER(email) = ?', [$email])
             ->first();
 
-        if ($user && ! $user->isStudent()) {
+        if ($user && ! $user->isStudent() && ! $this->canLinkStaffAccount($provider, $user)) {
             return $this->staffFailure();
         }
 
@@ -121,11 +117,19 @@ class SocialAuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        $fallback = $user->student()->exists()
-            ? route('student.dashboard')
-            : route('index');
+        $fallback = match (true) {
+            $user->isAdmin(), $user->isTeacher() => route('admin.index'),
+            $user->isStudent() => route('student.dashboard'),
+            default => route('index'),
+        };
 
         return redirect()->intended($fallback);
+    }
+
+    private function canLinkStaffAccount(string $provider, User $user): bool
+    {
+        return $provider === 'google'
+            && ($user->isAdmin() || $user->isTeacher());
     }
 
     private function isConfigured(string $provider): bool
@@ -142,7 +146,7 @@ class SocialAuthController extends Controller
 
     private function staffFailure(): RedirectResponse
     {
-        return $this->failure('Для входу адміністратора або викладача використайте email і пароль.');
+        return $this->failure('Для входу адміністратора або викладача використайте Google або email і пароль.');
     }
 
     private function failure(string $message): RedirectResponse

@@ -21,6 +21,23 @@ class StudentDashboardControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_new_student_account_sees_pending_profile_instead_of_not_found(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'student',
+            'email' => 'new-student@example.com',
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertViewIs('student.pending-profile')
+            ->assertSee('Акаунт успішно створено')
+            ->assertSee('new-student@example.com')
+            ->assertSee(route('courses.index'), false);
+    }
+
     public function test_dashboard_shows_only_students_upcoming_planned_lessons_in_chronological_order(): void
     {
         Carbon::setTestNow('2026-07-26 12:00:00');

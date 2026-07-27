@@ -34,7 +34,11 @@ class StudentPaymentController extends Controller
             }])
             ->first();
 
-        abort_if(!$student, 404, 'Student was not found.');
+        if (! $student) {
+            return redirect()
+                ->route('student.dashboard')
+                ->with('error', 'Профіль учня ще не підключено адміністратором.');
+        }
 
         return view('student.payments.index', [
             'student' => $student,
@@ -128,7 +132,11 @@ class StudentPaymentController extends Controller
 
         $student = $user->student()->with('subscriptionTemplate')->first();
 
-        abort_if(!$student, 404, 'Student was not found.');
+        if (! $student) {
+            return redirect()
+                ->route('student.dashboard')
+                ->with('error', 'Профіль учня ще не підключено адміністратором.');
+        }
         abort_if(!$student->subscriptionTemplate, 422, 'No subscription is assigned to you.');
 
         $template = $student->subscriptionTemplate;

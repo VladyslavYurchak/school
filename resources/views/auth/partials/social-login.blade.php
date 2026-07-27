@@ -1,5 +1,5 @@
 @if(session('social_auth_error'))
-    <div class="alert alert-danger mb-3" role="alert">
+    <div class="alert alert-danger auth-social-alert" role="alert">
         {{ session('social_auth_error') }}
     </div>
 @endif

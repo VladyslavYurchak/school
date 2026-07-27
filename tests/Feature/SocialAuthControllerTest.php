@@ -43,7 +43,7 @@ class SocialAuthControllerTest extends TestCase
         ]);
 
         $this->get(route('social.callback', 'google'))
-            ->assertRedirect(route('index'));
+            ->assertRedirect(route('student.dashboard'));
 
         $user = User::where('email', 'maria@example.com')->firstOrFail();
 
@@ -71,7 +71,7 @@ class SocialAuthControllerTest extends TestCase
         ]);
 
         $this->get(route('social.callback', 'facebook'))
-            ->assertRedirect(route('index'));
+            ->assertRedirect(route('student.dashboard'));
 
         $this->assertAuthenticatedAs($user);
         $this->assertSame(1, User::where('email', 'student@example.com')->count());
@@ -102,15 +102,15 @@ class SocialAuthControllerTest extends TestCase
         ]);
 
         $this->get(route('social.callback', 'google'))
-            ->assertRedirect(route('index'));
+            ->assertRedirect(route('student.dashboard'));
 
         $this->assertAuthenticatedAs($user);
         $this->assertDatabaseMissing('users', ['email' => 'changed@example.com']);
     }
 
-    public function test_social_login_does_not_automatically_link_staff_account(): void
+    public function test_google_login_links_existing_admin_by_exact_email(): void
     {
-        User::factory()->create([
+        $user = User::factory()->create([
             'role' => 'admin',
             'email' => 'admin@example.com',
         ]);
@@ -122,13 +122,61 @@ class SocialAuthControllerTest extends TestCase
         ]);
 
         $this->get(route('social.callback', 'google'))
+            ->assertRedirect(route('admin.index'));
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseHas('social_accounts', [
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_user_id' => 'google-admin-id',
+        ]);
+    }
+
+    public function test_google_login_links_existing_teacher_by_exact_email(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'teacher',
+            'email' => 'teacher@example.com',
+        ]);
+
+        $this->mockSocialUser('google', [
+            'id' => 'google-teacher-id',
+            'name' => 'Teacher',
+            'email' => 'TEACHER@example.com',
+        ]);
+
+        $this->get(route('social.callback', 'google'))
+            ->assertRedirect(route('admin.index'));
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseHas('social_accounts', [
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_user_id' => 'google-teacher-id',
+        ]);
+    }
+
+    public function test_facebook_login_does_not_automatically_link_staff_account(): void
+    {
+        User::factory()->create([
+            'role' => 'admin',
+            'email' => 'admin@example.com',
+        ]);
+
+        $this->mockSocialUser('facebook', [
+            'id' => 'facebook-admin-id',
+            'name' => 'Admin',
+            'email' => 'admin@example.com',
+        ]);
+
+        $this->get(route('social.callback', 'facebook'))
             ->assertRedirect(route('login'))
             ->assertSessionHas('social_auth_error');
 
         $this->assertGuest();
         $this->assertDatabaseMissing('social_accounts', [
-            'provider' => 'google',
-            'provider_user_id' => 'google-admin-id',
+            'provider' => 'facebook',
+            'provider_user_id' => 'facebook-admin-id',
         ]);
     }
 
