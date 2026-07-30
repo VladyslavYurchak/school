@@ -158,8 +158,8 @@
                 event.preventDefault();
 
                 const canvas = cropper.getCroppedCanvas({
-                    maxWidth: 2000,
-                    maxHeight: 2000,
+                    width: 1200,
+                    height: 1200,
                     imageSmoothingEnabled: true,
                     imageSmoothingQuality: 'high',
                 });

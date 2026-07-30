@@ -17,6 +17,70 @@ class TeacherIncomeControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_teacher_income_keeps_people_and_groups_with_same_names_as_separate_rows(): void
+    {
+        $user = User::factory()->create(['role' => 'teacher']);
+        $teacher = Teacher::factory()->create(['user_id' => $user->id]);
+
+        $firstStudent = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+            'first_name' => 'Олена',
+            'last_name' => 'Тест',
+        ]);
+        $secondStudent = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+            'first_name' => 'Олена',
+            'last_name' => 'Тест',
+        ]);
+        $group = Group::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+            'name' => 'Олена Тест',
+        ]);
+
+        foreach ([$firstStudent, $secondStudent] as $student) {
+            LessonLog::factory()->create([
+                'student_id' => $student->id,
+                'teacher_id' => $teacher->id,
+                'group_id' => null,
+                'lesson_type' => LessonType::Individual->value,
+                'date' => '2026-06-10',
+                'status' => LessonLogStatus::Completed->value,
+                'teacher_payout_amount' => 400,
+            ]);
+        }
+
+        LessonLog::factory()->create([
+            'student_id' => $firstStudent->id,
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+            'lesson_type' => LessonType::Group->value,
+            'date' => '2026-06-11',
+            'time' => '10:00:00',
+            'status' => LessonLogStatus::Completed->value,
+            'teacher_payout_amount' => 600,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('admin.teacher_income.index', ['month' => 6, 'year' => 2026]))
+            ->assertOk()
+            ->assertViewHas('data', function (array $data): bool {
+                return count($data) === 3
+                    && collect($data)->sum('totalEarned') === 1400.0;
+            });
+    }
+
+    public function test_teacher_income_rejects_invalid_period(): void
+    {
+        $user = User::factory()->create(['role' => 'teacher']);
+        Teacher::factory()->create(['user_id' => $user->id]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('admin.teacher_income.index', ['month' => 13, 'year' => 1900]))
+            ->assertSessionHasErrors(['month', 'year']);
+    }
+
     public function test_teacher_income_sums_group_and_pair_sessions_without_double_counting_old_logs(): void
     {
         $user = User::factory()->create(['role' => 'teacher']);

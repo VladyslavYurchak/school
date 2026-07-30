@@ -16,8 +16,13 @@ class IndexController extends Controller
     {
         $teacher = Auth::user()->teacher;
 
-        $selectedMonth = (int) $request->input('month', now()->month);
-        $selectedYear  = (int) $request->input('year', now()->year);
+        $validated = $request->validate([
+            'month' => ['nullable', 'integer', 'between:1,12'],
+            'year' => ['nullable', 'integer', 'between:2022,'.(now()->year + 1)],
+        ]);
+
+        $selectedMonth = (int) ($validated['month'] ?? now()->month);
+        $selectedYear  = (int) ($validated['year'] ?? now()->year);
 
         $logs = LessonLog::with(['student','group'])
             ->where('teacher_id', $teacher->id)
@@ -41,7 +46,11 @@ class IndexController extends Controller
 
                 return (float) ($log->teacher_rate_amount_at_charge ?? $fallbackRate ?? 0);
             }
-            return (float) ($log->teacher_rate_amount_at_charge ?? $teacher->lesson_price ?? 0);
+            $fallbackRate = $log->lesson_type === 'trial'
+                ? $teacher->trial_lesson_price
+                : $teacher->lesson_price;
+
+            return (float) ($log->teacher_rate_amount_at_charge ?? $fallbackRate ?? 0);
         };
 
         // ### Індивідуальні (рядок = студент)
@@ -51,9 +60,10 @@ class IndexController extends Controller
         foreach ($individualLogs as $log) {
             $name   = $log->student->full_name ?? '—';
             $payout = $payoutFromLog($log);
+            $rowKey = 'student:'.($log->student_id ?? 'unknown:'.$log->id);
 
-            if (!isset($individualRows[$name])) {
-                $individualRows[$name] = [
+            if (!isset($individualRows[$rowKey])) {
+                $individualRows[$rowKey] = [
                     'student'          => (object)['full_name' => $name],
                     'individualCount'  => 0,
                     'groupCount'       => 0,
@@ -63,9 +73,9 @@ class IndexController extends Controller
                 ];
             }
 
-            $individualRows[$name]['individualCount']++;
-            $individualRows[$name]['individualEarned'] += $payout;
-            $individualRows[$name]['totalEarned']      += $payout;
+            $individualRows[$rowKey]['individualCount']++;
+            $individualRows[$rowKey]['individualEarned'] += $payout;
+            $individualRows[$rowKey]['totalEarned']      += $payout;
         }
 
         // ### Групові (рядок = група)
@@ -78,9 +88,10 @@ class IndexController extends Controller
 
         foreach ($groupLogs as $log) {
             $groupName = $log->group->name ?? ('Група #' . ($log->group_id ?? '—'));
+            $rowKey = 'group:'.($log->group_id ?? 'unknown:'.$log->id);
 
-            if (!isset($groupRows[$groupName])) {
-                $groupRows[$groupName] = [
+            if (!isset($groupRows[$rowKey])) {
+                $groupRows[$rowKey] = [
                     'student'          => (object)['full_name' => $groupName],
                     'individualCount'  => 0,
                     'groupCount'       => 0,   // рахуємо СЕСІЇ, а не студентів
@@ -88,7 +99,7 @@ class IndexController extends Controller
                     'groupEarned'      => 0.0,
                     'totalEarned'      => 0.0,
                 ];
-                $seenSessionsPerGroup[$groupName] = [];
+                $seenSessionsPerGroup[$rowKey] = [];
             }
 
             // Ключ сесії: спочатку lesson_id, інакше група+дата+час
@@ -98,30 +109,30 @@ class IndexController extends Controller
                 : 'G:' . ($log->group_id ?? '0') . '|' . $log->date . '|' . $time;
 
             // 1) Лічильник занять (по унікальних сесіях)
-            if (!isset($seenSessionsPerGroup[$groupName][$sessionKey])) {
-                $seenSessionsPerGroup[$groupName][$sessionKey] = [
+            if (!isset($seenSessionsPerGroup[$rowKey][$sessionKey])) {
+                $seenSessionsPerGroup[$rowKey][$sessionKey] = [
                     'counted'      => true,   // для groupCount
                     'amount_added' => false,  // чи додавали суму за сесію у фолбек-режимі
                 ];
-                $groupRows[$groupName]['groupCount']++; // +1 сесія
+                $groupRows[$rowKey]['groupCount']++; // +1 сесія
             }
 
             // 2) Сума:
             if (!is_null($log->teacher_payout_amount)) {
                 // У тебе вже записані "частки" по кожному студенту (наприклад, по 133 грн) — просто плюсуємо всі.
-                $groupRows[$groupName]['groupEarned'] += (float) $log->teacher_payout_amount;
-                $groupRows[$groupName]['totalEarned'] += (float) $log->teacher_payout_amount;
+                $groupRows[$rowKey]['groupEarned'] += (float) $log->teacher_payout_amount;
+                $groupRows[$rowKey]['totalEarned'] += (float) $log->teacher_payout_amount;
             } else {
                 // Snapshot суми відсутній: додаємо ставку рівно ОДИН раз на сесію, щоб не множити на студентів.
-                if ($seenSessionsPerGroup[$groupName][$sessionKey]['amount_added'] === false) {
+                if ($seenSessionsPerGroup[$rowKey][$sessionKey]['amount_added'] === false) {
                     $fallbackRate = $log->lesson_type === 'pair'
                         ? $teacher->pair_lesson_price
                         : $teacher->group_lesson_price;
 
                     $amount = (float) ($log->teacher_rate_amount_at_charge ?? $fallbackRate ?? 0);
-                    $groupRows[$groupName]['groupEarned'] += $amount;
-                    $groupRows[$groupName]['totalEarned'] += $amount;
-                    $seenSessionsPerGroup[$groupName][$sessionKey]['amount_added'] = true;
+                    $groupRows[$rowKey]['groupEarned'] += $amount;
+                    $groupRows[$rowKey]['totalEarned'] += $amount;
+                    $seenSessionsPerGroup[$rowKey][$sessionKey]['amount_added'] = true;
                 }
             }
         }

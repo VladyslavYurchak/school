@@ -7,6 +7,7 @@ use App\Enums\LessonType;
 use App\Models\Group;
 use App\Models\LessonLog;
 use App\Models\PlannedLesson;
+use App\Models\Teacher;
 use App\Services\LessonActionLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class RescheduleGroupLessonService
 {
+    public function __construct(
+        private readonly CalendarAvailabilityService $availability
+    ) {}
+
     /**
      * @param array{
      *   group_id:int,
@@ -65,6 +70,8 @@ final class RescheduleGroupLessonService
                 return $this->fail(Response::HTTP_UNPROCESSABLE_ENTITY, 'Групу не знайдено або недоступна.');
             }
 
+            Teacher::query()->lockForUpdate()->findOrFail($group->teacher_id);
+
             $lesson = $lessonQuery
                 ->lockForUpdate()
                 ->first();
@@ -90,25 +97,31 @@ final class RescheduleGroupLessonService
             $newEnd   = $newStart->addMinutes($duration);
 
             // 5) Перевірка конфліктів
-            $hasConflict = PlannedLesson::query()
-                ->lockForUpdate()
-                ->where('group_id', $group->id)
-                ->where('id', '!=', $lesson->id)
-                ->whereNull('deleted_at')
-                ->whereNotIn('status', [
-                    LessonStatus::Rescheduled->value,
-                    defined('App\\Enums\\LessonStatus::Cancelled') ? LessonStatus::Cancelled->value : -9999,
-                ])
-                ->where(function ($q) use ($newStart, $newEnd) {
-                    $q->where('start_date', '<', $newEnd)
-                        ->where('end_date',   '>', $newStart);
-                })
-                ->exists();
+            $hasConflict = $this->availability->groupHasOverlap(
+                (int) $group->id,
+                $newStart,
+                $newEnd,
+                (int) $lesson->id
+            );
 
             if ($hasConflict) {
                 return $this->fail(
                     Response::HTTP_UNPROCESSABLE_ENTITY,
                     'Для цієї групи вже існує інше заняття у вказаний проміжок.'
+                );
+            }
+
+            $teacherHasConflict = $this->availability->teacherHasOverlap(
+                (int) $lesson->teacher_id,
+                $newStart,
+                $newEnd,
+                (int) $lesson->id
+            );
+
+            if ($teacherHasConflict) {
+                return $this->fail(
+                    Response::HTTP_UNPROCESSABLE_ENTITY,
+                    'Викладач уже має інше заняття у вказаний проміжок.'
                 );
             }
 

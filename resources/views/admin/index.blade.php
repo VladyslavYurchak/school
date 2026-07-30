@@ -28,6 +28,55 @@
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
 
+            @if(session('telegram_success'))
+                <div class="alert alert-success" role="status">{{ session('telegram_success') }}</div>
+            @endif
+
+            @if(session('telegram_error'))
+                <div class="alert alert-danger" role="alert">{{ session('telegram_error') }}</div>
+            @endif
+
+            @if(auth()->user()?->isTeacher())
+                <section class="admin-panel">
+                    <div class="admin-panel-header">
+                        <h2 class="admin-panel-title">
+                            <i class="bi bi-telegram"></i>
+                            Telegram-сповіщення
+                        </h2>
+                    </div>
+                    <div class="admin-panel-body">
+                        @if($telegramAccount)
+                            <p class="mb-3">
+                                Telegram підключено
+                                @if($telegramAccount->username)
+                                    як <strong>{{ '@'.$telegramAccount->username }}</strong>.
+                                @endif
+                                Бот нагадуватиме про ваші заплановані заняття.
+                            </p>
+                            <form method="POST" action="{{ route('teacher.telegram.disconnect') }}">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="admin-btn-soft">
+                                    <i class="bi bi-link-45deg"></i>
+                                    Від’єднати Telegram
+                                </button>
+                            </form>
+                        @else
+                            <p class="mb-3">
+                                Підключіть Telegram, щоб отримувати нагадування про власні заняття.
+                            </p>
+                            <form method="POST" action="{{ route('teacher.telegram.connect') }}">
+                                @csrf
+                                <button type="submit" class="admin-btn-primary">
+                                    <i class="bi bi-telegram"></i>
+                                    Підключити Telegram
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                </section>
+            @endif
+
             @if(auth()->user()?->isAdmin())
                 <section class="admin-panel">
                     <div class="admin-panel-header">

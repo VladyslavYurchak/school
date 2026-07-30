@@ -19,11 +19,6 @@ class MonoPayWebhookController extends Controller
     {
         $rawBody = $request->getContent();
 
-        Log::info('MONOPAY WEBHOOK RAW', [
-            'body' => $rawBody,
-            'headers' => $request->headers->all(),
-        ]);
-
         $monoPayload = json_decode($rawBody, true);
 
         if (!is_array($monoPayload)) {
@@ -35,6 +30,12 @@ class MonoPayWebhookController extends Controller
         $invoiceId = $monoPayload['invoiceId'] ?? null;
         $reference = $monoPayload['reference'] ?? null;
         $status = $monoPayload['status'] ?? null;
+
+        Log::info('MONOPAY: webhook received', [
+            'invoiceId' => $invoiceId,
+            'reference' => $reference,
+            'status' => $status,
+        ]);
 
         if (!$invoiceId && !$reference) {
             Log::warning('MONOPAY: missing invoiceId and reference');

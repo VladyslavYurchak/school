@@ -44,38 +44,11 @@
             @enderror
         </div>
 
-        <div class="admin-form-section">
-            <label for="image" class="admin-form-label">Фото за URL або шляхом</label>
-            @if(isset($event) && $event->image)
-                <div class="admin-form-preview mb-3">
-                    <img src="{{ $event->image_url }}" alt="" style="max-width: 220px; border-radius: 8px;">
-                </div>
-            @endif
-            <input type="text"
-                   name="image"
-                   id="image"
-                   class="form-control @error('image') is-invalid @enderror"
-                   value="{{ old('image', $event->image ?? '') }}"
-                   maxlength="255"
-                   placeholder="https://example.com/photo.jpg">
-            @error('image')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-            <div class="form-text">Можна вставити URL або завантажити файл нижче.</div>
-        </div>
-
-        <div class="admin-form-section">
-            <label for="image_file" class="admin-form-label">Завантажити фото</label>
-            <input type="file"
-                   name="image_file"
-                   id="image_file"
-                   class="form-control @error('image_file') is-invalid @enderror"
-                   accept="image/*">
-            @error('image_file')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-            <div class="form-text">Якщо вибрати файл, він буде використаний замість URL.</div>
-        </div>
+        @include('admin.components.square-image-editor', [
+            'editorId' => 'event-image',
+            'currentImageUrl' => isset($event) ? $event->image_url : '',
+            'currentImageValue' => $event->image ?? '',
+        ])
 
         <div class="admin-form-section">
             <label for="is_published" class="admin-form-label">Статус</label>

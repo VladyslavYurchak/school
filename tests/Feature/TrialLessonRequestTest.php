@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Teacher;
 use App\Models\TrialLessonRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,6 +60,7 @@ class TrialLessonRequestTest extends TestCase
     public function test_teacher_main_does_not_show_trial_lesson_requests(): void
     {
         $teacher = User::factory()->create(['role' => 'teacher']);
+        Teacher::factory()->create(['user_id' => $teacher->id]);
 
         TrialLessonRequest::create([
             'name' => 'Марія',

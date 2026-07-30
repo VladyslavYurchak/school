@@ -12,7 +12,11 @@ class IsTeacher
             return redirect()->guest(route('login'));
         }
 
-        if (Auth::user()->isTeacher() || Auth::user()->isAdmin()) {
+        if (Auth::user()->isAdmin()) {
+            return $next($request);
+        }
+
+        if (Auth::user()->isTeacher() && Auth::user()->teacher?->is_active) {
             return $next($request);
         }
 

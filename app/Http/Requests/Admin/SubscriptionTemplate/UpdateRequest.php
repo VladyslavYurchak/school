@@ -19,6 +19,14 @@ class UpdateRequest extends FormRequest
             'lessons_per_week' => ['required', 'integer', 'min:1', 'max:7'],
             'price' => ['required', 'numeric', 'min:0'],
             'description' => ['nullable', 'string'],
+            'is_active' => ['required', 'boolean'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'is_active' => $this->boolean('is_active'),
+        ]);
     }
 }

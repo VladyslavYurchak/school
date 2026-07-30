@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Payment;
+use App\Models\Student;
 use App\Models\StudentSubscription;
 use App\Models\SubscriptionTemplate;
 use Carbon\Carbon;
@@ -13,6 +14,82 @@ use RuntimeException;
 
 class MonoPayPaymentProcessor
 {
+    public function paidFulfillmentStatus(Payment $payment): string
+    {
+        if ($payment->status !== 'paid') {
+            return 'not_paid';
+        }
+
+        $payload = is_array($payment->payload) ? $payment->payload : [];
+        $student = $payment->student()->with('user')->first();
+
+        if ($courseId = ($payload['course_id'] ?? null)) {
+            return $student?->user?->courses()
+                ->whereKey((int) $courseId)
+                ->wherePivotIn('status', ['paid', 'refunded'])
+                ->exists()
+                ? 'fulfilled'
+                : 'missing';
+        }
+
+        if ($lessonId = ($payload['lesson_id'] ?? null)) {
+            return $student?->user?->lessons()
+                ->whereKey((int) $lessonId)
+                ->wherePivotIn('status', ['paid', 'refunded'])
+                ->exists()
+                ? 'fulfilled'
+                : 'missing';
+        }
+
+        if ($payment->type !== 'subscription') {
+            return 'invalid';
+        }
+
+        $subscriptionMonth = $payload['subscription_month'] ?? null;
+
+        try {
+            $startDate = Carbon::createFromFormat('!Y-m', (string) $subscriptionMonth)->startOfMonth();
+        } catch (\Throwable) {
+            return 'invalid';
+        }
+
+        $subscription = StudentSubscription::query()
+            ->where('student_id', $payment->student_id)
+            ->where('type', 'subscription')
+            ->whereDate('start_date', $startDate->toDateString())
+            ->whereDate('end_date', $startDate->copy()->endOfMonth()->toDateString())
+            ->whereIn('status', ['pending', 'active', 'expired'])
+            ->first();
+
+        if (! $subscription) {
+            return 'missing';
+        }
+
+        if ((int) $subscription->payment_id === $payment->id) {
+            return 'fulfilled';
+        }
+
+        return $subscription->payment_id === null ? 'missing_link' : 'conflict';
+    }
+
+    public function reconcilePaidPayment(Payment $payment): string
+    {
+        return DB::transaction(function () use ($payment): string {
+            Student::query()->lockForUpdate()->findOrFail($payment->student_id);
+            $lockedPayment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+            $status = $this->paidFulfillmentStatus($lockedPayment);
+
+            if (! in_array($status, ['missing', 'missing_link'], true)) {
+                return $status;
+            }
+
+            $payload = is_array($lockedPayment->payload) ? $lockedPayment->payload : [];
+            $this->fulfill($lockedPayment, $payload);
+
+            return $this->paidFulfillmentStatus($lockedPayment);
+        });
+    }
+
     public function invoiceMatchesPayment(Payment $payment, array $invoice): bool
     {
         $invoiceId = $invoice['invoiceId'] ?? null;
@@ -21,7 +98,7 @@ class MonoPayPaymentProcessor
         $currency = isset($invoice['ccy']) ? (int) $invoice['ccy'] : null;
         $paymentAmount = (int) round(((float) $payment->amount) * 100);
 
-        if (!$invoiceId) {
+        if (! $invoiceId) {
             return false;
         }
 
@@ -64,6 +141,7 @@ class MonoPayPaymentProcessor
     private function markPaidAndFulfill(Payment $payment, array $monoPayload): void
     {
         DB::transaction(function () use ($payment, $monoPayload) {
+            Student::query()->lockForUpdate()->findOrFail($payment->student_id);
             $lockedPayment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
 
             if (in_array($lockedPayment->status, ['paid', 'refunded'], true)) {
@@ -156,13 +234,13 @@ class MonoPayPaymentProcessor
 
     private function fulfillCourse(Payment $payment, int $courseId): void
     {
-        if ($payment->type !== 'single' || !Course::query()->whereKey($courseId)->exists()) {
+        if ($payment->type !== 'single' || ! Course::query()->whereKey($courseId)->exists()) {
             throw new RuntimeException('The paid course could not be fulfilled.');
         }
 
         $student = $payment->student()->with('user')->first();
 
-        if (!$student?->user) {
+        if (! $student?->user) {
             throw new RuntimeException('The student account for the course payment was not found.');
         }
 
@@ -176,13 +254,13 @@ class MonoPayPaymentProcessor
 
     private function fulfillLesson(Payment $payment, int $lessonId): void
     {
-        if ($payment->type !== 'single' || !Lesson::query()->whereKey($lessonId)->exists()) {
+        if ($payment->type !== 'single' || ! Lesson::query()->whereKey($lessonId)->exists()) {
             throw new RuntimeException('The paid lesson could not be fulfilled.');
         }
 
         $student = $payment->student()->with('user')->first();
 
-        if (!$student?->user) {
+        if (! $student?->user) {
             throw new RuntimeException('The student account for the lesson payment was not found.');
         }
 
@@ -204,7 +282,7 @@ class MonoPayPaymentProcessor
         $subscriptionMonth = $payload['subscription_month'] ?? null;
         $template = $templateId ? SubscriptionTemplate::query()->find($templateId) : null;
 
-        if (!$template || !$subscriptionMonth) {
+        if (! $template || ! $subscriptionMonth) {
             throw new RuntimeException('The subscription payment could not be fulfilled.');
         }
 
@@ -225,6 +303,19 @@ class MonoPayPaymentProcessor
             ->first();
 
         if ($subscription) {
+            if ($subscription->payment_id === null) {
+                $subscription->update([
+                    'payment_id' => $payment->id,
+                    'paid_at' => $subscription->paid_at ?? $payment->paid_at ?? now(),
+                ]);
+
+                return;
+            }
+
+            if ((int) $subscription->payment_id !== $payment->id) {
+                throw new RuntimeException('This subscription period is already linked to another payment.');
+            }
+
             return;
         }
 

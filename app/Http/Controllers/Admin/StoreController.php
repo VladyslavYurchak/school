@@ -1,13 +1,12 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
+
 use App\Http\Controllers\Controller;
 use App\Models\TrialLessonRequest;
 
-
 class StoreController extends Controller
 {
-
     public function __invoke()
     {
         $user = auth()->user();
@@ -19,6 +18,9 @@ class StoreController extends Controller
             'newTrialLessonRequestsCount' => $user?->isAdmin()
                 ? TrialLessonRequest::query()->new()->count()
                 : 0,
+            'telegramAccount' => $user?->isTeacher()
+                ? $user->telegramAccount()->first()
+                : null,
         ]);
     }
 }

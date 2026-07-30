@@ -20,9 +20,13 @@ Route::get('/posts', fn () => redirect()->route('index'))->name('posts.index');
 Route::get('/posts/{post}', PublicPostShowController::class)->name('posts.show');
 
 Route::get('/rules', [SchoolRulePageController::class, 'index'])->name('rules.index');
+Route::view('/privacy-policy', 'public.legal.privacy')->name('privacy-policy');
+Route::view('/data-deletion', 'public.legal.data-deletion')->name('data-deletion');
 Route::get('/teachers', [TeacherPageController::class, 'index'])->name('teachers.index');
 
 Auth::routes(['verify' => true]);
+
+Route::get('/logout', fn () => redirect()->route('login'));
 
 Route::middleware('guest')->prefix('auth')->group(function () {
     Route::get('/{provider}/redirect', [SocialAuthController::class, 'redirect'])

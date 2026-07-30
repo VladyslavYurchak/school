@@ -25,7 +25,11 @@
             <a href="{{ route('index') }}"
                class="nav-link header-exit-btn d-inline-flex align-items-center gap-2">
                 <i class="bi bi-box-arrow-right"></i>
-                <span class="d-none d-lg-inline">Вийти з кабінету адміністратора</span>
+                <span class="d-none d-lg-inline">
+                    {{ auth()->user()?->isTeacher()
+                        ? 'Вийти з кабінету викладача'
+                        : 'Вийти з кабінету адміністратора' }}
+                </span>
                 <span class="d-none d-md-inline d-lg-none">Вийти</span>
             </a>
         </div>

@@ -15,6 +15,24 @@ class AdminSubscriptionCorrectionTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_subscription_correction_routes_reject_invalid_source_months(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+
+        $this
+            ->actingAs($admin)
+            ->delete("/admin/students/{$student->id}/subscriptions/2026-13")
+            ->assertNotFound();
+
+        $this
+            ->actingAs($admin)
+            ->putJson("/admin/students/{$student->id}/subscriptions/not-a-month/move", [
+                'target_month' => '2026-07',
+            ])
+            ->assertNotFound();
+    }
+
     private User $admin;
 
     protected function setUp(): void
@@ -164,6 +182,32 @@ class AdminSubscriptionCorrectionTest extends TestCase
             ->assertJson([
                 'message' => 'На вибраний місяць уже є активний абонемент.',
             ]);
+    }
+
+    public function test_archiving_template_keeps_student_assignment_and_payment_history(): void
+    {
+        [$student, $subscription, $payment] = $this->paidSubscription();
+        $template = $subscription->subscriptionTemplate;
+        $student->update(['subscription_id' => $template->id]);
+
+        $this
+            ->actingAs($this->admin)
+            ->delete(route('admin.subscription-templates.destroy', $template))
+            ->assertRedirect(route('admin.subscription-templates.index'));
+
+        $this->assertDatabaseHas('subscription_templates', [
+            'id' => $template->id,
+            'is_active' => false,
+        ]);
+        $this->assertDatabaseHas('student_subscriptions', [
+            'id' => $subscription->id,
+            'subscription_template_id' => $template->id,
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'id' => $payment->id,
+            'status' => 'paid',
+        ]);
+        $this->assertSame($template->id, $student->fresh()->subscription_id);
     }
 
     private function paidSubscription(): array

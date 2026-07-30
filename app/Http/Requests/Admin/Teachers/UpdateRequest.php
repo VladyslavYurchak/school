@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\Teachers;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateRequest extends FormRequest
 {
@@ -14,7 +15,11 @@ class UpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['required', 'exists:users,id'],
+            'user_id' => [
+                'required',
+                'exists:users,id',
+                Rule::in([(string) $this->route('teacher')->user_id]),
+            ],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],

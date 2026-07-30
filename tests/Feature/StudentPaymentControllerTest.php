@@ -53,10 +53,147 @@ class StudentPaymentControllerTest extends TestCase
             ->assertSee('name="subscription_month"', false)
             ->assertSee('value="2026-06"', false)
             ->assertSee('value="2026-10"', false)
+            ->assertDontSee('value="2026-08"', false)
             ->assertSee('value="2026-09" selected', false)
             ->assertSee('вересень 2026')
             ->assertSee('Ви можете оплатити поточний місяць')
             ->assertDontSee('name="subscription_template_id"', false);
+    }
+
+    public function test_payment_page_hides_every_active_paid_month_in_the_allowed_window(): void
+    {
+        Carbon::setTestNow('2026-08-15 12:00:00');
+
+        $user = User::factory()->create(['role' => 'student']);
+        $template = SubscriptionTemplate::factory()->create([
+            'price' => 2800,
+            'type' => 'individual',
+        ]);
+        $student = Student::factory()->create([
+            'user_id' => $user->id,
+            'subscription_id' => $template->id,
+        ]);
+
+        foreach (['2026-06', '2026-08', '2026-10'] as $month) {
+            $start = Carbon::createFromFormat('!Y-m', $month)->startOfMonth();
+
+            StudentSubscription::factory()->create([
+                'student_id' => $student->id,
+                'subscription_template_id' => $template->id,
+                'type' => 'subscription',
+                'status' => 'active',
+                'start_date' => $start,
+                'end_date' => $start->copy()->endOfMonth(),
+            ]);
+        }
+
+        $this
+            ->actingAs($user)
+            ->get(route('student.payments.index'))
+            ->assertOk()
+            ->assertDontSee('value="2026-06"', false)
+            ->assertSee('value="2026-07"', false)
+            ->assertDontSee('value="2026-08"', false)
+            ->assertSee('value="2026-09" selected', false)
+            ->assertDontSee('value="2026-10"', false);
+    }
+
+    public function test_cancelled_subscription_month_remains_available_for_payment(): void
+    {
+        Carbon::setTestNow('2026-08-15 12:00:00');
+
+        $user = User::factory()->create(['role' => 'student']);
+        $template = SubscriptionTemplate::factory()->create();
+        $student = Student::factory()->create([
+            'user_id' => $user->id,
+            'subscription_id' => $template->id,
+        ]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $student->id,
+            'subscription_template_id' => $template->id,
+            'type' => 'subscription',
+            'status' => 'cancelled',
+            'start_date' => '2026-08-01',
+            'end_date' => '2026-08-31',
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('student.payments.index'))
+            ->assertOk()
+            ->assertSee('value="2026-08" selected', false);
+    }
+
+    public function test_expired_but_paid_subscription_month_is_hidden_and_cannot_be_paid_again(): void
+    {
+        Carbon::setTestNow('2026-08-15 12:00:00');
+
+        $user = User::factory()->create(['role' => 'student']);
+        $template = SubscriptionTemplate::factory()->create();
+        $student = Student::factory()->create([
+            'user_id' => $user->id,
+            'subscription_id' => $template->id,
+        ]);
+
+        StudentSubscription::factory()->create([
+            'student_id' => $student->id,
+            'subscription_template_id' => $template->id,
+            'type' => 'subscription',
+            'status' => 'expired',
+            'start_date' => '2026-07-01',
+            'end_date' => '2026-07-31',
+            'paid_at' => '2026-07-01 10:00:00',
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('student.payments.index'))
+            ->assertOk()
+            ->assertDontSee('value="2026-07"', false);
+
+        $this
+            ->actingAs($user)
+            ->post(route('student.payments.store'), [
+                'subscription_month' => '2026-07',
+            ])
+            ->assertRedirect(route('student.payments.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseCount('payments', 0);
+    }
+
+    public function test_payment_page_handles_all_five_months_already_paid(): void
+    {
+        Carbon::setTestNow('2026-08-15 12:00:00');
+
+        $user = User::factory()->create(['role' => 'student']);
+        $template = SubscriptionTemplate::factory()->create();
+        $student = Student::factory()->create([
+            'user_id' => $user->id,
+            'subscription_id' => $template->id,
+        ]);
+
+        foreach (range(-2, 2) as $offset) {
+            $start = now()->startOfMonth()->addMonths($offset);
+
+            StudentSubscription::factory()->create([
+                'student_id' => $student->id,
+                'subscription_template_id' => $template->id,
+                'type' => 'subscription',
+                'status' => 'active',
+                'start_date' => $start,
+                'end_date' => $start->copy()->endOfMonth(),
+            ]);
+        }
+
+        $this
+            ->actingAs($user)
+            ->get(route('student.payments.index'))
+            ->assertOk()
+            ->assertSee('Усі доступні місяці вже оплачені.')
+            ->assertDontSee('name="subscription_month"', false)
+            ->assertSee('disabled', false);
     }
 
     public function test_student_creates_pending_monopay_payment_for_assigned_subscription_month(): void

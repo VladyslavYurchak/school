@@ -60,6 +60,33 @@ class CalendarAccessTest extends TestCase
         $this->assertSame(0, PlannedLesson::where('teacher_id', $teacher->id)->count());
     }
 
+    public function test_teacher_cannot_bypass_student_ownership_with_foreign_teacher_id(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        [, $otherTeacher] = $this->createTeacherUser();
+
+        $foreignStudent = Student::factory()->create([
+            'teacher_id' => $otherTeacher->id,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.store'), [
+                'start' => '2026-06-11 10:00:00',
+                'duration' => 60,
+                'lesson_type' => LessonType::Individual->value,
+                'student_id' => $foreignStudent->id,
+                'teacher_id' => $otherTeacher->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['teacher_id']);
+
+        $this->assertDatabaseMissing('planned_lessons', [
+            'teacher_id' => $teacher->id,
+            'student_id' => $foreignStudent->id,
+        ]);
+    }
+
     public function test_teacher_update_ignores_attempt_to_change_student(): void
     {
         [$teacherUser, $teacher] = $this->createTeacherUser();
@@ -232,6 +259,73 @@ class CalendarAccessTest extends TestCase
         $response
             ->assertOk()
             ->assertJson(['success' => true]);
+    }
+
+    public function test_teacher_can_reserve_a_weekly_time_for_twelve_months(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        $student = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.store'), [
+                'start' => '2026-01-07 10:00:00',
+                'duration' => 60,
+                'lesson_type' => LessonType::Individual->value,
+                'student_id' => $student->id,
+                'repeat_period' => 'year',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Щотижневі заняття створені на 12 місяців',
+            ]);
+
+        $lessons = PlannedLesson::query()
+            ->where('teacher_id', $teacher->id)
+            ->where('student_id', $student->id)
+            ->orderBy('start_date')
+            ->get();
+
+        $this->assertCount(53, $lessons);
+        $this->assertSame('2026-01-07 10:00:00', $lessons->first()->start_date->format('Y-m-d H:i:s'));
+        $this->assertSame('2027-01-06 10:00:00', $lessons->last()->start_date->format('Y-m-d H:i:s'));
+        $this->assertTrue(
+            $lessons->every(fn (PlannedLesson $lesson, int $index) => $index === 0
+                || $lessons[$index - 1]->start_date->diffInDays($lesson->start_date, true) === 7.0)
+        );
+    }
+
+    public function test_yearly_reservation_is_not_partially_created_when_a_date_conflicts(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        $student = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+        ]);
+
+        PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => $student->id,
+            'start_date' => '2026-01-21 10:00:00',
+            'end_date' => '2026-01-21 11:00:00',
+            'status' => LessonStatus::Planned,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.store'), [
+                'start' => '2026-01-07 10:00:00',
+                'duration' => 60,
+                'lesson_type' => LessonType::Individual->value,
+                'student_id' => $student->id,
+                'repeat_period' => 'year',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['repeat_period']);
+
+        $this->assertSame(1, PlannedLesson::where('teacher_id', $teacher->id)->count());
     }
 
     public function test_teacher_cannot_create_lesson_with_mismatched_subscription_template(): void

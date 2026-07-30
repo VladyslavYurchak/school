@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Course;
+use App\Models\Language;
+use App\Models\Lesson;
 use App\Models\Payment;
 use App\Models\Student;
 use App\Models\StudentSubscription;
@@ -219,15 +222,15 @@ class MonoPayWebhookControllerTest extends TestCase
             'user_id' => User::factory()->create(['role' => 'student'])->id,
         ]);
 
-        $course = \App\Models\Course::query()->create([
+        $course = Course::query()->create([
             'title' => 'Paid course',
             'description' => 'Course',
-            'language_id' => \App\Models\Language::query()->create(['name' => 'English'])->id,
+            'language_id' => Language::query()->create(['name' => 'English'])->id,
             'price' => 900,
             'is_published' => true,
         ]);
 
-        $lesson = \App\Models\Lesson::query()->create([
+        $lesson = Lesson::query()->create([
             'course_id' => $course->id,
             'title' => 'Paid lesson',
             'description' => 'Lesson',
@@ -402,6 +405,80 @@ class MonoPayWebhookControllerTest extends TestCase
 
         $this->assertSame('pending', $payment->fresh()->status);
         $this->assertDatabaseCount('user_course', 0);
+    }
+
+    public function test_reconcile_command_restores_and_links_missing_paid_subscriptions(): void
+    {
+        $template = SubscriptionTemplate::factory()->create([
+            'lessons_per_week' => 2,
+            'price' => 2500,
+        ]);
+        $student = Student::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'student'])->id,
+            'subscription_id' => $template->id,
+        ]);
+        $missingPayment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 2500,
+            'currency' => 'UAH',
+            'status' => 'paid',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_order_id' => 'missing-fulfillment-order',
+            'paid_at' => now(),
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => '2026-08',
+            ],
+        ]);
+        $unlinkedPayment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 2500,
+            'currency' => 'UAH',
+            'status' => 'paid',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_order_id' => 'unlinked-fulfillment-order',
+            'paid_at' => now(),
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => '2026-09',
+            ],
+        ]);
+        $unlinkedSubscription = StudentSubscription::create([
+            'student_id' => $student->id,
+            'subscription_template_id' => $template->id,
+            'payment_id' => null,
+            'price' => 2500,
+            'type' => 'subscription',
+            'status' => 'active',
+            'start_date' => '2026-09-01',
+            'end_date' => '2026-09-30',
+            'lessons_total' => 8,
+            'paid_at' => now(),
+        ]);
+
+        $this->artisan('payments:reconcile-paid')
+            ->expectsOutputToContain("Payment {$missingPayment->id}: missing")
+            ->expectsOutputToContain("Payment {$unlinkedPayment->id}: missing_link")
+            ->assertSuccessful();
+
+        $this->assertDatabaseMissing('student_subscriptions', [
+            'payment_id' => $missingPayment->id,
+        ]);
+        $this->assertNull($unlinkedSubscription->fresh()->payment_id);
+
+        $this->artisan('payments:reconcile-paid', ['--apply' => true])
+            ->expectsOutputToContain('Problems: 2; repaired: 2.')
+            ->assertSuccessful();
+
+        $this->assertDatabaseHas('student_subscriptions', [
+            'student_id' => $student->id,
+            'payment_id' => $missingPayment->id,
+            'start_date' => '2026-08-01 00:00:00',
+            'end_date' => '2026-08-31 00:00:00',
+        ]);
+        $this->assertSame($unlinkedPayment->id, $unlinkedSubscription->fresh()->payment_id);
     }
 
     private function postSignedMonoWebhook(array $payload, string $publicKeyFormat = 'base64')

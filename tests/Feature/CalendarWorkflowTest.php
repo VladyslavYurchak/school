@@ -122,6 +122,72 @@ class CalendarWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_group_attendance_uses_lesson_datetime_instead_of_submitted_datetime(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        $group = Group::factory()->group()->create(['teacher_id' => $teacher->id]);
+        $student = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+        ]);
+        $lesson = PlannedLesson::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+            'start_date' => '2026-06-30 18:15:00',
+            'end_date' => '2026-06-30 19:15:00',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-attendance'), [
+                'group_id' => $group->id,
+                'lesson_id' => $lesson->id,
+                'date' => '2026-07-01',
+                'time' => '01:00',
+                'present_students' => [$student->id],
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('lesson_logs', [
+            'lesson_id' => $lesson->id,
+            'student_id' => $student->id,
+            'date' => '2026-06-30 00:00:00',
+            'time' => '18:15:00',
+        ]);
+    }
+
+    public function test_group_attendance_rejects_student_from_another_group(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        $group = Group::factory()->group()->create(['teacher_id' => $teacher->id]);
+        $otherGroup = Group::factory()->group()->create(['teacher_id' => $teacher->id]);
+        Student::factory()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+        ]);
+        $foreignStudent = Student::factory()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $otherGroup->id,
+        ]);
+        $lesson = PlannedLesson::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-attendance'), [
+                'group_id' => $group->id,
+                'lesson_id' => $lesson->id,
+                'date' => $lesson->start_date->toDateString(),
+                'time' => $lesson->start_date->format('H:i'),
+                'present_students' => [$foreignStudent->id],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('present_students');
+
+        $this->assertDatabaseCount('lesson_logs', 0);
+        $this->assertSame(LessonStatus::Planned, $lesson->fresh()->status);
+    }
+
     public function test_pair_attendance_uses_pair_rate_and_splits_it_between_students(): void
     {
         [$teacherUser, $teacher] = $this->createTeacherUser([
@@ -217,6 +283,46 @@ class CalendarWorkflowTest extends TestCase
         $this->assertSame('2026-06-12 17:00:00', $newLesson->end_date->format('Y-m-d H:i:s'));
         $this->assertSame(90, $newLesson->duration);
         $this->assertSame(0, LessonLog::where('lesson_id', $lesson->id)->count());
+    }
+
+    public function test_group_reschedule_rejects_time_already_occupied_by_teacher(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+
+        $group = Group::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+        ]);
+
+        $lesson = PlannedLesson::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+            'start_date' => '2026-06-10 09:00:00',
+            'end_date' => '2026-06-10 10:00:00',
+            'status' => LessonStatus::Planned,
+            'lesson_type' => LessonType::Group,
+        ]);
+
+        PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'start_date' => '2026-06-12 15:00:00',
+            'end_date' => '2026-06-12 16:00:00',
+            'status' => LessonStatus::Planned,
+            'lesson_type' => LessonType::Individual,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-lessons.reschedule', ['id' => $lesson->id]), [
+                'group_id' => $group->id,
+                'lesson_id' => $lesson->id,
+                'new_date' => '2026-06-12',
+                'new_time' => '15:30',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['new_date']);
+
+        $this->assertSame(LessonStatus::Planned, $lesson->fresh()->status);
+        $this->assertDatabaseCount('planned_lessons', 2);
     }
 
     public function test_group_reschedule_rejects_mismatched_route_and_body_lesson_ids(): void
@@ -624,6 +730,111 @@ class CalendarWorkflowTest extends TestCase
         $this->assertSoftDeleted('planned_lessons', ['id' => $lesson->id]);
         $this->assertSame(LessonStatus::Cancelled, $cancelledLesson->status);
         $this->assertSame(0, LessonLog::where('lesson_id', $lesson->id)->count());
+    }
+
+    public function test_teacher_can_cancel_selected_and_all_future_individual_lessons_for_student(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        $student = Student::factory()->create(['teacher_id' => $teacher->id]);
+        $otherStudent = Student::factory()->create(['teacher_id' => $teacher->id]);
+
+        $earlierLesson = PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => $student->id,
+            'start_date' => '2026-06-08 10:00:00',
+            'end_date' => '2026-06-08 11:00:00',
+            'status' => LessonStatus::Planned,
+        ]);
+        $selectedLesson = PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => $student->id,
+            'start_date' => '2026-06-10 10:00:00',
+            'end_date' => '2026-06-10 11:00:00',
+            'status' => LessonStatus::Planned,
+        ]);
+        $laterLesson = PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => $student->id,
+            'start_date' => '2026-06-18 15:00:00',
+            'end_date' => '2026-06-18 16:00:00',
+            'status' => LessonStatus::Planned,
+        ]);
+        $completedLesson = PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => $student->id,
+            'start_date' => '2026-06-20 10:00:00',
+            'end_date' => '2026-06-20 11:00:00',
+            'status' => LessonStatus::Completed,
+        ]);
+        $otherStudentLesson = PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => $otherStudent->id,
+            'start_date' => '2026-06-18 17:00:00',
+            'end_date' => '2026-06-18 18:00:00',
+            'status' => LessonStatus::Planned,
+        ]);
+
+        LessonLog::factory()->create([
+            'lesson_id' => $laterLesson->id,
+            'student_id' => $student->id,
+            'teacher_id' => $teacher->id,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.events.cancel', ['id' => $selectedLesson->id]), [
+                'scope' => 'student_future',
+            ])
+            ->assertOk()
+            ->assertJsonPath('meta.cancelled_count', 2);
+
+        $this->assertSoftDeleted('planned_lessons', ['id' => $selectedLesson->id]);
+        $this->assertSoftDeleted('planned_lessons', ['id' => $laterLesson->id]);
+        $this->assertDatabaseHas('planned_lessons', [
+            'id' => $earlierLesson->id,
+            'deleted_at' => null,
+        ]);
+        $this->assertDatabaseHas('planned_lessons', [
+            'id' => $completedLesson->id,
+            'deleted_at' => null,
+        ]);
+        $this->assertDatabaseHas('planned_lessons', [
+            'id' => $otherStudentLesson->id,
+            'deleted_at' => null,
+        ]);
+        $this->assertDatabaseMissing('lesson_logs', ['lesson_id' => $laterLesson->id]);
+        $this->assertDatabaseHas('lesson_actions', [
+            'lesson_id' => $selectedLesson->id,
+            'action' => 'cancelled',
+        ]);
+        $this->assertDatabaseHas('lesson_actions', [
+            'lesson_id' => $laterLesson->id,
+            'action' => 'cancelled',
+        ]);
+    }
+
+    public function test_mass_cancellation_rejects_trial_without_student(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        $trial = PlannedLesson::factory()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => null,
+            'group_id' => null,
+            'lesson_type' => LessonType::Trial,
+            'status' => LessonStatus::Planned,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.events.cancel', ['id' => $trial->id]), [
+                'scope' => 'student_future',
+            ])
+            ->assertUnprocessable();
+
+        $this->assertDatabaseHas('planned_lessons', [
+            'id' => $trial->id,
+            'deleted_at' => null,
+        ]);
     }
 
     public function test_rescheduling_individual_lesson_preserves_duration_and_removes_old_logs(): void

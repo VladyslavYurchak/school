@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Calendar\MarkAsRescheduledRequest;
 use App\Models\LessonLog;
 use App\Models\PlannedLesson;
+use App\Models\Teacher;
+use App\Services\Calendar\CalendarAvailabilityService;
 use App\Services\LessonActionLogger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -16,12 +18,16 @@ use Symfony\Component\HttpFoundation\Response;
 
 class MarkAsRescheduledController extends Controller
 {
-    public function __invoke($id, MarkAsRescheduledRequest $request)
+    public function __invoke(
+        $id,
+        MarkAsRescheduledRequest $request,
+        CalendarAvailabilityService $availability
+    )
     {
         $data = $request->validated();
 
         try {
-            $result = DB::transaction(function () use ($id, $data) {
+            $result = DB::transaction(function () use ($id, $data, $availability) {
                 $query = PlannedLesson::query()
                     ->whereKey((int) $id);
 
@@ -57,6 +63,8 @@ class MarkAsRescheduledController extends Controller
                     ];
                 }
 
+                Teacher::query()->lockForUpdate()->findOrFail($lesson->teacher_id);
+
                 $initiator = $user->role === 'teacher'
                     ? 'teacher'
                     : $data['initiator'];
@@ -84,6 +92,41 @@ class MarkAsRescheduledController extends Controller
                 }
 
                 $oldStart = $lesson->start_date;
+                $oldEnd = $lesson->end_date;
+                $duration = max(
+                    15,
+                    Carbon::parse($oldStart)->diffInMinutes(Carbon::parse($oldEnd))
+                );
+                $newEnd = $newDateTime->copy()->addMinutes($duration);
+
+                if ($availability->teacherHasOverlap(
+                    (int) $lesson->teacher_id,
+                    $newDateTime,
+                    $newEnd,
+                    (int) $lesson->id
+                )) {
+                    return [
+                        'status' => Response::HTTP_UNPROCESSABLE_ENTITY,
+                        'success' => false,
+                        'message' => 'Викладач уже має інше заняття в цей час.',
+                    ];
+                }
+
+                if (
+                    $lesson->student_id
+                    && $availability->studentHasOverlap(
+                        (int) $lesson->student_id,
+                        $newDateTime,
+                        $newEnd,
+                        (int) $lesson->id
+                    )
+                ) {
+                    return [
+                        'status' => Response::HTTP_UNPROCESSABLE_ENTITY,
+                        'success' => false,
+                        'message' => 'Учень уже має інше заняття в цей час.',
+                    ];
+                }
 
                 $lesson->update([
                     'status'    => LessonStatus::Rescheduled,
@@ -94,18 +137,13 @@ class MarkAsRescheduledController extends Controller
                     ->where('lesson_id', $lesson->id)
                     ->delete();
 
-                $start = Carbon::parse($lesson->start_date);
-                $end = Carbon::parse($lesson->end_date);
-
-                $durMin = max(15, $start->diffInMinutes($end));
-
                 PlannedLesson::create([
                     'title'       => $lesson->title,
                     'student_id'  => $lesson->student_id,
                     'teacher_id'  => $lesson->teacher_id,
                     'group_id'    => $lesson->group_id,
                     'start_date'  => $newDateTime,
-                    'end_date'    => (clone $newDateTime)->addMinutes($durMin),
+                    'end_date'    => $newEnd,
                     'status'      => LessonStatus::Planned,
                     'initiator'   => null,
                     'lesson_type' => $lesson->lesson_type ?? LessonType::Individual,

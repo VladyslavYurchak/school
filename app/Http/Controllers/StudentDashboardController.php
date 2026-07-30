@@ -51,6 +51,7 @@ class StudentDashboardController extends Controller
             'payments' => $student->payments,
             'lessonLogs' => $student->lessonLogs,
             'upcomingLessons' => $upcomingLessons,
+            'telegramAccount' => $user->telegramAccount()->first(),
             'courses' => $user->courses()->with('language')->wherePivot('status', 'paid')->get(),
             'lessons' => $user->lessons()
                 ->with('course.language')

@@ -80,11 +80,13 @@
                         <textarea class="form-control" id="eventNotes" name="notes" rows="2"></textarea>
                     </div>
 
-                    <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" id="repeatWeekly" name="repeat_weekly">
-                        <label class="form-check-label" for="repeatWeekly">
-                            Повторювати щотижня до кінця місяця
-                        </label>
+                    <div class="mt-2">
+                        <label class="form-label" for="repeatPeriod">Повторення</label>
+                        <select class="form-select" id="repeatPeriod" name="repeat_period">
+                            <option value="none">Не повторювати</option>
+                            <option value="month">Щотижня до кінця місяця</option>
+                            <option value="year">Обрати цей час щотижня на 12 місяців</option>
+                        </select>
                     </div>
 
                 </div>

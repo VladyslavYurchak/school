@@ -13,8 +13,10 @@ Route::prefix('admin')->middleware('admin')->group(function () {
         Route::post('/{student}/subscription', \App\Http\Controllers\Admin\Students\Subscription\StoreController::class)
             ->name('subscriptions.store');
         Route::delete('/{student}/subscriptions/{month}', \App\Http\Controllers\Admin\Students\Subscription\DestroyController::class)
+            ->where('month', '\d{4}-(0[1-9]|1[0-2])')
             ->name('subscriptions.destroyMonth');
         Route::put('/{student}/subscriptions/{month}/move', \App\Http\Controllers\Admin\Students\Subscription\MoveController::class)
+            ->where('month', '\d{4}-(0[1-9]|1[0-2])')
             ->name('subscriptions.moveMonth');
         Route::get('/{student}/single-payments', \App\Http\Controllers\Admin\Students\Subscription\Single\IndexController::class)
             ->name('subscriptions.single.index');

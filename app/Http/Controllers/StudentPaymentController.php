@@ -12,6 +12,7 @@ use App\Services\MonoPayService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -30,7 +31,7 @@ class StudentPaymentController extends Controller
             ->with(['subscriptionTemplate', 'subscriptions' => function ($query) {
                 $query
                     ->where('type', 'subscription')
-                    ->where('status', 'active');
+                    ->whereIn('status', ['active', 'expired']);
             }])
             ->first();
 
@@ -40,13 +41,20 @@ class StudentPaymentController extends Controller
                 ->with('error', 'Профіль учня ще не підключено адміністратором.');
         }
 
+        $paidMonths = $student->subscriptions
+            ->map(fn (StudentSubscription $subscription) => $subscription->start_date->format('Y-m'))
+            ->unique()
+            ->values()
+            ->all();
+        $allowedPaymentMonths = $this->allowedPaymentMonths($paidMonths);
+
         return view('student.payments.index', [
             'student' => $student,
             'template' => $student->subscriptionTemplate,
-            'defaultPaymentMonth' => $this->defaultPaymentMonth($student),
+            'defaultPaymentMonth' => $this->defaultPaymentMonth($paidMonths),
             'minPaymentMonth' => $this->minPaymentMonth(),
             'maxPaymentMonth' => $this->maxPaymentMonth(),
-            'allowedPaymentMonths' => $this->allowedPaymentMonths(),
+            'allowedPaymentMonths' => $allowedPaymentMonths,
         ]);
     }
 
@@ -139,71 +147,86 @@ class StudentPaymentController extends Controller
         }
         abort_if(!$student->subscriptionTemplate, 422, 'No subscription is assigned to you.');
 
-        $template = $student->subscriptionTemplate;
         $startDate = Carbon::createFromFormat('Y-m', $data['subscription_month'])->startOfMonth();
         $endDate = (clone $startDate)->endOfMonth();
-        $paymentDescription = $this->subscriptionPaymentDescription($startDate, $student);
 
-        $hasActiveSubscription = StudentSubscription::query()
-            ->where('student_id', $student->id)
-            ->where('type', 'subscription')
-            ->where('status', 'active')
-            ->whereDate('start_date', $startDate->toDateString())
-            ->whereDate('end_date', $endDate->toDateString())
-            ->exists();
+        $result = DB::transaction(function () use ($student, $startDate, $endDate, $data): array {
+            $lockedStudent = $student->newQuery()
+                ->with('subscriptionTemplate')
+                ->lockForUpdate()
+                ->findOrFail($student->id);
 
-        if ($hasActiveSubscription) {
+            abort_if(!$lockedStudent->subscriptionTemplate, 422, 'No subscription is assigned to you.');
+
+            $template = $lockedStudent->subscriptionTemplate;
+            $paymentDescription = $this->subscriptionPaymentDescription($startDate, $lockedStudent);
+
+            $hasPaidSubscription = StudentSubscription::query()
+                ->where('student_id', $lockedStudent->id)
+                ->where('type', 'subscription')
+                ->whereIn('status', ['active', 'expired'])
+                ->whereDate('start_date', $startDate->toDateString())
+                ->whereDate('end_date', $endDate->toDateString())
+                ->exists();
+
+            if ($hasPaidSubscription) {
+                return ['already_paid' => true];
+            }
+
+            $existingPendingPayment = Payment::query()
+                ->where('student_id', $lockedStudent->id)
+                ->where('status', 'pending')
+                ->where('type', 'subscription')
+                ->where('provider', 'monopay')
+                ->where('payload->subscription_template_id', $template->id)
+                ->where('payload->subscription_month', $data['subscription_month'])
+                ->latest()
+                ->first();
+
+            if ($existingPendingPayment) {
+                if ($existingPendingPayment->description !== $paymentDescription) {
+                    $existingPendingPayment->update([
+                        'status' => 'failed',
+                        'payload' => array_merge(
+                            is_array($existingPendingPayment->payload) ? $existingPendingPayment->payload : [],
+                            [
+                                'description_changed_locally' => true,
+                                'description_changed_locally_at' => now()->toISOString(),
+                            ]
+                        ),
+                    ]);
+                } elseif ($existingPendingPayment->hasReusableMonoPayInvoice()) {
+                    return ['payment' => $existingPendingPayment];
+                } else {
+                    $existingPendingPayment->failExpiredMonoPayInvoice();
+                }
+            }
+
+            return [
+                'payment' => Payment::create([
+                    'student_id' => $lockedStudent->id,
+                    'amount' => $template->price,
+                    'currency' => 'UAH',
+                    'status' => 'pending',
+                    'type' => 'subscription',
+                    'provider' => 'monopay',
+                    'provider_order_id' => (string) Str::uuid(),
+                    'description' => $paymentDescription,
+                    'payload' => [
+                        'subscription_template_id' => $template->id,
+                        'subscription_month' => $data['subscription_month'],
+                    ],
+                ]),
+            ];
+        });
+
+        if ($result['already_paid'] ?? false) {
             return redirect()
                 ->route('student.payments.index')
                 ->with('error', 'Цей місяць вже оплачено.');
         }
 
-        $existingPendingPayment = Payment::query()
-            ->where('student_id', $student->id)
-            ->where('status', 'pending')
-            ->where('type', 'subscription')
-            ->where('provider', 'monopay')
-            ->where('payload->subscription_template_id', $template->id)
-            ->where('payload->subscription_month', $data['subscription_month'])
-            ->latest()
-            ->first();
-
-        if ($existingPendingPayment) {
-            if ($existingPendingPayment->description !== $paymentDescription) {
-                $existingPendingPayment->update([
-                    'status' => 'failed',
-                    'payload' => array_merge(
-                        is_array($existingPendingPayment->payload) ? $existingPendingPayment->payload : [],
-                        [
-                            'description_changed_locally' => true,
-                            'description_changed_locally_at' => now()->toISOString(),
-                        ]
-                    ),
-                ]);
-            } elseif ($existingPendingPayment->hasReusableMonoPayInvoice()) {
-                return redirect()->route('student.payments.checkout', $existingPendingPayment);
-            } else {
-                $existingPendingPayment->failExpiredMonoPayInvoice();
-            }
-
-        }
-
-        $payment = Payment::create([
-            'student_id' => $student->id,
-            'amount' => $template->price,
-            'currency' => 'UAH',
-            'status' => 'pending',
-            'type' => 'subscription',
-            'provider' => 'monopay',
-            'provider_order_id' => (string) Str::uuid(),
-            'description' => $paymentDescription,
-            'payload' => [
-                'subscription_template_id' => $template->id,
-                'subscription_month' => $data['subscription_month'],
-            ],
-        ]);
-
-        return redirect()->route('student.payments.checkout', $payment);
+        return redirect()->route('student.payments.checkout', $result['payment']);
     }
 
     public function result(
@@ -264,12 +287,8 @@ class StudentPaymentController extends Controller
             ->with($payment->status === 'paid' ? 'success' : 'error', $message);
     }
 
-    private function defaultPaymentMonth($student): string
+    private function defaultPaymentMonth(array $paidMonths): ?string
     {
-        $paidMonths = $student->subscriptions
-            ->map(fn (StudentSubscription $subscription) => $subscription->start_date->format('Y-m'))
-            ->all();
-
         $month = now()->startOfMonth();
 
         $monthOffsets = array_merge(
@@ -285,7 +304,7 @@ class StudentPaymentController extends Controller
             }
         }
 
-        return $this->maxPaymentMonth();
+        return null;
     }
 
     private function isAllowedPaymentMonth(string $month): bool
@@ -307,13 +326,17 @@ class StudentPaymentController extends Controller
         return now()->startOfMonth()->addMonths(self::PAYMENT_MONTH_FUTURE_LIMIT)->format('Y-m');
     }
 
-    private function allowedPaymentMonths(): array
+    private function allowedPaymentMonths(array $paidMonths = []): array
     {
         $months = [];
         $start = now()->startOfMonth()->subMonths(self::PAYMENT_MONTH_PAST_LIMIT);
         $end = now()->startOfMonth()->addMonths(self::PAYMENT_MONTH_FUTURE_LIMIT);
 
         for ($month = $start->copy(); $month->lte($end); $month->addMonth()) {
+            if (in_array($month->format('Y-m'), $paidMonths, true)) {
+                continue;
+            }
+
             $months[] = [
                 'value' => $month->format('Y-m'),
                 'label' => $this->subscriptionPeriodLabel($month),

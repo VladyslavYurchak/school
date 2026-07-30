@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Student;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CoursePaymentController extends Controller
@@ -15,7 +16,7 @@ class CoursePaymentController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user, 403);
+        abort_unless($user?->isStudent(), 403);
 
         if (!$course->is_published) {
             return redirect()
@@ -46,38 +47,56 @@ class CoursePaymentController extends Controller
             ]
         );
 
-        $existingPayment = Payment::query()
-            ->where('student_id', $student->id)
-            ->where('status', 'pending')
-            ->where('type', 'single')
-            ->where('provider', 'monopay')
-            ->where('payload->course_id', $course->id)
-            ->latest()
-            ->first();
+        $result = DB::transaction(function () use ($student, $course, $user): array {
+            $lockedStudent = Student::query()
+                ->lockForUpdate()
+                ->findOrFail($student->id);
 
-        if ($existingPayment) {
-            if ($existingPayment->hasReusableMonoPayInvoice()) {
-                return redirect()->route('student.payments.checkout', $existingPayment);
+            if ($course->isAvailableFor($user)) {
+                return ['available' => true];
             }
 
-            $existingPayment->failExpiredMonoPayInvoice();
+            $existingPayment = Payment::query()
+                ->where('student_id', $lockedStudent->id)
+                ->where('status', 'pending')
+                ->where('type', 'single')
+                ->where('provider', 'monopay')
+                ->where('payload->course_id', $course->id)
+                ->latest()
+                ->first();
+
+            if ($existingPayment) {
+                if ($existingPayment->hasReusableMonoPayInvoice()) {
+                    return ['payment' => $existingPayment];
+                }
+
+                $existingPayment->failExpiredMonoPayInvoice();
+            }
+
+            return [
+                'payment' => Payment::create([
+                    'student_id' => $lockedStudent->id,
+                    'amount' => $course->price,
+                    'currency' => 'UAH',
+                    'status' => 'pending',
+                    'type' => 'single',
+                    'provider' => 'monopay',
+                    'provider_order_id' => (string) Str::uuid(),
+                    'description' => 'Оплата за "' . $course->title . '"',
+                    'payload' => [
+                        'course_id' => $course->id,
+                        'user_id' => $user->id,
+                    ],
+                ]),
+            ];
+        });
+
+        if ($result['available'] ?? false) {
+            return redirect()
+                ->route('courses.show', $course)
+                ->with('success', 'У вас вже є доступ до цього курсу.');
         }
 
-        $payment = Payment::create([
-            'student_id' => $student->id,
-            'amount' => $course->price,
-            'currency' => 'UAH',
-            'status' => 'pending',
-            'type' => 'single',
-            'provider' => 'monopay',
-            'provider_order_id' => (string) Str::uuid(),
-            'description' => 'Оплата за "' . $course->title . '"',
-            'payload' => [
-                'course_id' => $course->id,
-                'user_id' => $user->id,
-            ],
-        ]);
-
-        return redirect()->route('student.payments.checkout', $payment);
+        return redirect()->route('student.payments.checkout', $result['payment']);
     }
 }

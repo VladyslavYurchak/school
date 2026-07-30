@@ -53,6 +53,7 @@
                                         <th>Назва</th>
                                         <th>Занять/тиждень</th>
                                         <th>Ціна</th>
+                                        <th>Статус</th>
                                         <th>Створено</th>
                                         <th>Оновлено</th>
                                         <th class="text-end">Дії</th>
@@ -65,6 +66,11 @@
                                             <td>{{ $template->title }}</td>
                                             <td>{{ $template->lessons_per_week }}</td>
                                             <td>{{ number_format($template->price, 2, ',', ' ') }} грн</td>
+                                            <td>
+                                                <span class="admin-badge {{ $template->is_active ? 'admin-badge-free' : 'admin-badge-muted' }}">
+                                                    {{ $template->is_active ? 'Активний' : 'Архів' }}
+                                                </span>
+                                            </td>
                                             <td>{{ $template->created_at->format('d.m.Y') }}</td>
                                             <td>{{ $template->updated_at->format('d.m.Y') }}</td>
                                             <td class="text-end">
@@ -79,22 +85,25 @@
                                                         data-type="{{ $template->type }}"
                                                         data-lessons="{{ $template->lessons_per_week }}"
                                                         data-price="{{ $template->price }}"
+                                                        data-active="{{ $template->is_active ? '1' : '0' }}"
                                                         data-update-url="{{ route('admin.subscription-templates.update', $template) }}"
                                                     >
                                                         <i class="bi bi-pencil"></i>
                                                         Редагувати
                                                     </button>
 
-                                                    <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
-                                                          method="POST"
-                                                          onsubmit="return confirm('Видалити цей абонемент?')">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button class="admin-btn-danger" type="submit">
-                                                            <i class="bi bi-trash"></i>
-                                                            Видалити
-                                                        </button>
-                                                    </form>
+                                                    @if($template->is_active)
+                                                        <form action="{{ route('admin.subscription-templates.destroy', $template->id) }}"
+                                                              method="POST"
+                                                              onsubmit="return confirm('Перенести цей абонемент в архів? Прив’язки учнів та історія оплат залишаться.')">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button class="admin-btn-danger" type="submit">
+                                                                <i class="bi bi-archive"></i>
+                                                                В архів
+                                                            </button>
+                                                        </form>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -153,6 +162,12 @@
                             <label for="editPrice" class="form-label">Ціна (грн)</label>
                             <input type="number" class="form-control" id="editPrice" name="price" step="0.01" required>
                         </div>
+
+                        <div class="form-check">
+                            <input type="hidden" name="is_active" value="0">
+                            <input type="checkbox" class="form-check-input" id="editIsActive" name="is_active" value="1">
+                            <label for="editIsActive" class="form-check-label">Активний шаблон</label>
+                        </div>
                     </div>
 
                     <div class="modal-footer">
@@ -178,6 +193,7 @@
                 document.getElementById('editType').value = button.getAttribute('data-type');
                 document.getElementById('editLessons').value = button.getAttribute('data-lessons');
                 document.getElementById('editPrice').value = button.getAttribute('data-price');
+                document.getElementById('editIsActive').checked = button.getAttribute('data-active') === '1';
             });
         });
     </script>

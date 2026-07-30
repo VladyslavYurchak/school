@@ -76,7 +76,14 @@ class AdminPostUiTest extends TestCase
         $post = Post::where('title', 'Post with upload')->firstOrFail();
 
         $this->assertStringStartsWith('posts/', $post->image);
+        $this->assertStringEndsWith('.webp', $post->image);
         Storage::disk('public')->assertExists($post->image);
+
+        [$width, $height, $type] = getimagesize(Storage::disk('public')->path($post->image));
+
+        $this->assertSame(1200, $width);
+        $this->assertSame(1200, $height);
+        $this->assertSame(IMAGETYPE_WEBP, $type);
     }
 
     public function test_admin_post_form_rejects_title_longer_than_database_column(): void
@@ -110,7 +117,9 @@ class AdminPostUiTest extends TestCase
             ->get(route('admin.post.edit', $post))
             ->assertOk()
             ->assertSee('name="is_published"', false)
-            ->assertSee('name="image_file"', false);
+            ->assertSee('name="image_file"', false)
+            ->assertSee('data-square-image-editor', false)
+            ->assertSee('name="cropped_image"', false);
 
         $this->assertSame(1, substr_count($response->getContent(), '<main class="app-main">'));
 
@@ -157,6 +166,7 @@ class AdminPostUiTest extends TestCase
         $post->refresh();
 
         $this->assertStringStartsWith('posts/', $post->image);
+        $this->assertStringEndsWith('.webp', $post->image);
         Storage::disk('public')->assertExists($post->image);
     }
 

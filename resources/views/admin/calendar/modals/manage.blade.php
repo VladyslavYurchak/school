@@ -14,6 +14,9 @@
                 <button class="btn btn-success" id="markAsCompleted">Проведене</button>
                 <button class="btn btn-warning" id="markAsRescheduled">Перенесене</button>
                 <button class="btn btn-danger" id="markAsCancelled">Скасоване</button>
+                <button class="btn btn-outline-danger d-none" id="cancelStudentFutureLessons">
+                    Скасувати це та всі майбутні заняття учня
+                </button>
                 <button class="btn btn-outline-primary" id="editEvent">Редагувати</button>
             </div>
         </div>

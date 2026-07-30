@@ -3,30 +3,36 @@
 namespace App\Http\Controllers\Admin\Calendar;
 
 use App\Enums\LessonStatus;
+use App\Enums\LessonType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Calendar\StoreEventRequest;
 use App\Models\Group;
 use App\Models\PlannedLesson;
 use App\Models\SubscriptionTemplate;
+use App\Models\Teacher;
+use App\Services\Calendar\CalendarAvailabilityService;
 use App\Services\LessonActionLogger;
 use Carbon\Carbon;
-use App\Enums\LessonType;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class StoreEventController extends Controller
 {
-    public function __invoke(StoreEventRequest $request)
+    public function __invoke(
+        StoreEventRequest $request,
+        CalendarAvailabilityService $availability
+    )
     {
         $validated = $request->validated();
 
         $teacher = auth()->user()->teacher;
-        if (!$teacher) {
+        if (! $teacher) {
             abort(403, 'Доступ заборонено: ви не викладач');
         }
 
         $teacherId = $teacher->id;
-        $start     = Carbon::parse($validated['start']);
-        $duration  = (int) ($validated['duration'] ?? 60);
+        $start = Carbon::parse($validated['start']);
+        $duration = (int) ($validated['duration'] ?? 60);
         $type = LessonType::from($validated['lesson_type']);
 
         if (in_array($type, [LessonType::Group, LessonType::Pair], true)) {
@@ -37,7 +43,7 @@ class StoreEventController extends Controller
                 ->where('type', $type->value)
                 ->first();
 
-            if (!$group) {
+            if (! $group) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Оберіть групу, у якій є хоча б один учень.',
@@ -47,7 +53,7 @@ class StoreEventController extends Controller
 
         // ✅ Перевірка, що тип абонементу = типу уроку (якщо абонемент передано)
         $template = null;
-        if (!empty($validated['subscription_template_id'])) {
+        if (! empty($validated['subscription_template_id'])) {
             $template = SubscriptionTemplate::findOrFail($validated['subscription_template_id']);
             if ($template->type !== $type->value) {
                 return response()->json([
@@ -60,28 +66,41 @@ class StoreEventController extends Controller
         // ==========================
         // Повторювані заняття
         // ==========================
-        if (!empty($validated['repeat_weekly'])) {
-            $lessons = DB::transaction(function () use ($validated, $start, $duration, $teacherId, $type) {
-                $endOfMonth  = $start->copy()->endOfMonth();
+        $repeatPeriod = $validated['repeat_period'] ?? 'none';
+        if ($repeatPeriod !== 'none') {
+            $lessons = DB::transaction(function () use ($validated, $start, $duration, $teacherId, $type, $repeatPeriod, $availability) {
+                Teacher::query()->lockForUpdate()->findOrFail($teacherId);
+
+                $repeatEnd = $repeatPeriod === 'year'
+                    ? $start->copy()->addYear()->subSecond()
+                    : $start->copy()->endOfMonth();
                 $currentDate = $start->copy();
-                $lessons     = [];
+                $lessons = [];
                 $title = match ($type) {
-                    LessonType::Group      => 'Групове заняття',
-                    LessonType::Pair       => 'Парне заняття',
-                    LessonType::Trial      => 'Пробне заняття',
+                    LessonType::Group => 'Групове заняття',
+                    LessonType::Pair => 'Парне заняття',
+                    LessonType::Trial => 'Пробне заняття',
                     LessonType::Individual => 'Індивідуальне заняття',
                 };
 
-                while ($currentDate->lessThanOrEqualTo($endOfMonth)) {
+                while ($currentDate->lessThanOrEqualTo($repeatEnd)) {
+                    $currentEnd = $currentDate->copy()->addMinutes($duration);
+
+                    if ($availability->teacherHasOverlap($teacherId, $currentDate, $currentEnd)) {
+                        throw ValidationException::withMessages([
+                            'start' => 'Викладач уже має інше заняття в один із вибраних проміжків.',
+                        ]);
+                    }
+
                     $lesson = PlannedLesson::create([
-                        'title'       => $title,
-                        'start_date'  => $currentDate->format('Y-m-d H:i:s'),
-                        'end_date'    => $currentDate->copy()->addMinutes($duration)->format('Y-m-d H:i:s'),
-                        'teacher_id'  => $teacherId,
-                        'student_id'  => $validated['student_id'] ?? null,
-                        'group_id'    => $validated['group_id'] ?? null,
-                        'notes'       => $validated['notes'] ?? null,
-                        'status'      => LessonStatus::Planned,
+                        'title' => $title,
+                        'start_date' => $currentDate->format('Y-m-d H:i:s'),
+                        'end_date' => $currentEnd->format('Y-m-d H:i:s'),
+                        'teacher_id' => $teacherId,
+                        'student_id' => $validated['student_id'] ?? null,
+                        'group_id' => $validated['group_id'] ?? null,
+                        'notes' => $validated['notes'] ?? null,
+                        'status' => LessonStatus::Planned,
                         'lesson_type' => $type,
                     ]);
 
@@ -92,7 +111,8 @@ class StoreEventController extends Controller
                         newLessonDatetime: null,
                         meta: [
                             'repeat_weekly' => true,
-                            'source'        => 'StoreEventController',
+                            'repeat_period' => $repeatPeriod,
+                            'source' => 'StoreEventController',
                         ]
                     );
 
@@ -105,12 +125,14 @@ class StoreEventController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Заняття створені до кінця місяця',
-                'events'  => collect($lessons)->map(fn($lesson) => [
-                    'id'    => $lesson->id,
+                'message' => $repeatPeriod === 'year'
+                    ? 'Щотижневі заняття створені на 12 місяців'
+                    : 'Щотижневі заняття створені до кінця місяця',
+                'events' => collect($lessons)->map(fn ($lesson) => [
+                    'id' => $lesson->id,
                     'title' => $lesson->title,
                     'start' => $lesson->start_date,
-                    'end'   => $lesson->end_date,
+                    'end' => $lesson->end_date,
                 ]),
             ]);
         }
@@ -118,43 +140,64 @@ class StoreEventController extends Controller
         // Одноразове заняття
 
         $title = match ($type) {
-            LessonType::Group      => 'Групове заняття',
-            LessonType::Pair       => 'Парне заняття',
-            LessonType::Trial      => 'Пробне заняття',
+            LessonType::Group => 'Групове заняття',
+            LessonType::Pair => 'Парне заняття',
+            LessonType::Trial => 'Пробне заняття',
             LessonType::Individual => 'Індивідуальне заняття',
         };
 
-        $plannedLesson = PlannedLesson::create([
-            'title'       => $title,
-            'start_date'  => $start->format('Y-m-d H:i:s'),
-            'end_date'    => $start->copy()->addMinutes($duration)->format('Y-m-d H:i:s'),
-            'teacher_id'  => $teacherId,
-            'student_id'  => $validated['student_id'] ?? null,
-            'group_id'    => $validated['group_id'] ?? null,
-            'notes'       => $validated['notes'] ?? null,
-            'status'      => LessonStatus::Planned,
-            'lesson_type' => $type,
-        ]);
+        $plannedLesson = DB::transaction(function () use (
+            $availability,
+            $duration,
+            $start,
+            $teacherId,
+            $title,
+            $type,
+            $validated
+        ) {
+            Teacher::query()->lockForUpdate()->findOrFail($teacherId);
 
-        // 🔹 Лог: створено одиничне заняття
-        LessonActionLogger::log(
-            lessonId: $plannedLesson->id,
-            action: 'created',
-            lessonDatetime: $plannedLesson->start_date,
-            newLessonDatetime: null,
-            meta: [
-                'repeat_weekly' => false,
-                'source'        => 'StoreEventController',
-            ]
-        );
+            $end = $start->copy()->addMinutes($duration);
+
+            if ($availability->teacherHasOverlap($teacherId, $start, $end)) {
+                throw ValidationException::withMessages([
+                    'start' => 'Викладач уже має інше заняття в цей час.',
+                ]);
+            }
+
+            $lesson = PlannedLesson::create([
+                'title' => $title,
+                'start_date' => $start->format('Y-m-d H:i:s'),
+                'end_date' => $end->format('Y-m-d H:i:s'),
+                'teacher_id' => $teacherId,
+                'student_id' => $validated['student_id'] ?? null,
+                'group_id' => $validated['group_id'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'status' => LessonStatus::Planned,
+                'lesson_type' => $type,
+            ]);
+
+            LessonActionLogger::log(
+                lessonId: $lesson->id,
+                action: 'created',
+                lessonDatetime: $lesson->start_date,
+                newLessonDatetime: null,
+                meta: [
+                    'repeat_weekly' => false,
+                    'source' => 'StoreEventController',
+                ]
+            );
+
+            return $lesson;
+        });
 
         return response()->json([
             'success' => true,
-            'event'   => [
-                'id'    => $plannedLesson->id,
+            'event' => [
+                'id' => $plannedLesson->id,
                 'title' => $plannedLesson->title,
                 'start' => $plannedLesson->start_date,
-                'end'   => $plannedLesson->end_date,
+                'end' => $plannedLesson->end_date,
             ],
         ]);
     }

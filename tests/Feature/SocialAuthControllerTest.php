@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Mockery;
@@ -55,6 +56,28 @@ class SocialAuthControllerTest extends TestCase
             'provider' => 'google',
             'provider_user_id' => 'google-user-1',
         ]);
+    }
+
+    public function test_facebook_login_stores_a_long_avatar_url(): void
+    {
+        $avatar = 'https://scontent.example.test/profile.jpg?'.str_repeat('token=abcdef123456&', 24);
+
+        $this->mockSocialUser('facebook', [
+            'id' => 'facebook-long-avatar',
+            'name' => 'Facebook Student',
+            'email' => 'facebook@example.com',
+            'avatar' => $avatar,
+        ]);
+
+        $this->get(route('social.callback', 'facebook'))
+            ->assertRedirect(route('student.dashboard'));
+
+        $this->assertDatabaseHas('social_accounts', [
+            'provider' => 'facebook',
+            'provider_user_id' => 'facebook-long-avatar',
+            'avatar' => $avatar,
+        ]);
+        $this->assertSame('text', Schema::getColumnType('social_accounts', 'avatar'));
     }
 
     public function test_existing_student_is_linked_by_email_without_duplicate_user(): void

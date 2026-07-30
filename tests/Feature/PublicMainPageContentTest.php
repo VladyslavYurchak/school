@@ -129,6 +129,26 @@ class PublicMainPageContentTest extends TestCase
             ->assertSee('/storage/posts/storage-image.jpg', false);
     }
 
+    public function test_public_post_page_does_not_crop_the_full_image(): void
+    {
+        $post = Post::create([
+            'title' => 'Square image post',
+            'content' => 'The complete image should remain visible.',
+            'image' => 'posts/square.webp',
+            'is_published' => true,
+        ]);
+
+        $this
+            ->get(route('posts.show', $post))
+            ->assertOk()
+            ->assertSee('class="post-show-image"', false);
+
+        $scss = file_get_contents(resource_path('sass/public/home.scss'));
+
+        $this->assertStringContainsString('width: min(100%, 760px);', $scss);
+        $this->assertStringNotContainsString('max-height: 460px;', $scss);
+    }
+
     public function test_public_event_images_support_external_urls(): void
     {
         $imageUrl = 'https://example.com/events/open-day.jpg';

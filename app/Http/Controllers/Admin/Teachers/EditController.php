@@ -12,7 +12,9 @@ class EditController extends Controller
     {
         $teacher->load('user');
 
-        $users = User::orderBy('name')->get();
+        $users = User::query()
+            ->whereKey($teacher->user_id)
+            ->get();
 
         return view('admin.teachers.edit', compact('teacher', 'users'));
     }

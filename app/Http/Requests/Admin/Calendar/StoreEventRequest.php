@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Admin\Calendar;
 
 use App\Models\Group;
-use App\Models\SubscriptionTemplate;
 use App\Models\Student;
+use App\Models\SubscriptionTemplate;
 use App\Services\Calendar\CalendarAccessService;
 use App\Services\Calendar\CalendarAvailabilityService;
 use Carbon\Carbon;
@@ -21,15 +21,16 @@ class StoreEventRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'start'         => ['required', 'date'],
-            'end'           => ['nullable', 'date', 'after_or_equal:start'],
-            'student_id'    => ['nullable', 'exists:students,id'],
-            'group_id'      => ['nullable', 'exists:groups,id'],
-            'teacher_id'    => ['nullable', 'exists:teachers,id'], // ← можна явно задати
-            'duration'      => ['nullable', 'integer', 'min:15', 'max:180'],
-            'notes'         => ['nullable', 'string'],
+            'start' => ['required', 'date'],
+            'end' => ['nullable', 'date', 'after_or_equal:start'],
+            'student_id' => ['nullable', 'exists:students,id'],
+            'group_id' => ['nullable', 'exists:groups,id'],
+            'teacher_id' => ['nullable', 'exists:teachers,id'], // ← можна явно задати
+            'duration' => ['nullable', 'integer', 'min:15', 'max:180'],
+            'notes' => ['nullable', 'string'],
             'repeat_weekly' => ['nullable', 'boolean'],
-            'lesson_type'   => ['required', Rule::in(['individual', 'group', 'pair', 'trial'])],
+            'repeat_period' => ['nullable', Rule::in(['none', 'month', 'year'])],
+            'lesson_type' => ['required', Rule::in(['individual', 'group', 'pair', 'trial'])],
             'subscription_template_id' => 'nullable|exists:subscription_templates,id',
         ];
     }
@@ -38,33 +39,35 @@ class StoreEventRequest extends FormRequest
     {
         return [
             'start.required' => 'Початок заняття обовʼязковий.',
-            'start.date'     => 'Невірний формат дати для початку.',
-            'end.date'       => 'Невірний формат дати для завершення.',
+            'start.date' => 'Невірний формат дати для початку.',
+            'end.date' => 'Невірний формат дати для завершення.',
             'end.after_or_equal' => 'Дата завершення має бути не раніше за початок.',
-            'student_id.exists'  => 'Обраного учня не знайдено.',
-            'group_id.exists'    => 'Обрану групу не знайдено.',
-            'teacher_id.exists'  => 'Обраного викладача не знайдено.',
-            'duration.integer'   => 'Тривалість має бути числом (хвилини).',
-            'duration.min'       => 'Мінімальна тривалість — 15 хв.',
-            'duration.max'       => 'Максимальна тривалість — 180 хв.',
+            'student_id.exists' => 'Обраного учня не знайдено.',
+            'group_id.exists' => 'Обрану групу не знайдено.',
+            'teacher_id.exists' => 'Обраного викладача не знайдено.',
+            'duration.integer' => 'Тривалість має бути числом (хвилини).',
+            'duration.min' => 'Мінімальна тривалість — 15 хв.',
+            'duration.max' => 'Максимальна тривалість — 180 хв.',
             'repeat_weekly.boolean' => 'repeat_weekly має бути булевим значенням.',
-            'lesson_type.required'  => 'Тип заняття обовʼязковий.',
-            'lesson_type.in'        => 'Неприпустимий тип заняття.',
+            'repeat_period.in' => 'Оберіть коректний період повторення.',
+            'lesson_type.required' => 'Тип заняття обовʼязковий.',
+            'lesson_type.in' => 'Неприпустимий тип заняття.',
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'start'         => 'початок',
-            'end'           => 'завершення',
-            'student_id'    => 'учень',
-            'group_id'      => 'група',
-            'teacher_id'    => 'викладач',
-            'duration'      => 'тривалість',
-            'notes'         => 'нотатки',
+            'start' => 'початок',
+            'end' => 'завершення',
+            'student_id' => 'учень',
+            'group_id' => 'група',
+            'teacher_id' => 'викладач',
+            'duration' => 'тривалість',
+            'notes' => 'нотатки',
             'repeat_weekly' => 'щотижневе повторення',
-            'lesson_type'   => 'тип заняття',
+            'repeat_period' => 'період повторення',
+            'lesson_type' => 'тип заняття',
         ];
     }
 
@@ -72,7 +75,9 @@ class StoreEventRequest extends FormRequest
     {
         $this->merge([
             'repeat_weekly' => filter_var($this->repeat_weekly, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
-            'duration'      => $this->duration !== null ? (int) $this->duration : null,
+            'repeat_period' => $this->input('repeat_period')
+                ?: ($this->boolean('repeat_weekly') ? 'month' : 'none'),
+            'duration' => $this->duration !== null ? (int) $this->duration : null,
         ]);
     }
 
@@ -86,25 +91,27 @@ class StoreEventRequest extends FormRequest
                 $tpl = SubscriptionTemplate::find($this->input('subscription_template_id'));
                 if ($tpl && $tpl->type !== $lessonType) {
                     $v->errors()->add('subscription_template_id', 'Тип абонементу має відповідати типу заняття.');
+
                     return;
                 }
             }
 
             // 0.1) Узгодження для ІНДИВІДУАЛЬНИХ/ПРОБНИХ уроків за student_id
-            if (in_array($lessonType, ['individual','trial'], true) && $this->filled('student_id')) {
+            if (in_array($lessonType, ['individual', 'trial'], true) && $this->filled('student_id')) {
                 $student = Student::with('subscriptionTemplate')->find($this->input('student_id'));
                 if ($student && $student->subscriptionTemplate) {
                     $tplType = $student->subscriptionTemplate->type; // individual|group|pair
                     // trial за бажанням можна пропускати:
                     if ($lessonType !== 'trial' && $tplType !== $lessonType) {
                         $v->errors()->add('lesson_type', "Тип заняття має відповідати типу абонементу студента ({$tplType}).");
+
                         return;
                     }
                 }
             }
 
             // 0.2) Узгодження для ГРУПОВИХ/ПАРНИХ уроків за group_id — перевіряємо КОЖНОГО студента групи
-            if (in_array($lessonType, ['group','pair'], true) && $this->filled('group_id')) {
+            if (in_array($lessonType, ['group', 'pair'], true) && $this->filled('group_id')) {
                 $group = Group::with(['students.subscriptionTemplate'])->find($this->input('group_id'));
                 if ($group) {
                     $mismatched = [];
@@ -114,12 +121,13 @@ class StoreEventRequest extends FormRequest
                             $mismatched[] = trim(($st->last_name ?? '').' '.($st->first_name ?? 'ID:'.$st->id));
                         }
                     }
-                    if (!empty($mismatched)) {
+                    if (! empty($mismatched)) {
                         $list = implode(', ', $mismatched);
                         $v->errors()->add(
                             'group_id',
                             "У групі є студенти з абонементом іншого типу: {$list}. Тип заняття: {$lessonType}."
                         );
+
                         return;
                     }
                 }
@@ -146,24 +154,21 @@ class StoreEventRequest extends FormRequest
                 $end = (clone $start)->addMinutes($minutes);
             }
 
-            // 2) Визначаємо teacher_id: параметр → з групи → з авторизованого викладача
-            $teacherId = $this->input('teacher_id');
+            // Особистий календар завжди працює від імені авторизованого викладача.
+            $teacherId = optional(auth()->user()?->teacher)->id;
 
-            if (!$teacherId && $this->filled('group_id')) {
-                $group = Group::find($this->input('group_id'));
-                $teacherId = $group?->teacher_id;
-                if ($this->filled('teacher_id') && $group && (int)$this->input('teacher_id') !== (int)$group->teacher_id) {
-                    $v->errors()->add('teacher_id', 'Викладач не відповідає викладачу групи.');
-                    return;
-                }
-            }
-
-            if (!$teacherId && auth()->check()) {
-                $teacherId = optional(auth()->user()->teacher)->id;
-            }
-
-            if (!$teacherId) {
+            if (! $teacherId) {
                 $v->errors()->add('teacher_id', 'Не вдалося визначити викладача для заняття.');
+
+                return;
+            }
+
+            if (
+                $this->filled('teacher_id')
+                && (int) $this->input('teacher_id') !== (int) $teacherId
+            ) {
+                $v->errors()->add('teacher_id', 'Не можна створювати заняття від імені іншого викладача.');
+
                 return;
             }
 
@@ -171,15 +176,17 @@ class StoreEventRequest extends FormRequest
 
             if (in_array($lessonType, ['individual', 'trial'], true)
                 && $this->filled('student_id')
-                && !$access->studentBelongsToTeacher((int) $this->input('student_id'), (int) $teacherId)) {
+                && ! $access->studentBelongsToTeacher((int) $this->input('student_id'), (int) $teacherId)) {
                 $v->errors()->add('student_id', 'Selected student does not belong to this teacher.');
+
                 return;
             }
 
             if (in_array($lessonType, ['group', 'pair'], true)
                 && $this->filled('group_id')
-                && !$access->groupBelongsToTeacher((int) $this->input('group_id'), (int) $teacherId)) {
+                && ! $access->groupBelongsToTeacher((int) $this->input('group_id'), (int) $teacherId)) {
                 $v->errors()->add('group_id', 'Selected group does not belong to this teacher.');
+
                 return;
             }
 
@@ -190,22 +197,31 @@ class StoreEventRequest extends FormRequest
 
             if ($hasOverlap) {
                 $v->errors()->add('start', 'Викладач уже має інше заняття у цей час.');
+
                 return;
             }
 
-            // 4) Якщо repeat_weekly=true — перевіряємо наступні 12 повторів
-            if ($this->boolean('repeat_weekly')) {
-                $checkWeeks = 12;
-                for ($i = 1; $i <= $checkWeeks; $i++) {
+            // 4) Перевіряємо кожну дату серії до її фактичного завершення.
+            $repeatPeriod = $this->input('repeat_period', 'none');
+            if ($repeatPeriod !== 'none') {
+                $repeatEnd = $repeatPeriod === 'year'
+                    ? (clone $start)->addYear()->subSecond()
+                    : (clone $start)->endOfMonth();
+
+                for ($i = 1; ; $i++) {
                     $wStart = (clone $start)->addWeeks($i);
-                    $wEnd   = (clone $end)->addWeeks($i);
+                    $wEnd = (clone $end)->addWeeks($i);
+
+                    if ($wStart->greaterThan($repeatEnd)) {
+                        break;
+                    }
 
                     $overlap = $availability->teacherHasOverlap((int) $teacherId, $wStart, $wEnd);
 
                     if ($overlap) {
                         $v->errors()->add(
-                            'repeat_weekly',
-                            "Щотижневе повторення конфліктує на тижні №{$i} (початок {$wStart->format('Y-m-d H:i')})."
+                            'repeat_period',
+                            "Не вдалося створити серію: час {$wStart->format('d.m.Y H:i')} вже зайнятий."
                         );
                         break;
                     }

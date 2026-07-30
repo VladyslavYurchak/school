@@ -73,25 +73,31 @@
 
                             <div class="mb-4">
                                 <label for="subscription_month" class="form-label">Оберіть місяць</label>
-                                <select
-                                    id="subscription_month"
-                                    name="subscription_month"
-                                    class="form-select"
-                                    required
-                                >
-                                    @foreach($allowedPaymentMonths ?? [] as $paymentMonth)
-                                        <option value="{{ $paymentMonth['value'] }}" @selected($paymentMonth['value'] === ($defaultPaymentMonth ?? now()->format('Y-m')))>
-                                            {{ $paymentMonth['label'] }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                @if(! empty($allowedPaymentMonths))
+                                    <select
+                                        id="subscription_month"
+                                        name="subscription_month"
+                                        class="form-select"
+                                        required
+                                    >
+                                        @foreach($allowedPaymentMonths as $paymentMonth)
+                                            <option value="{{ $paymentMonth['value'] }}" @selected($paymentMonth['value'] === $defaultPaymentMonth)>
+                                                {{ $paymentMonth['label'] }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                @else
+                                    <div class="alert alert-success mb-0" role="status">
+                                        Усі доступні місяці вже оплачені.
+                                    </div>
+                                @endif
                                 <p class="form-text mt-2 mb-0">
                                     Ви можете оплатити поточний місяць, два попередні або два наступні місяці.
                                     Уже оплачені місяці не створюються повторно.
                                 </p>
                             </div>
 
-                            <button type="submit" class="btn-brand w-100">
+                            <button type="submit" class="btn-brand w-100" @disabled(empty($allowedPaymentMonths))>
                                 <i class="bi bi-shield-check" aria-hidden="true"></i>
                                 Перейти до оплати
                             </button>

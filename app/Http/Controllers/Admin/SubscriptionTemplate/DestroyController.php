@@ -10,10 +10,10 @@ class DestroyController extends Controller
 {
     public function __invoke(SubscriptionTemplate $subscriptionTemplate): RedirectResponse
     {
-        $subscriptionTemplate->delete();
+        $subscriptionTemplate->update(['is_active' => false]);
 
         return redirect()
             ->route('admin.subscription-templates.index')
-            ->with('success', 'Шаблон абонементу видалено.');
+            ->with('success', 'Шаблон абонементу перенесено в архів. Прив’язки учнів та історію оплат збережено.');
     }
 }

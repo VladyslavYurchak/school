@@ -35,7 +35,7 @@ class PlannedLesson extends Model
 
     public function getDurationAttribute(): ?int
     {
-        if (!$this->start_date || !$this->end_date) {
+        if (! $this->start_date || ! $this->end_date) {
             return null;
         }
 
@@ -60,6 +60,11 @@ class PlannedLesson extends Model
     public function logs()
     {
         return $this->hasMany(LessonLog::class, 'lesson_id');
+    }
+
+    public function telegramNotifications()
+    {
+        return $this->hasMany(TelegramNotification::class);
     }
 
     public function scopeIntersects($query, CarbonInterface $start, CarbonInterface $end)

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Course;
 use App\Models\Language;
 use App\Models\SchoolRule;
+use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -32,6 +33,7 @@ class AdminUiNavigationTest extends TestCase
     public function test_teacher_sidebar_does_not_show_admin_site_management_links(): void
     {
         $teacher = User::factory()->create(['role' => 'teacher']);
+        Teacher::factory()->create(['user_id' => $teacher->id]);
 
         $this
             ->actingAs($teacher)

@@ -117,6 +117,15 @@ class MarkGroupRescheduledRequest extends FormRequest
 
                 if ($conflict) {
                     $v->errors()->add('new_date', 'Для цієї групи вже існує інше заняття у вказаний час.');
+
+                    return;
+                }
+
+                $teacherConflict = app(CalendarAvailabilityService::class)
+                    ->teacherHasOverlap((int) $lesson->teacher_id, $newStart, $newEnd, $lessonId);
+
+                if ($teacherConflict) {
+                    $v->errors()->add('new_date', 'Викладач уже має інше заняття у вказаний час.');
                 }
             } catch (\Throwable $e) {
                 // формат уже перевіряється в rules(); тут тихо ігноруємо

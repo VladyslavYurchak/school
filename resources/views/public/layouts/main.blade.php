@@ -26,8 +26,20 @@
                class="btn-register"
                data-bs-toggle="modal"
                data-bs-target="#trialLessonRequestModal">
-                📚 Запис на безкоштовне заняття
+                <i class="bi bi-journal-bookmark-fill" aria-hidden="true"></i>
+                <span class="btn-register-label-desktop">Запис на безкоштовне заняття</span>
+                <span class="btn-register-label-mobile">Пробний урок</span>
             </a>
+
+            <button class="navbar-toggler mobile-menu-toggle"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                    aria-controls="navbarNav"
+                    aria-expanded="false"
+                    aria-label="Перемкнути навігацію">
+                <i class="bi bi-list" aria-hidden="true"></i>
+            </button>
 
             <a class="site-logo" href="{{ route('index') }}">
                 <img src="{{ asset('images/logo.png') }}" alt="Школа іноземних мов">
@@ -55,7 +67,7 @@
 
     <nav class="navbar navbar-expand-lg site-navbar">
         <div class="container">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            <button class="navbar-toggler navbar-main-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Перемкнути навігацію">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -91,7 +103,10 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ route('teachers.index') }}">Наші вчителі</a></li>
                             <li><a class="dropdown-item" href="{{ route('contact.index') }}">Адреса</a></li>
-                            <li><a class="dropdown-item" href="{{ route('rules.index') }}">Правила школи</a></li>                        </ul>
+                            <li><a class="dropdown-item" href="{{ route('rules.index') }}">Правила школи</a></li>
+                            <li><a class="dropdown-item" href="{{ route('privacy-policy') }}">Політика конфіденційності</a></li>
+                            <li><a class="dropdown-item" href="{{ route('data-deletion') }}">Видалення даних</a></li>
+                        </ul>
                     </li>
 
                     @guest
@@ -123,12 +138,11 @@
                                 @endif
 
                                 <li>
-                                    <a class="dropdown-item" href="{{ route('logout') }}"
-                                       onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                        Вийти
-                                    </a>
-                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                    <form action="{{ route('logout') }}" method="POST">
                                         @csrf
+                                        <button type="submit" class="dropdown-item dropdown-item-button">
+                                            Вийти
+                                        </button>
                                     </form>
                                 </li>
                             </ul>
@@ -159,6 +173,51 @@
 
     @yield('content')
 </main>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="site-footer-grid">
+            <div class="site-footer-brand">
+                <a class="site-footer-logo" href="{{ route('index') }}">
+                    <img src="{{ asset('images/logo.png') }}" alt="Корпорація Мов">
+                </a>
+                <p>Школа іноземних мов у Броварах. Навчання онлайн та офлайн для дітей і дорослих.</p>
+            </div>
+
+            <nav class="site-footer-nav" aria-label="Навігація в нижній частині сторінки">
+                <h2>Навігація</h2>
+                <a href="{{ route('courses.index') }}">Курси та уроки</a>
+                <a href="{{ route('teachers.index') }}">Наші вчителі</a>
+                <a href="{{ route('rules.index') }}">Правила школи</a>
+                <a href="{{ route('contact.index') }}">Контакти</a>
+            </nav>
+
+            <div class="site-footer-contact">
+                <h2>Зв’язатися з нами</h2>
+                <a href="tel:+380662992218">
+                    <i class="bi bi-telephone" aria-hidden="true"></i>
+                    +38 (066) 299-22-18
+                </a>
+                <a href="https://t.me/DashaYurchak" target="_blank" rel="noopener">
+                    <i class="bi bi-telegram" aria-hidden="true"></i>
+                    Telegram
+                </a>
+                <a href="https://www.instagram.com/korporatsiia.mov/" target="_blank" rel="noopener">
+                    <i class="bi bi-instagram" aria-hidden="true"></i>
+                    Instagram
+                </a>
+            </div>
+        </div>
+
+        <div class="site-footer-bottom">
+            <span>© {{ now()->year }} Корпорація Мов</span>
+            <div class="site-footer-legal">
+                <a href="{{ route('privacy-policy') }}">Політика конфіденційності</a>
+                <a href="{{ route('data-deletion') }}">Видалення даних</a>
+            </div>
+        </div>
+    </div>
+</footer>
 
 <div class="modal fade" id="trialLessonRequestModal" tabindex="-1" aria-labelledby="trialLessonRequestModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

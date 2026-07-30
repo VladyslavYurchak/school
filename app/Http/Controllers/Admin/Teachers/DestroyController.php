@@ -9,9 +9,10 @@ class DestroyController extends Controller
 {
     public function __invoke(Teacher $teacher)
     {
-        $teacher->delete();
+        $teacher->update(['is_active' => false]);
 
-        return redirect()->route('admin.teachers.index')->with('success', 'Викладача видалено');
+        return redirect()
+            ->route('admin.teachers.index')
+            ->with('success', 'Викладача деактивовано. Історію занять і розрахунків збережено.');
     }
 }
-

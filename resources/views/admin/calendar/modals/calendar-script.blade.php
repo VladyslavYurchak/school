@@ -80,6 +80,7 @@
                 selectedEventEnd = info.event.end;
 
                 const groupId = info.event.extendedProps.group_id;
+                const studentId = info.event.extendedProps.student_id;
                 const members = info.event.extendedProps.members || [];
 
                 if (groupId) {
@@ -122,6 +123,10 @@
                         })();
                     }
                 } else {
+                    document
+                        .getElementById('cancelStudentFutureLessons')
+                        .classList.toggle('d-none', !studentId);
+
                     // Старий режим для індивідуального заняття
                     document.getElementById('manageEventTitle').textContent = info.event.title;
                     document.getElementById('manageEventDate').textContent = info.event.start.toLocaleDateString('uk-UA');
@@ -145,7 +150,7 @@
                 notes: document.getElementById('eventNotes').value,
                 student_id: document.getElementById('eventStudent').value || null,
                 group_id: document.getElementById('eventGroup').value || null,
-                repeat_weekly: document.getElementById('repeatWeekly').checked,
+                repeat_period: document.getElementById('repeatPeriod').value,
                 lesson_type: document.querySelector('input[name="lesson_type"]:checked').value
             };
 
@@ -171,7 +176,7 @@
                 end: formatDateTimeLocal(end),
                 duration: data.duration,
                 notes: data.notes,
-                repeat_weekly: document.getElementById('repeatWeekly').checked,
+                repeat_period: data.repeat_period,
                 lesson_type: data.lesson_type, // додаємо тут
                 student_id: null,
                 group_id: null
@@ -246,6 +251,22 @@
         // --- Маркування як скасоване ---
         document.getElementById('markAsCancelled').addEventListener('click', function () {
             updateStatus('cancel', 'Заняття скасоване');
+        });
+
+        document.getElementById('cancelStudentFutureLessons').addEventListener('click', function () {
+            const confirmed = window.confirm(
+                'Скасувати це заняття та всі наступні індивідуальні заняття цього учня? Цю дію неможливо скасувати.'
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            updateStatus(
+                'cancel',
+                'Це та всі наступні заняття учня скасовані',
+                { scope: 'student_future' }
+            );
         });
 
 

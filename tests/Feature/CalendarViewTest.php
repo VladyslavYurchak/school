@@ -59,6 +59,8 @@ class CalendarViewTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertSee('Вийти з кабінету викладача')
+            ->assertDontSee('Вийти з кабінету адміністратора')
             ->assertSee('A1 Group (1', false)
             ->assertSee('B1 Pair (1', false)
             ->assertSee('data-type="group"', false)
@@ -104,6 +106,22 @@ class CalendarViewTest extends TestCase
             ->assertSee('method: \'PUT\'', false)
             ->assertSee('`/admin/calendar-events/${selectedEventId}`', false)
             ->assertDontSee('Редагування ще в розробці', false);
+    }
+
+    public function test_teacher_calendar_includes_yearly_repeat_and_future_cancellation_controls(): void
+    {
+        [$teacherUser] = $this->createTeacherUser();
+
+        $this
+            ->actingAs($teacherUser)
+            ->get(route('admin.calendar.index'))
+            ->assertOk()
+            ->assertSee('id="repeatPeriod"', false)
+            ->assertSee('value="year"', false)
+            ->assertSee('Обрати цей час щотижня на 12 місяців')
+            ->assertSee('id="cancelStudentFutureLessons"', false)
+            ->assertSee("{ scope: 'student_future' }", false)
+            ->assertSee('всі наступні індивідуальні заняття цього учня');
     }
 
     public function test_teacher_calendar_includes_group_attendance_controls(): void

@@ -9,7 +9,16 @@ class CreateController extends Controller
 {
     public function __invoke()
     {
-        $users = User::whereNull('role')->orWhere('role', '!=', 'teacher')->get();
+        $users = User::query()
+            ->whereDoesntHave('teacher')
+            ->whereDoesntHave('student')
+            ->where(function ($query) {
+                $query->whereNull('role')
+                    ->orWhereIn('role', ['student', 'admin']);
+            })
+            ->orderBy('name')
+            ->get();
+
         return view('admin.teachers.create', compact('users'));
     }
 }

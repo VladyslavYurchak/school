@@ -92,6 +92,16 @@ class User extends Authenticatable implements MustVerifyEmail // ⬅️ дода
         return $this->hasMany(SocialAccount::class);
     }
 
+    public function telegramAccount()
+    {
+        return $this->hasOne(TelegramAccount::class);
+    }
+
+    public function telegramLinkTokens()
+    {
+        return $this->hasMany(TelegramLinkToken::class);
+    }
+
     public function teacher()
     {
         return $this->hasOne(Teacher::class);

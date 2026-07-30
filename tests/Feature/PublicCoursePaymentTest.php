@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\Language;
 use App\Models\Lesson;
 use App\Models\Payment;
+use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -22,6 +23,33 @@ class PublicCoursePaymentTest extends TestCase
 
         $this->withoutMiddleware(VerifyCsrfToken::class);
         $this->withoutMiddleware(ValidateCsrfToken::class);
+    }
+
+    public function test_staff_accounts_cannot_create_course_or_lesson_payments(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'teacher']);
+        Teacher::factory()->create(['user_id' => $teacherUser->id]);
+        $course = $this->createCourse([
+            'is_published' => true,
+            'price' => 500,
+        ]);
+        $lesson = $this->createLesson($course, [
+            'is_published' => true,
+            'price' => 100,
+        ]);
+
+        $this
+            ->actingAs($teacherUser)
+            ->post(route('courses.buy', $course))
+            ->assertForbidden();
+
+        $this
+            ->actingAs($teacherUser)
+            ->post(route('lessons.buy', $lesson))
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('payments', 0);
+        $this->assertDatabaseMissing('students', ['user_id' => $teacherUser->id]);
     }
 
     public function test_course_index_lists_only_published_courses_and_counts_published_lessons(): void

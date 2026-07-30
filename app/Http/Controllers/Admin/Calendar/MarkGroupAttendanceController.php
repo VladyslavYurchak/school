@@ -6,14 +6,15 @@ use App\Enums\LessonLogStatus;
 use App\Enums\LessonStatus;
 use App\Enums\LessonType;
 use App\Http\Controllers\Controller;
-use App\Models\LessonLog;
+use App\Http\Requests\Admin\Calendar\MarkGroupAttendanceRequest;
 use App\Models\Group;
+use App\Models\LessonLog;
 use App\Models\PlannedLesson;
 use App\Services\LessonActionLogger;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use App\Http\Requests\Admin\Calendar\MarkGroupAttendanceRequest;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class MarkGroupAttendanceController extends Controller
 {
@@ -32,7 +33,7 @@ class MarkGroupAttendanceController extends Controller
                 if ($user->role === 'teacher') {
                     $teacherId = optional($user->teacher)->id;
 
-                    if (!$teacherId) {
+                    if (! $teacherId) {
                         abort(403);
                     }
 
@@ -44,14 +45,15 @@ class MarkGroupAttendanceController extends Controller
 
                 $lesson = $lessonQuery
                     ->where('group_id', $group->id) // дуже важливо: урок має належати цій групі
+                    ->lockForUpdate()
                     ->findOrFail($data['lesson_id']);
 
-// teacher_id: з плану → з групи → з користувача
+                // teacher_id: з плану → з групи → з користувача
                 $teacherId = $lesson->teacher_id
                     ?? $group->teacher_id
                     ?? optional(auth()->user()->teacher)->id;
 
-// Позначаємо урок виконаним
+                // Позначаємо урок виконаним
                 if ($lesson->status !== LessonStatus::Completed) {
                     $lesson->status = LessonStatus::Completed;
                     $lesson->save();
@@ -68,29 +70,41 @@ class MarkGroupAttendanceController extends Controller
                 );
 
                 $present = array_map('intval', $data['present_students'] ?? []);
+                $groupStudentIds = $group->students
+                    ->pluck('id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+                $invalidStudentIds = array_diff($present, $groupStudentIds);
+
+                if ($invalidStudentIds !== []) {
+                    throw ValidationException::withMessages([
+                        'present_students' => 'Selected students must belong to this group.',
+                    ]);
+                }
 
                 $presentSet = array_flip($present);
 
                 $duration = $lesson->duration ?? 60;
+                $lessonStart = $lesson->start_date;
 
                 $lessonType = $lesson->lesson_type;
                 $type = $lessonType instanceof LessonType ? $lessonType->value : (string) $lessonType;
 
-                $teacher  = $lesson->teacher;
+                $teacher = $lesson->teacher;
 
-                $basis    = 'per_lesson';
+                $basis = 'per_lesson';
 
                 $baseRate = (float) (
-                $type === LessonType::Pair->value
-                    ? ($teacher?->pair_lesson_price ?? 0)
-                    : ($teacher?->group_lesson_price ?? 0)
+                    $type === LessonType::Pair->value
+                        ? ($teacher?->pair_lesson_price ?? 0)
+                        : ($teacher?->group_lesson_price ?? 0)
                 );
 
-// --- РОЗПОДІЛ СТАВКИ МІЖ УСІМА СТУДЕНТАМИ, НЕЗАЛЕЖНО ВІД ПРИСУТНОСТІ ---
+                // --- РОЗПОДІЛ СТАВКИ МІЖ УСІМА СТУДЕНТАМИ, НЕЗАЛЕЖНО ВІД ПРИСУТНОСТІ ---
                 $totalStudents = max(1, $group->students->count());
-                $totalCents    = (int) round($baseRate * 100);
-                $shareCents    = intdiv($totalCents, $totalStudents);
-                $remainder     = $totalCents % $totalStudents; // перші $remainder студентів отримають +0.01 грн
+                $totalCents = (int) round($baseRate * 100);
+                $shareCents = intdiv($totalCents, $totalStudents);
+                $remainder = $totalCents % $totalStudents; // перші $remainder студентів отримають +0.01 грн
 
                 $idx = 0;
 
@@ -98,7 +112,6 @@ class MarkGroupAttendanceController extends Controller
                     ->where('lesson_id', $lesson->id)
                     ->get()
                     ->keyBy('student_id');
-
 
                 foreach ($group->students as $student) {
                     $studentId = (int) $student->id;
@@ -115,21 +128,21 @@ class MarkGroupAttendanceController extends Controller
                     $existing = $existingLogs->get($studentId);
 
                     $payload = [
-                        'lesson_id'   => $data['lesson_id'],
-                        'student_id'  => $studentId,
-                        'teacher_id'  => $teacherId,
+                        'lesson_id' => $data['lesson_id'],
+                        'student_id' => $studentId,
+                        'teacher_id' => $teacherId,
                         'lesson_type' => $type,
-                        'group_id'    => $data['group_id'],
-                        'date'        => $data['date'],
-                        'time'        => $data['time'] . ':00',
-                        'duration'    => $duration,
-                        'status'      => $status,
-                        'notes'       => $lesson->notes,
+                        'group_id' => $data['group_id'],
+                        'date' => $lessonStart->toDateString(),
+                        'time' => $lessonStart->format('H:i:s'),
+                        'duration' => $duration,
+                        'status' => $status,
+                        'notes' => $lesson->notes,
 
                         'teacher_rate_amount_at_charge' => $baseRate,
-                        'teacher_payout_basis'          => $basis,
-                        'teacher_payout_amount'         => $payout,
-                        'charged_at'                    => now(),
+                        'teacher_payout_basis' => $basis,
+                        'teacher_payout_amount' => $payout,
+                        'charged_at' => now(),
                     ];
 
                     $existing ? $existing->update($payload) : LessonLog::create($payload);
@@ -139,13 +152,16 @@ class MarkGroupAttendanceController extends Controller
             });
 
             return response()->json(['success' => true, 'message' => 'Відвідуваність збережена']);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Group or lesson was not found.',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('MarkGroupAttendance error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            Log::error('MarkGroupAttendance error: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
             return response()->json(['success' => false, 'message' => 'Помилка при збереженні'], 500);
         }
     }

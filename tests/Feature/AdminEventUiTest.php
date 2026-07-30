@@ -75,7 +75,14 @@ class AdminEventUiTest extends TestCase
         $event = Event::where('title', 'Event with upload')->firstOrFail();
 
         $this->assertStringStartsWith('events/', $event->image);
+        $this->assertStringEndsWith('.webp', $event->image);
         Storage::disk('public')->assertExists($event->image);
+
+        [$width, $height, $type] = getimagesize(Storage::disk('public')->path($event->image));
+
+        $this->assertSame(1200, $width);
+        $this->assertSame(1200, $height);
+        $this->assertSame(IMAGETYPE_WEBP, $type);
     }
 
     public function test_admin_event_form_rejects_title_longer_than_database_column(): void
@@ -110,7 +117,9 @@ class AdminEventUiTest extends TestCase
             ->get(route('admin.event.edit', $event))
             ->assertOk()
             ->assertSee('name="is_published"', false)
-            ->assertSee('name="image_file"', false);
+            ->assertSee('name="image_file"', false)
+            ->assertSee('data-square-image-editor', false)
+            ->assertSee('name="cropped_image"', false);
 
         $this->assertSame(1, substr_count($response->getContent(), '<main class="app-main">'));
 

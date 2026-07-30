@@ -95,6 +95,10 @@
     box-shadow: none;
 }
 
+.mobile-menu-toggle {
+    display: none;
+}
+
 .dropdown-menu {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
@@ -116,6 +120,13 @@
     color: var(--color-primary-dark);
 }
 
+.dropdown-item-button {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+}
+
 .btn-register {
     display: inline-flex;
     align-items: center;
@@ -131,6 +142,10 @@
     transition: 0.25s ease;
 }
 
+.btn-register-label-mobile {
+    display: none;
+}
+
 .btn-register:hover {
     background: var(--color-primary-dark);
     border-color: var(--color-primary-dark);
@@ -138,14 +153,20 @@
     transform: translateY(-1px);
 }
 
+@media (max-width: 991.98px) {
+    .site-header {
+        position: static;
+    }
+}
+
 @media (max-width: 575.98px) {
     .topbar {
-        padding: 10px 0;
+        padding: 8px 0;
     }
 
     .topbar-inner {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 48px minmax(0, 1fr);
         gap: 10px 12px;
     }
 
@@ -156,31 +177,74 @@
     }
 
     .site-logo img {
-        max-height: 52px;
+        max-height: 46px;
     }
 
     .btn-register {
-        grid-column: 1;
+        grid-column: 2;
         grid-row: 2;
         width: 100%;
-        min-height: 42px;
-        padding: 9px 12px;
+        min-height: 40px;
+        padding: 7px 10px;
         font-size: 13px;
         line-height: 1.2;
     }
 
-    .social-icons {
-        grid-column: 2;
+    .btn-register-label-desktop {
+        display: none;
+    }
+
+    .btn-register-label-mobile {
+        display: inline;
+    }
+
+    .btn-register > i {
+        display: none;
+    }
+
+    .mobile-menu-toggle {
+        display: inline-flex;
+        grid-column: 1;
         grid-row: 2;
-        justify-content: flex-end;
+        width: 48px;
+        height: 40px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        box-shadow: none;
+    }
+
+    .mobile-menu-toggle i {
+        font-size: 28px;
+        line-height: 1;
+    }
+
+    .social-icons {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        justify-content: center;
         gap: 6px;
         min-width: 0;
     }
 
     .social-icons a {
-        width: 34px;
-        height: 34px;
-        font-size: 15px;
-        flex: 0 0 34px;
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+        flex: 0 0 32px;
+    }
+
+    .site-navbar {
+        padding: 0;
+    }
+
+    .site-navbar .navbar-main-toggle {
+        display: none;
+    }
+
+    .site-navbar .collapse.show,
+    .site-navbar .collapsing {
+        padding: 8px 0 12px;
     }
 }

@@ -40,6 +40,14 @@
 
     <div class="account-page">
         <div class="container">
+            @if(session('telegram_success'))
+                <div class="alert alert-success" role="status">{{ session('telegram_success') }}</div>
+            @endif
+
+            @if(session('telegram_error'))
+                <div class="alert alert-danger" role="alert">{{ session('telegram_error') }}</div>
+            @endif
+
             <header class="account-header">
                 <div>
                     <h1 class="account-header-title">Кабінет учня</h1>
@@ -58,6 +66,48 @@
             </header>
 
             <div class="row g-4">
+            <div class="col-12">
+                <section class="account-panel">
+                    <h2 class="account-panel-title">
+                        <i class="bi bi-telegram" aria-hidden="true"></i>
+                        Telegram-сповіщення
+                    </h2>
+
+                    @if($telegramAccount)
+                        <p class="account-empty mb-3">
+                            Telegram підключено
+                            @if($telegramAccount->username)
+                                як <strong>{{ '@'.$telegramAccount->username }}</strong>.
+                            @else
+                                до вашого кабінету.
+                            @endif
+                            Тут надходитимуть нагадування про заняття та оплату.
+                        </p>
+
+                        <form method="POST" action="{{ route('student.telegram.disconnect') }}">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn-brand-outline">
+                                <i class="bi bi-link-45deg" aria-hidden="true"></i>
+                                Від’єднати Telegram
+                            </button>
+                        </form>
+                    @else
+                        <p class="account-empty mb-3">
+                            Підключіть Telegram, щоб отримувати нагадування про заняття та оплату.
+                        </p>
+
+                        <form method="POST" action="{{ route('student.telegram.connect') }}">
+                            @csrf
+                            <button type="submit" class="btn-brand">
+                                <i class="bi bi-telegram" aria-hidden="true"></i>
+                                Підключити Telegram
+                            </button>
+                        </form>
+                    @endif
+                </section>
+            </div>
+
             <div class="col-lg-6">
                 <section class="account-panel">
                     <h2 class="account-panel-title">

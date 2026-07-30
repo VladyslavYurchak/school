@@ -62,10 +62,10 @@
                                     <td>{{ $teacher->first_name }}</td>
                                     <td>{{ $teacher->phone ?? '-' }}</td>
                                     <td>{{ $teacher->user?->email ?? $teacher->email ?? '-' }}</td>
-                                    <td>{{ $teacher->lesson_price ? number_format($teacher->lesson_price, 2) . ' грн' : '-' }}</td>
-                                    <td>{{ $teacher->group_lesson_price ? number_format($teacher->group_lesson_price, 2) . ' грн' : '-' }}</td>
-                                    <td>{{ $teacher->pair_lesson_price ? number_format($teacher->pair_lesson_price, 2) . ' грн' : '-' }}</td>
-                                    <td>{{ $teacher->trial_lesson_price ? number_format($teacher->trial_lesson_price, 2) . ' грн' : '-' }}</td>
+                                    <td>{{ $teacher->lesson_price !== null ? number_format($teacher->lesson_price, 2) . ' грн' : '-' }}</td>
+                                    <td>{{ $teacher->group_lesson_price !== null ? number_format($teacher->group_lesson_price, 2) . ' грн' : '-' }}</td>
+                                    <td>{{ $teacher->pair_lesson_price !== null ? number_format($teacher->pair_lesson_price, 2) . ' грн' : '-' }}</td>
+                                    <td>{{ $teacher->trial_lesson_price !== null ? number_format($teacher->trial_lesson_price, 2) . ' грн' : '-' }}</td>
                                     <td>
                                         @if($teacher->is_active)
                                             <span class="admin-badge admin-badge-free">Активний</span>
@@ -79,13 +79,15 @@
                                             <a href="{{ route('admin.teachers.edit', $teacher->id) }}" class="admin-btn-warning" title="Редагувати">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <form action="{{ route('admin.teachers.destroy', $teacher->id) }}" method="POST" onsubmit="return confirm('Видалити цього викладача?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button class="admin-btn-danger" type="submit" title="Видалити">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
+                                            @if($teacher->is_active)
+                                                <form action="{{ route('admin.teachers.destroy', $teacher->id) }}" method="POST" onsubmit="return confirm('Деактивувати викладача? Історія занять і розрахунків буде збережена.')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="admin-btn-danger" type="submit" title="Деактивувати">
+                                                        <i class="bi bi-person-x"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
