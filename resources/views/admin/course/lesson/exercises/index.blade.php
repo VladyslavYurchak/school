@@ -101,14 +101,15 @@
                                 </div>
                                 <div class="admin-row-actions lesson-exercise-admin-actions">
                                     <a href="{{ route('admin.course.lesson.exercises.edit', [$lesson, $exercise]) }}"
-                                       class="admin-btn-warning" title="Редагувати">
+                                       class="admin-btn-warning" title="Редагувати" aria-label="Редагувати вправу">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <form action="{{ route('admin.course.lesson.exercises.toggle', [$lesson, $exercise]) }}" method="POST">
                                         @csrf
                                         @method('PATCH')
                                         <button type="submit" class="admin-btn-soft"
-                                                title="{{ $exercise->is_active ? 'Приховати' : 'Показати' }}">
+                                                title="{{ $exercise->is_active ? 'Приховати' : 'Показати' }}"
+                                                aria-label="{{ $exercise->is_active ? 'Приховати вправу' : 'Показати вправу' }}">
                                             <i class="bi {{ $exercise->is_active ? 'bi-eye-slash' : 'bi-eye' }}"></i>
                                         </button>
                                     </form>
@@ -116,7 +117,7 @@
                                           method="POST" onsubmit="return confirm('Видалити цю вправу?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="admin-btn-danger" title="Видалити">
+                                        <button type="submit" class="admin-btn-danger" title="Видалити" aria-label="Видалити вправу">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>

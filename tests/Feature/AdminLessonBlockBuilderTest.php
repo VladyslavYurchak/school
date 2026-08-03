@@ -53,7 +53,7 @@ class AdminLessonBlockBuilderTest extends TestCase
                 ->post(route('admin.course.lesson.blocks.store', $lesson), [
                     'type' => 'text',
                     'title' => $title,
-                    'content' => '<p class="bad">Text ' . $index . '</p><script>alert(1)</script>',
+                    'content' => '<p class="bad">Text '.$index.'</p><script>alert(1)</script>',
                     'is_active' => 1,
                 ])
                 ->assertRedirect(route('admin.course.lesson.blocks.index', $lesson));
@@ -118,7 +118,7 @@ class AdminLessonBlockBuilderTest extends TestCase
         }
 
         foreach ($lesson->contentBlocks()->get() as $block) {
-            $this->assertStringStartsWith('lesson_blocks/' . $block->type . '/', $block->media_path);
+            $this->assertStringStartsWith('lesson_blocks/'.$block->type.'/', $block->media_path);
             Storage::disk('public')->assertExists($block->media_path);
             $this->assertNotNull($block->media_name);
             $this->assertGreaterThan(0, $block->media_size);
@@ -165,6 +165,65 @@ class AdminLessonBlockBuilderTest extends TestCase
         Storage::disk('public')->assertMissing('lesson_blocks/pdf/old.pdf');
         Storage::disk('public')->assertExists($block->media_path);
         $this->assertSame('new.pdf', $block->media_name);
+    }
+
+    public function test_changing_media_block_to_text_deletes_and_clears_old_file(): void
+    {
+        $lesson = $this->createLesson();
+        $block = $lesson->contentBlocks()->create([
+            'type' => 'pdf',
+            'media_path' => 'lesson_blocks/pdf/old.pdf',
+            'media_name' => 'old.pdf',
+            'media_mime' => 'application/pdf',
+            'media_size' => 100,
+            'position' => 1,
+            'is_active' => true,
+        ]);
+        Storage::disk('public')->put($block->media_path, 'old');
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.course.lesson.blocks.update', [$lesson, $block]), [
+                'type' => 'text',
+                'title' => 'Text now',
+                'content' => '<p>Updated text</p>',
+                'is_active' => 1,
+            ])
+            ->assertRedirect(route('admin.course.lesson.blocks.index', $lesson));
+
+        $block->refresh();
+
+        Storage::disk('public')->assertMissing('lesson_blocks/pdf/old.pdf');
+        $this->assertNull($block->media_path);
+        $this->assertNull($block->media_name);
+        $this->assertNull($block->media_mime);
+        $this->assertNull($block->media_size);
+    }
+
+    public function test_changing_between_media_types_requires_a_matching_new_file(): void
+    {
+        $lesson = $this->createLesson();
+        $block = $lesson->contentBlocks()->create([
+            'type' => 'audio',
+            'media_path' => 'lesson_blocks/audio/old.mp3',
+            'media_name' => 'old.mp3',
+            'media_mime' => 'audio/mpeg',
+            'media_size' => 100,
+            'position' => 1,
+            'is_active' => true,
+        ]);
+        Storage::disk('public')->put($block->media_path, 'old');
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.course.lesson.blocks.edit', [$lesson, $block]))
+            ->put(route('admin.course.lesson.blocks.update', [$lesson, $block]), [
+                'type' => 'image',
+                'title' => 'Image now',
+                'is_active' => 1,
+            ])
+            ->assertSessionHasErrors('media_file');
+
+        $this->assertSame('audio', $block->fresh()->type);
+        Storage::disk('public')->assertExists('lesson_blocks/audio/old.mp3');
     }
 
     public function test_admin_cannot_edit_or_delete_block_from_another_lesson(): void
@@ -280,6 +339,14 @@ class AdminLessonBlockBuilderTest extends TestCase
     public function test_deleting_lesson_removes_its_block_files(): void
     {
         $lesson = $this->createLesson();
+        $lesson->update([
+            'audio_file' => 'lesson_audio/legacy.mp3',
+            'media_files' => ['lesson_media/legacy.pdf'],
+            'homework_files' => ['homework_files/legacy.docx'],
+        ]);
+        Storage::disk('public')->put($lesson->audio_file, 'audio');
+        Storage::disk('public')->put($lesson->media_files[0], 'pdf');
+        Storage::disk('public')->put($lesson->homework_files[0], 'docx');
         $block = $lesson->contentBlocks()->create([
             'type' => 'audio',
             'media_path' => 'lesson_blocks/audio/dialogue.mp3',
@@ -308,13 +375,24 @@ class AdminLessonBlockBuilderTest extends TestCase
 
         Storage::disk('public')->assertMissing($block->media_path);
         Storage::disk('public')->assertMissing($exerciseItem->audio_path);
+        Storage::disk('public')->assertMissing('lesson_audio/legacy.mp3');
+        Storage::disk('public')->assertMissing('lesson_media/legacy.pdf');
+        Storage::disk('public')->assertMissing('homework_files/legacy.docx');
         $this->assertDatabaseMissing('lesson_content_blocks', ['id' => $block->id]);
         $this->assertDatabaseMissing('lesson_exercise_items', ['id' => $exerciseItem->id]);
     }
 
-    public function test_deleting_course_removes_dictation_audio(): void
+    public function test_deleting_course_removes_all_lesson_files(): void
     {
         $lesson = $this->createLesson();
+        $lesson->update([
+            'audio_file' => 'lesson_audio/course-legacy.mp3',
+            'media_files' => ['lesson_media/course-legacy.pdf'],
+            'homework_files' => ['homework_files/course-legacy.docx'],
+        ]);
+        Storage::disk('public')->put($lesson->audio_file, 'audio');
+        Storage::disk('public')->put($lesson->media_files[0], 'pdf');
+        Storage::disk('public')->put($lesson->homework_files[0], 'docx');
         $exercise = $lesson->exercises()->create([
             'type' => 'dictation',
             'title' => 'Dictation',
@@ -334,6 +412,9 @@ class AdminLessonBlockBuilderTest extends TestCase
             ->assertRedirect(route('admin.course.index'));
 
         Storage::disk('public')->assertMissing($exerciseItem->audio_path);
+        Storage::disk('public')->assertMissing('lesson_audio/course-legacy.mp3');
+        Storage::disk('public')->assertMissing('lesson_media/course-legacy.pdf');
+        Storage::disk('public')->assertMissing('homework_files/course-legacy.docx');
         $this->assertDatabaseMissing('lesson_exercise_items', ['id' => $exerciseItem->id]);
     }
 
@@ -349,7 +430,7 @@ class AdminLessonBlockBuilderTest extends TestCase
 
         return Lesson::create([
             'course_id' => $course->id,
-            'title' => 'Lesson ' . fake()->unique()->numberBetween(1, 10000),
+            'title' => 'Lesson '.fake()->unique()->numberBetween(1, 10000),
             'description' => 'Lesson description',
             'position' => $course->lessons()->count() + 1,
             'is_published' => true,
@@ -361,7 +442,7 @@ class AdminLessonBlockBuilderTest extends TestCase
         return $lesson->contentBlocks()->create([
             'type' => 'text',
             'title' => $title,
-            'content' => '<p>' . $title . ' content</p>',
+            'content' => '<p>'.$title.' content</p>',
             'position' => $position,
             'is_active' => true,
         ]);

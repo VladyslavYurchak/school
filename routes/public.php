@@ -9,12 +9,15 @@ use App\Http\Controllers\LessonPaymentController;
 use App\Http\Controllers\LessonTestAttemptController;
 use App\Http\Controllers\Post\ShowController as PublicPostShowController;
 use App\Http\Controllers\SchoolRulePageController;
+use App\Http\Controllers\SeoLandingPageController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TeacherPageController;
 use App\Http\Controllers\TrialLessonRequestController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', IndexController::class)->name('index');
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 Route::get('/posts', fn () => redirect()->route('index'))->name('posts.index');
 Route::get('/posts/{post}', PublicPostShowController::class)->name('posts.show');
@@ -58,6 +61,10 @@ Route::redirect('/payments', '/')->name('payments.index');
 Route::redirect('/about', '/')->name('about.index');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::redirect('/home', '/');
+
+Route::get('/{slug}', SeoLandingPageController::class)
+    ->whereIn('slug', array_keys(config('seo_pages.pages', [])))
+    ->name('seo.show');
 
 Route::post('/trial-lesson-requests', [TrialLessonRequestController::class, 'store'])
     ->name('trial-lesson-requests.store');

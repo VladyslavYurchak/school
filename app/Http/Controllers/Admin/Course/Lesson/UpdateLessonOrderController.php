@@ -16,18 +16,19 @@ class UpdateLessonOrderController extends Controller
             'lessons.*.position' => ['required', 'integer', 'min:1'],
         ]);
 
-        $lessonIds = collect($data['lessons'])->pluck('id');
+        $lessonIds = collect($data['lessons'])->pluck('id')->map(fn ($id) => (int) $id);
+        $currentLessonIds = $course->lessons()->pluck('id')->map(fn ($id) => (int) $id);
 
         abort_unless(
             $lessonIds->unique()->count() === $lessonIds->count()
-            && $course->lessons()->whereIn('id', $lessonIds)->count() === $lessonIds->count(),
+            && $lessonIds->sort()->values()->all() === $currentLessonIds->sort()->values()->all(),
             422,
-            'The lesson order contains invalid records.'
+            'The lesson order must contain every lesson from this course.'
         );
 
-        foreach ($data['lessons'] as $lessonData) {
+        foreach ($data['lessons'] as $index => $lessonData) {
             $course->lessons()->whereKey($lessonData['id'])
-                ->update(['position' => $lessonData['position']]);
+                ->update(['position' => $index + 1]);
         }
 
         return response()->json(['message' => 'Order updated successfully']);

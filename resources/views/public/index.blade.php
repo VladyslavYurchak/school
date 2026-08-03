@@ -1,5 +1,8 @@
 @extends('public.layouts.main')
 
+@section('title', 'Школа англійської мови у Броварах | Корпорація Мов')
+@section('description', 'Англійська для дітей від 7 років і дорослих у ЖК Scandia, Бровари. Онлайн та офлайн, індивідуальні, парні й групові заняття. Пробне заняття 30 хвилин безкоштовно.')
+
 @section('content')
     <div class="home-page py-5">
         <div class="container">
@@ -172,7 +175,12 @@
                                         <div class="col-sm-6 col-md-4">
                                             <form action="{{ route('testing.start', $code) }}" method="POST">
                                                 @csrf
-                                                <button type="submit" class="btn btn-brand w-100">{{ $label }}</button>
+                                                <button type="submit"
+                                                        class="btn btn-brand w-100"
+                                                        data-analytics-event="begin_level_test"
+                                                        data-analytics-label="{{ $code }}">
+                                                    {{ $label }}
+                                                </button>
                                             </form>
                                         </div>
                                     @endif
@@ -188,8 +196,10 @@
                             <a href="#"
                                class="info-link"
                                data-bs-toggle="modal"
-                               data-bs-target="#trialLessonRequestModal">
-                                Записатись на безкоштовне групове заняття
+                               data-bs-target="#trialLessonRequestModal"
+                               data-analytics-event="view_trial_lesson_form"
+                               data-analytics-label="homepage">
+                                Записатись на безкоштовне пробне заняття
                             </a>
 
                             <a href="{{ route('courses.index') }}" class="info-link">

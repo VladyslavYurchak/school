@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
 class StudentPaymentController extends Controller
 {
     private const PAYMENT_MONTH_PAST_LIMIT = 2;
+
     private const PAYMENT_MONTH_FUTURE_LIMIT = 2;
 
     public function index(Request $request)
@@ -66,7 +67,7 @@ class StudentPaymentController extends Controller
 
         $student = $user->student;
 
-        abort_if(!$student || $student->id !== $payment->student_id, 403);
+        abort_if(! $student || $student->id !== $payment->student_id, 403);
         abort_if($payment->status !== 'pending', 422, 'This payment has already been processed.');
 
         $payload = $payment->payload ?? [];
@@ -87,11 +88,11 @@ class StudentPaymentController extends Controller
             $lesson = Lesson::findOrFail($lessonId);
         }
 
-        abort_if(!$template && !$course && !$lesson, 422, 'Payment item was not found.');
+        abort_if(! $template && ! $course && ! $lesson, 422, 'Payment item was not found.');
 
         $existingMono = $payload['mono_invoice'] ?? null;
 
-        if ($payment->hasMonoPayInvoice() && !$payment->hasReusableMonoPayInvoice()) {
+        if ($payment->hasMonoPayInvoice() && ! $payment->hasReusableMonoPayInvoice()) {
             $payment->failExpiredMonoPayInvoice();
 
             return redirect()
@@ -102,7 +103,7 @@ class StudentPaymentController extends Controller
         if (
             $payment->provider_payment_id &&
             is_array($existingMono) &&
-            !empty($existingMono['pageUrl'])
+            ! empty($existingMono['pageUrl'])
         ) {
             return redirect()->away($existingMono['pageUrl']);
         }
@@ -130,7 +131,7 @@ class StudentPaymentController extends Controller
             'subscription_month' => ['required', 'date_format:Y-m'],
         ]);
 
-        if (!$this->isAllowedPaymentMonth($data['subscription_month'])) {
+        if (! $this->isAllowedPaymentMonth($data['subscription_month'])) {
             return redirect()
                 ->route('student.payments.index')
                 ->withErrors([
@@ -145,7 +146,7 @@ class StudentPaymentController extends Controller
                 ->route('student.dashboard')
                 ->with('error', 'Профіль учня ще не підключено адміністратором.');
         }
-        abort_if(!$student->subscriptionTemplate, 422, 'No subscription is assigned to you.');
+        abort_if(! $student->subscriptionTemplate, 422, 'No subscription is assigned to you.');
 
         $startDate = Carbon::createFromFormat('Y-m', $data['subscription_month'])->startOfMonth();
         $endDate = (clone $startDate)->endOfMonth();
@@ -156,7 +157,7 @@ class StudentPaymentController extends Controller
                 ->lockForUpdate()
                 ->findOrFail($student->id);
 
-            abort_if(!$lockedStudent->subscriptionTemplate, 422, 'No subscription is assigned to you.');
+            abort_if(! $lockedStudent->subscriptionTemplate, 422, 'No subscription is assigned to you.');
 
             $template = $lockedStudent->subscriptionTemplate;
             $paymentDescription = $this->subscriptionPaymentDescription($startDate, $lockedStudent);
@@ -184,14 +185,18 @@ class StudentPaymentController extends Controller
                 ->first();
 
             if ($existingPendingPayment) {
-                if ($existingPendingPayment->description !== $paymentDescription) {
+                $descriptionChanged = $existingPendingPayment->description !== $paymentDescription;
+                $amountChanged = (float) $existingPendingPayment->amount !== (float) $template->price;
+
+                if ($descriptionChanged || $amountChanged) {
                     $existingPendingPayment->update([
                         'status' => 'failed',
                         'payload' => array_merge(
                             is_array($existingPendingPayment->payload) ? $existingPendingPayment->payload : [],
                             [
-                                'description_changed_locally' => true,
-                                'description_changed_locally_at' => now()->toISOString(),
+                                'description_changed_locally' => $descriptionChanged,
+                                'amount_changed_locally' => $amountChanged,
+                                'offer_changed_locally_at' => now()->toISOString(),
                             ]
                         ),
                     ]);
@@ -233,8 +238,7 @@ class StudentPaymentController extends Controller
         Request $request,
         MonoPayService $monoPay,
         MonoPayPaymentProcessor $processor
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $user = $request->user();
 
         abort_unless($user && $user->isStudent(), 403);
@@ -248,7 +252,7 @@ class StudentPaymentController extends Controller
                 ->first()
             : null;
 
-        if (!$payment) {
+        if (! $payment) {
             return redirect()
                 ->route('student.dashboard')
                 ->with('error', 'Не вдалося визначити платіж.');
@@ -261,7 +265,7 @@ class StudentPaymentController extends Controller
             try {
                 $invoice = $monoPay->getInvoiceStatus($payment->provider_payment_id);
 
-                if (!$processor->invoiceMatchesPayment($payment, $invoice)) {
+                if (! $processor->invoiceMatchesPayment($payment, $invoice)) {
                     throw new \RuntimeException('MonoPay invoice does not match the local payment.');
                 }
 
@@ -282,9 +286,23 @@ class StudentPaymentController extends Controller
             default => 'Платіж ще обробляється. Статус оновиться автоматично.',
         };
 
-        return redirect()
+        $redirect = redirect()
             ->route('student.dashboard')
             ->with($payment->status === 'paid' ? 'success' : 'error', $message);
+
+        if ($payment->status === 'paid') {
+            $redirect->with('analytics_event', [
+                'name' => 'purchase',
+                'parameters' => [
+                    'transaction_id' => 'payment-'.$payment->id,
+                    'value' => (float) $payment->amount,
+                    'currency' => 'UAH',
+                    'item_category' => $payment->type,
+                ],
+            ]);
+        }
+
+        return $redirect;
     }
 
     private function defaultPaymentMonth(array $paidMonths): ?string
@@ -299,7 +317,7 @@ class StudentPaymentController extends Controller
         foreach ($monthOffsets as $offset) {
             $monthValue = $month->copy()->addMonths($offset)->format('Y-m');
 
-            if (!in_array($monthValue, $paidMonths, true)) {
+            if (! in_array($monthValue, $paidMonths, true)) {
                 return $monthValue;
             }
         }
@@ -363,17 +381,17 @@ class StudentPaymentController extends Controller
             12 => 'грудень',
         ];
 
-        return $months[(int) $month->month] . ' ' . $month->format('Y');
+        return $months[(int) $month->month].' '.$month->format('Y');
     }
 
     private function subscriptionPaymentDescription(Carbon $month, $student): string
     {
-        $studentName = trim(($student->first_name ?? '') . ' ' . ($student->last_name ?? ''));
+        $studentName = trim(($student->first_name ?? '').' '.($student->last_name ?? ''));
 
         if ($studentName === '') {
             $studentName = $student->full_name;
         }
 
-        return 'Оплата за навчання за період ' . $this->subscriptionPeriodLabel($month) . ' - ' . $studentName;
+        return 'Оплата за навчання за період '.$this->subscriptionPeriodLabel($month).' - '.$studentName;
     }
 }

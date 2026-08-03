@@ -61,7 +61,10 @@
                         @elseif($course->isPaid() && auth()->check())
                             <form action="{{ route('courses.buy', $course) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="course-buy-btn">Придбати весь курс</button>
+                                <button type="submit"
+                                        class="course-buy-btn"
+                                        data-analytics-event="begin_checkout"
+                                        data-analytics-label="course">Придбати весь курс</button>
                             </form>
                         @elseif($course->isPaid())
                             <a href="{{ route('login') }}" class="course-buy-btn">Увійти для оплати</a>
@@ -99,13 +102,19 @@
                                 @elseif($lesson->isPaid() && auth()->check())
                                     <form action="{{ route('lessons.buy', $lesson) }}" method="POST" class="mb-0">
                                         @csrf
-                                        <button type="submit" class="course-lesson-btn course-lesson-btn--buy">
-                                            {{ number_format($lesson->price, 0, ',', ' ') }} грн
+                                        <button type="submit" class="course-lesson-btn course-lesson-btn--buy"
+                                                data-analytics-event="begin_checkout"
+                                                data-analytics-label="lesson"
+                                                title="Придбати урок «{{ $lesson->title }}»"
+                                                aria-label="Придбати урок «{{ $lesson->title }}» за {{ number_format($lesson->price, 0, ',', ' ') }} гривень">
+                                            Придбати · {{ number_format($lesson->price, 0, ',', ' ') }} грн
                                         </button>
                                     </form>
                                 @elseif($lesson->isPaid())
-                                    <a href="{{ route('login') }}" class="course-lesson-btn course-lesson-btn--buy">
-                                        {{ number_format($lesson->price, 0, ',', ' ') }} грн
+                                    <a href="{{ route('login') }}" class="course-lesson-btn course-lesson-btn--buy"
+                                       title="Увійти, щоб придбати урок «{{ $lesson->title }}»"
+                                       aria-label="Увійти, щоб придбати урок «{{ $lesson->title }}» за {{ number_format($lesson->price, 0, ',', ' ') }} гривень">
+                                        Придбати · {{ number_format($lesson->price, 0, ',', ' ') }} грн
                                     </a>
                                 @else
                                     <span class="course-lesson-locked" aria-label="Урок недоступний">

@@ -13,8 +13,8 @@ use App\Models\StudentSubscription;
 use App\Models\SubscriptionTemplate;
 use App\Models\Teacher;
 use App\Models\User;
-use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class StudentDashboardControllerTest extends TestCase
@@ -245,9 +245,32 @@ class StudentDashboardControllerTest extends TestCase
             'price' => 1000,
             'is_published' => true,
         ]);
+        $unpublishedPaidCourse = Course::create([
+            'title' => 'Hidden unpublished paid course',
+            'description' => 'Course',
+            'language_id' => $language->id,
+            'price' => 1000,
+            'is_published' => false,
+        ]);
         $refundedLesson = Lesson::create([
             'course_id' => $paidCourse->id,
             'title' => 'Hidden refunded lesson',
+            'description' => 'Lesson',
+            'position' => 1,
+            'price' => 300,
+            'is_published' => true,
+        ]);
+        $unpublishedPaidLesson = Lesson::create([
+            'course_id' => $paidCourse->id,
+            'title' => 'Hidden unpublished paid lesson',
+            'description' => 'Lesson',
+            'position' => 2,
+            'price' => 300,
+            'is_published' => false,
+        ]);
+        $lessonFromUnpublishedCourse = Lesson::create([
+            'course_id' => $unpublishedPaidCourse->id,
+            'title' => 'Hidden lesson from unpublished course',
             'description' => 'Lesson',
             'position' => 1,
             'price' => 300,
@@ -262,8 +285,20 @@ class StudentDashboardControllerTest extends TestCase
             'status' => 'refunded',
             'paid_amount' => 1000,
         ]);
+        $user->courses()->attach($unpublishedPaidCourse->id, [
+            'status' => 'paid',
+            'paid_amount' => 1000,
+        ]);
         $user->lessons()->attach($refundedLesson->id, [
             'status' => 'refunded',
+            'paid_amount' => 300,
+        ]);
+        $user->lessons()->attach($unpublishedPaidLesson->id, [
+            'status' => 'paid',
+            'paid_amount' => 300,
+        ]);
+        $user->lessons()->attach($lessonFromUnpublishedCourse->id, [
+            'status' => 'paid',
             'paid_amount' => 300,
         ]);
 
@@ -272,6 +307,9 @@ class StudentDashboardControllerTest extends TestCase
             ->assertOk()
             ->assertSee('Visible paid course')
             ->assertDontSee('Hidden refunded course')
-            ->assertDontSee('Hidden refunded lesson');
+            ->assertDontSee('Hidden refunded lesson')
+            ->assertDontSee('Hidden unpublished paid course')
+            ->assertDontSee('Hidden unpublished paid lesson')
+            ->assertDontSee('Hidden lesson from unpublished course');
     }
 }

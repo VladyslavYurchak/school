@@ -127,6 +127,37 @@ class CourseLessonAccessTest extends TestCase
             ->assertRedirect(route('courses.show', $course));
     }
 
+    public function test_student_cannot_submit_test_for_unpublished_lesson(): void
+    {
+        [$course, $lesson] = $this->createCourseWithLesson(
+            ['price' => 500],
+            ['is_published' => false]
+        );
+        $user = User::factory()->create(['role' => 'student']);
+        $user->courses()->attach($course->id, [
+            'status' => 'paid',
+            'paid_amount' => 500,
+        ]);
+        $test = $lesson->tests()->create([
+            'question' => 'Hidden question',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+        $correct = $test->options()->create([
+            'option_text' => 'Correct',
+            'is_correct' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('courses.lessons.tests.submit', [$course, $lesson]), [
+                'answers' => [$test->id => $correct->id],
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseCount('lesson_test_attempts', 0);
+        $this->assertDatabaseCount('lesson_test_attempt_answers', 0);
+    }
+
     private function createCourseWithLesson(array $courseAttributes = [], array $lessonAttributes = []): array
     {
         $language = Language::create(['name' => 'English']);

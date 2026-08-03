@@ -2,17 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Models\Testing\Lead;
 use App\Models\Testing\Option;
 use App\Models\Testing\Question;
 use App\Models\Testing\Section;
 use App\Models\Testing\Session as TestingSession;
 use App\Models\Testing\Test as TestingTest;
-use App\Models\Testing\Lead;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
-use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PublicTestingFlowTest extends TestCase
@@ -114,7 +114,7 @@ class PublicTestingFlowTest extends TestCase
             ->get(route('index'))
             ->assertOk()
             ->assertSee('Нове тестування вже готується')
-            ->assertDontSee('Англійська');
+            ->assertDontSee('>Англійська</button>', false);
     }
 
     public function test_test_with_no_correct_option_is_not_offered_to_visitors(): void
@@ -126,7 +126,7 @@ class PublicTestingFlowTest extends TestCase
             ->get(route('index'))
             ->assertOk()
             ->assertSee('Нове тестування вже готується')
-            ->assertDontSee('Англійська');
+            ->assertDontSee('>Англійська</button>', false);
 
         $this
             ->post(route('testing.start', 'en'))

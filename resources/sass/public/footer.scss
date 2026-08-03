@@ -85,6 +85,75 @@
     gap: 12px 24px;
 }
 
+.cookie-consent {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 1080;
+    width: min(460px, calc(100vw - 32px));
+    padding: 18px;
+    border: 1px solid #dce5e8;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 14px 40px rgba(22, 38, 48, 0.16);
+    color: #25313f;
+}
+
+.cookie-consent[hidden] {
+    display: none;
+}
+
+.cookie-consent p {
+    margin: 0 0 14px;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.cookie-consent a {
+    color: #258f86;
+    font-weight: 600;
+}
+
+.cookie-consent-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.cookie-consent button {
+    min-height: 42px;
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.cookie-consent-decline {
+    border: 1px solid #cfdadd;
+    background: #fff;
+    color: #35424f;
+}
+
+.cookie-consent-accept {
+    border: 1px solid #43aa9f;
+    background: #43aa9f;
+    color: #fff;
+}
+
+@media (max-width: 575.98px) {
+    .cookie-consent {
+        right: 16px;
+        bottom: 16px;
+    }
+
+    .cookie-consent-actions {
+        flex-direction: column-reverse;
+    }
+
+    .cookie-consent button {
+        width: 100%;
+    }
+}
+
 @media (max-width: 991.98px) {
     .site-footer-grid {
         grid-template-columns: minmax(0, 1.2fr) minmax(160px, 0.8fr);

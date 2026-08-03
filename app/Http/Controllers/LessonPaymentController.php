@@ -28,7 +28,7 @@ class LessonPaymentController extends Controller
                 ->with('success', 'У вас вже є доступ до цього уроку.');
         }
 
-        if (!$lesson->isPaid()) {
+        if (! $lesson->isPaid()) {
             return redirect()
                 ->route('courses.show', $lesson->course)
                 ->with('error', 'Урок не продається окремо.');
@@ -49,6 +49,7 @@ class LessonPaymentController extends Controller
             $lockedStudent = Student::query()
                 ->lockForUpdate()
                 ->findOrFail($student->id);
+            $paymentDescription = 'Оплата за "'.$lesson->title.'"';
 
             if ($lesson->isAvailableFor($user)) {
                 return ['available' => true];
@@ -64,11 +65,24 @@ class LessonPaymentController extends Controller
                 ->first();
 
             if ($existingPayment) {
-                if ($existingPayment->hasReusableMonoPayInvoice()) {
+                $offerIsCurrent = (float) $existingPayment->amount === (float) $lesson->price
+                    && $existingPayment->description === $paymentDescription;
+
+                if ($offerIsCurrent && $existingPayment->hasReusableMonoPayInvoice()) {
                     return ['payment' => $existingPayment];
                 }
 
-                $existingPayment->failExpiredMonoPayInvoice();
+                if ($offerIsCurrent) {
+                    $existingPayment->failExpiredMonoPayInvoice();
+                } else {
+                    $existingPayment->update([
+                        'status' => 'failed',
+                        'payload' => array_merge($existingPayment->payload ?? [], [
+                            'offer_changed_locally' => true,
+                            'offer_changed_locally_at' => now()->toISOString(),
+                        ]),
+                    ]);
+                }
             }
 
             return [
@@ -80,7 +94,7 @@ class LessonPaymentController extends Controller
                     'type' => 'single',
                     'provider' => 'monopay',
                     'provider_order_id' => (string) Str::uuid(),
-                    'description' => 'Оплата за "' . $lesson->title . '"',
+                    'description' => $paymentDescription,
                     'payload' => [
                         'lesson_id' => $lesson->id,
                         'user_id' => $user->id,

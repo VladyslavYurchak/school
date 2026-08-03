@@ -1,5 +1,8 @@
 @extends('public.layouts.main')
 
+@section('title', 'Контакти школи англійської у Броварах | Корпорація Мов')
+@section('description', 'Адреса школи Корпорація Мов: ЖК Scandia, вул. Героїв Крут, 12, Бровари, 1 поверх. Телефон +38 (066) 299-22-18, онлайн та офлайн заняття.')
+
 @section('content')
     <div class="contact-page py-5">
         <div class="container">
@@ -20,8 +23,8 @@
                             <div class="contact-hero-side">
                                 <div class="contact-hero-side-title">Графік роботи</div>
                                 <div class="contact-hero-side-text">
-                                    Понеділок – Неділя<br>
-                                    09:00 – 20:00
+                                    Понеділок – Субота<br>
+                                    09:00 – 19:00
                                 </div>
                             </div>
                         </div>

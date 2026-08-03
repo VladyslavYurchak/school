@@ -20,6 +20,13 @@ class TrialLessonRequestController extends Controller
 
         TrialLessonRequest::create($data);
 
-        return back()->with('trial_request_success', 'Дякуємо! Ми отримали заявку і скоро зв’яжемося з вами.');
+        return back()
+            ->with('trial_request_success', 'Дякуємо! Ми отримали заявку і скоро зв’яжемося з вами.')
+            ->with('analytics_event', [
+                'name' => 'generate_lead',
+                'parameters' => [
+                    'method' => 'trial_lesson_form',
+                ],
+            ]);
     }
 }

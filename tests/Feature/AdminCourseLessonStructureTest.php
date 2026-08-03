@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Course;
 use App\Models\Language;
 use App\Models\Lesson;
+use App\Models\LessonTest;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -43,6 +44,34 @@ class AdminCourseLessonStructureTest extends TestCase
         $this->assertFieldInsideForm($html, 'position', $formStart, $formEnd);
         $this->assertFieldInsideForm($html, 'price', $formStart, $formEnd);
         $this->assertFieldInsideForm($html, 'is_published', $formStart, $formEnd);
+    }
+
+    public function test_new_lesson_defaults_to_the_next_course_position(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+        Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Existing lesson',
+            'description' => 'Existing',
+            'lesson_type' => 'Reading',
+            'position' => 4,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.course.lesson.store', $course), [
+                'lesson_type' => 'Grammar',
+                'title' => 'Automatically positioned lesson',
+                'description' => 'New lesson',
+                'is_published' => '1',
+            ])
+            ->assertRedirect(route('admin.course.show', $course));
+
+        $this->assertDatabaseHas('lessons', [
+            'course_id' => $course->id,
+            'title' => 'Automatically positioned lesson',
+            'position' => 5,
+        ]);
     }
 
     public function test_admin_course_create_form_submits_price_description_and_publish_status(): void
@@ -134,6 +163,49 @@ class AdminCourseLessonStructureTest extends TestCase
             'course_id' => $course->id,
             'title' => 'Invalid quiz lesson',
         ]);
+    }
+
+    public function test_lesson_creation_marks_a_single_answer_quiz_as_radio_choice(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+
+        $this->actingAs($admin)
+            ->post(route('admin.course.lesson.store', $course), [
+                'lesson_type' => 'Test',
+                'title' => 'Single answer quiz',
+                'description' => 'Lesson description',
+                'tests' => [[
+                    'question' => 'Choose one answer',
+                    'answers' => ['A', 'B', 'C'],
+                    'correct_answer' => 1,
+                ]],
+            ])
+            ->assertRedirect(route('admin.course.show', $course));
+
+        $lesson = Lesson::where('title', 'Single answer quiz')->firstOrFail();
+        $test = LessonTest::where('lesson_id', $lesson->id)->firstOrFail();
+
+        $this->assertFalse($test->is_multiple_choice);
+        $this->assertSame(1, $test->options()->where('is_correct', true)->count());
+    }
+
+    public function test_course_price_cannot_be_empty(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $language = Language::create(['name' => 'German']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.course.store'), [
+                'title' => 'German A1',
+                'description' => 'Course description',
+                'language_id' => $language->id,
+                'price' => '',
+                'is_published' => '0',
+            ])
+            ->assertSessionHasErrors('price');
+
+        $this->assertDatabaseMissing('courses', ['title' => 'German A1']);
     }
 
     public function test_admin_can_create_published_paid_course_with_description(): void
@@ -237,6 +309,8 @@ class AdminCourseLessonStructureTest extends TestCase
             ->assertOk()
             ->assertSee($lesson->title)
             ->assertSee(route('admin.course.lesson.edit', $lesson), false)
+            ->assertSee(route('admin.course.lesson.blocks.index', $lesson), false)
+            ->assertDontSee(route('admin.course.lesson.main.create', $lesson), false)
             ->assertSee('Редагувати')
             ->assertSee('Домашнє');
     }
@@ -392,6 +466,67 @@ class AdminCourseLessonStructureTest extends TestCase
             ->assertUnprocessable();
 
         $this->assertSame(9, $foreignLesson->fresh()->position);
+    }
+
+    public function test_lesson_order_requires_every_lesson_from_the_course(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+        $first = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'First lesson',
+            'description' => 'First',
+            'lesson_type' => 'Reading',
+            'position' => 1,
+        ]);
+        $second = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Second lesson',
+            'description' => 'Second',
+            'lesson_type' => 'Reading',
+            'position' => 2,
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.course.lesson.updateOrder', $course), [
+                'lessons' => [['id' => $second->id, 'position' => 1]],
+            ])
+            ->assertUnprocessable();
+
+        $this->assertSame(1, $first->fresh()->position);
+        $this->assertSame(2, $second->fresh()->position);
+    }
+
+    public function test_lesson_order_is_normalized_from_array_order(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $course = $this->createCourse();
+        $first = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'First lesson',
+            'description' => 'First',
+            'lesson_type' => 'Reading',
+            'position' => 1,
+        ]);
+        $second = Lesson::create([
+            'course_id' => $course->id,
+            'title' => 'Second lesson',
+            'description' => 'Second',
+            'lesson_type' => 'Reading',
+            'position' => 2,
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.course.lesson.updateOrder', $course), [
+                'lessons' => [
+                    ['id' => $second->id, 'position' => 99],
+                    ['id' => $first->id, 'position' => 99],
+                ],
+            ])
+            ->assertOk();
+
+        $this->assertSame(2, $first->fresh()->position);
+        $this->assertSame(1, $second->fresh()->position);
     }
 
     private function createCourse(array $attributes = []): Course

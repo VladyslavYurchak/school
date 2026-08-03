@@ -80,7 +80,7 @@ class ContentBlockController extends Controller
     public function toggle(Lesson $lesson, LessonContentBlock $block): RedirectResponse
     {
         $this->ensureBlockBelongsToLesson($lesson, $block);
-        $block->update(['is_active' => !$block->is_active]);
+        $block->update(['is_active' => ! $block->is_active]);
 
         return redirect()
             ->route('admin.course.lesson.blocks.index', $lesson)
@@ -133,15 +133,30 @@ class ContentBlockController extends Controller
         unset($data['media_file']);
 
         if ($request->hasFile('media_file')) {
+            $file = $request->file('media_file');
+            $newMediaPath = $file->store('lesson_blocks/'.$data['type'], 'public');
+
             if ($block) {
                 $this->deleteMedia($block);
             }
 
-            $file = $request->file('media_file');
-            $data['media_path'] = $file->store('lesson_blocks/' . $data['type'], 'public');
+            $data['media_path'] = $newMediaPath;
             $data['media_name'] = $file->getClientOriginalName();
             $data['media_mime'] = $file->getMimeType();
             $data['media_size'] = $file->getSize();
+        } elseif (! in_array($data['type'], [
+            LessonContentBlock::TYPE_AUDIO,
+            LessonContentBlock::TYPE_IMAGE,
+            LessonContentBlock::TYPE_PDF,
+        ], true)) {
+            if ($block) {
+                $this->deleteMedia($block);
+            }
+
+            $data['media_path'] = null;
+            $data['media_name'] = null;
+            $data['media_mime'] = null;
+            $data['media_size'] = null;
         }
 
         return $data;
@@ -164,7 +179,7 @@ class ContentBlockController extends Controller
             static function (array $matches): string {
                 $url = filter_var($matches[2], FILTER_VALIDATE_URL);
 
-                return $url ? '<a href="' . e($url) . '" target="_blank" rel="noopener">' : '<a>';
+                return $url ? '<a href="'.e($url).'" target="_blank" rel="noopener">' : '<a>';
             },
             preg_replace('/<(?!a\b)([a-z][a-z0-9]*)\b[^>]*>/i', '<$1>', $clean)
         );
@@ -173,11 +188,11 @@ class ContentBlockController extends Controller
     private function normalizeYoutubeEmbedUrl(string $url): string
     {
         if (preg_match('~youtu\.be/([^?&/]+)~', $url, $matches)) {
-            return 'https://www.youtube.com/embed/' . $matches[1];
+            return 'https://www.youtube.com/embed/'.$matches[1];
         }
 
         if (preg_match('~youtube\.com/(?:watch\?v=|shorts/|embed/)([^?&/]+)~', $url, $matches)) {
-            return 'https://www.youtube.com/embed/' . $matches[1];
+            return 'https://www.youtube.com/embed/'.$matches[1];
         }
 
         return $url;

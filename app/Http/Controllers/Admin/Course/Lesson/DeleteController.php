@@ -19,6 +19,12 @@ class DeleteController extends Controller
                 ->with('error', 'Урок має історію оплат і не може бути видалений. Зніміть його з публікації.');
         }
 
+        collect([$lesson->audio_file])
+            ->merge($lesson->media_files ?? [])
+            ->merge($lesson->homework_files ?? [])
+            ->filter()
+            ->each(fn (string $path) => Storage::disk('public')->delete($path));
+
         $lesson->contentBlocks()
             ->whereNotNull('media_path')
             ->pluck('media_path')

@@ -23,7 +23,9 @@ class TrialLessonRequestTest extends TestCase
                 'notes' => 'Хочу англійську для дитини.',
             ])
             ->assertRedirect()
-            ->assertSessionHas('trial_request_success');
+            ->assertSessionHas('trial_request_success')
+            ->assertSessionHas('analytics_event.name', 'generate_lead')
+            ->assertSessionHas('analytics_event.parameters.method', 'trial_lesson_form');
 
         $this->assertDatabaseHas('trial_lesson_requests', [
             'name' => 'Олена',

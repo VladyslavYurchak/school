@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Course;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreRequest extends FormRequest
@@ -17,7 +18,7 @@ class StoreRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -25,7 +26,7 @@ class StoreRequest extends FormRequest
             'title' => 'required|string|max:255',
             'description' => 'required|string', // додали валідацію для description
             'language_id' => 'required|exists:languages,id',
-            'price' => 'nullable|numeric|min:0',
+            'price' => 'required|numeric|min:0',
             'is_published' => 'boolean',
         ];
     }

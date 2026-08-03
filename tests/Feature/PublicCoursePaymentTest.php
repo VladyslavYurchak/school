@@ -290,6 +290,61 @@ class PublicCoursePaymentTest extends TestCase
         $this->assertSame('pending', $newPayment->status);
     }
 
+    public function test_course_purchase_replaces_pending_payment_when_offer_changed(): void
+    {
+        $course = $this->createCourse([
+            'title' => 'Original course',
+            'price' => 1000,
+        ]);
+        $user = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($user)->post(route('courses.buy', $course));
+        $oldPayment = Payment::firstOrFail();
+
+        $course->update([
+            'title' => 'Updated course',
+            'price' => 1250,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('courses.buy', $course));
+        $newPayment = Payment::query()->whereKeyNot($oldPayment->id)->firstOrFail();
+
+        $response->assertRedirect(route('student.payments.checkout', $newPayment));
+        $this->assertSame('failed', $oldPayment->fresh()->status);
+        $this->assertTrue($oldPayment->fresh()->payload['offer_changed_locally']);
+        $this->assertSame('pending', $newPayment->status);
+        $this->assertEquals(1250, (float) $newPayment->amount);
+        $this->assertSame('Оплата за "Updated course"', $newPayment->description);
+    }
+
+    public function test_lesson_purchase_replaces_pending_payment_when_offer_changed(): void
+    {
+        $course = $this->createCourse(['price' => 1000]);
+        $lesson = $this->createLesson($course, [
+            'title' => 'Original lesson',
+            'price' => 300,
+        ]);
+        $user = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($user)->post(route('lessons.buy', $lesson));
+        $oldPayment = Payment::firstOrFail();
+
+        $lesson->update([
+            'title' => 'Updated lesson',
+            'price' => 450,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('lessons.buy', $lesson));
+        $newPayment = Payment::query()->whereKeyNot($oldPayment->id)->firstOrFail();
+
+        $response->assertRedirect(route('student.payments.checkout', $newPayment));
+        $this->assertSame('failed', $oldPayment->fresh()->status);
+        $this->assertTrue($oldPayment->fresh()->payload['offer_changed_locally']);
+        $this->assertSame('pending', $newPayment->status);
+        $this->assertEquals(450, (float) $newPayment->amount);
+        $this->assertSame('Оплата за "Updated lesson"', $newPayment->description);
+    }
+
     private function createCourse(array $attributes = []): Course
     {
         $language = Language::create(['name' => 'English']);

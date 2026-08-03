@@ -7,8 +7,10 @@ use App\Models\Course;
 
 class CreateController extends Controller
 {
-    public function __invoke($courseId)
+    public function __invoke(Course $course)
     {
-        $course = Course::findOrFail($courseId);
-        return view('admin.course.lesson.create', compact('course'));    }
+        $nextPosition = ((int) $course->lessons()->max('position')) + 1;
+
+        return view('admin.course.lesson.create', compact('course', 'nextPosition'));
+    }
 }

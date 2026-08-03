@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\AdminPanelMiddleware;
+use App\Http\Middleware\IsTeacher;
+use App\Http\Middleware\SetRobotsHeader;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,9 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->append(SetRobotsHeader::class);
+
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminPanelMiddleware::class,
-            'teacher' => \App\Http\Middleware\IsTeacher::class,
+            'admin' => AdminPanelMiddleware::class,
+            'teacher' => IsTeacher::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

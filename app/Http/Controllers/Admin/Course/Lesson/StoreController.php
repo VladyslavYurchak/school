@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Course\Lesson;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\LessonTest;
 use App\Models\LessonTestOption;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class StoreController extends Controller
 {
-    public function __invoke(Request $request, $courseId)
+    public function __invoke(Request $request, Course $course)
     {
         // Валідація даних
         $validatedData = $request->validate([
@@ -23,7 +24,7 @@ class StoreController extends Controller
             'homework_text' => 'nullable|string',
             'homework_video_url' => 'nullable|url',
 
-            'position' => 'nullable|integer|min:0',
+            'position' => 'nullable|integer|min:1',
             'price' => 'nullable|numeric|min:0',
             'is_published' => 'nullable|boolean',
 
@@ -42,9 +43,9 @@ class StoreController extends Controller
                     });
 
                     if (count($nonEmpty) < 3) {
-                        $fail("Кожен тест повинен містити хоча б три заповнені варіанти відповіді.");
+                        $fail('Кожен тест повинен містити хоча б три заповнені варіанти відповіді.');
                     }
-                }
+                },
             ],
             'tests.*.correct_answer' => [
                 'required_with:tests',
@@ -56,7 +57,7 @@ class StoreController extends Controller
                     $testIndex = $parts[1] ?? null;
                     $answers = $request->input("tests.{$testIndex}.answers", []);
 
-                    if (!isset($answers[$value]) || trim((string) $answers[$value]) === '') {
+                    if (! isset($answers[$value]) || trim((string) $answers[$value]) === '') {
                         $fail('The selected correct answer must contain text.');
                     }
                 },
@@ -70,9 +71,9 @@ class StoreController extends Controller
         ]);
 
         // Створення уроку в транзакції
-        DB::transaction(function () use ($request, $validatedData, $courseId) {
+        DB::transaction(function () use ($request, $validatedData, $course) {
             $lesson = Lesson::create([
-                'course_id' => $courseId,
+                'course_id' => $course->id,
                 'title' => $validatedData['title'],
                 'description' => $validatedData['description'],
                 'content' => $validatedData['content'] ?? null,
@@ -81,7 +82,8 @@ class StoreController extends Controller
                 'homework_text' => $validatedData['homework_text'] ?? null,
                 'homework_video_url' => $validatedData['homework_video_url'] ?? null,
 
-                'position' => $validatedData['position'] ?? 0,
+                'position' => $validatedData['position']
+                    ?? (((int) $course->lessons()->max('position')) + 1),
                 'price' => $request->input('price') !== '' ? ($validatedData['price'] ?? null) : null,
                 'is_published' => $request->boolean('is_published', true),
             ]);
@@ -90,35 +92,33 @@ class StoreController extends Controller
             if ($request->hasFile('media_files')) {
                 $mediaPaths = [];
                 foreach ($request->file('media_files') as $file) {
-                    $filename = time() . '_' . $file->getClientOriginalName();
+                    $filename = time().'_'.$file->getClientOriginalName();
                     $path = $file->storeAs('lessons/media', $filename, 'public');
                     $mediaPaths[] = $path;
                 }
-                $lesson->media_files = json_encode($mediaPaths);
+                $lesson->media_files = $mediaPaths;
             }
 
             // Обробка файлів домашнього завдання
             if ($request->hasFile('homework_file')) {
                 $homeworkPaths = [];
                 foreach ($request->file('homework_file') as $file) {
-                    $filename = time() . '_' . $file->getClientOriginalName();
+                    $filename = time().'_'.$file->getClientOriginalName();
                     $path = $file->storeAs('lessons/homework', $filename, 'public');
                     $homeworkPaths[] = $path;
                 }
-                $lesson->homework_files = json_encode($homeworkPaths);
+                $lesson->homework_files = $homeworkPaths;
             }
 
             $lesson->save();
 
             // Обробка тестових завдань
-            if (!empty($validatedData['tests'])) {
+            if (! empty($validatedData['tests'])) {
                 foreach ($validatedData['tests'] as $test) {
                     $lessonTest = LessonTest::create([
                         'lesson_id' => $lesson->id,
                         'question' => $test['question'],
-                        'is_multiple_choice' => count(array_filter($test['answers'], function ($a) {
-                                return trim($a) !== '';
-                            })) > 1,
+                        'is_multiple_choice' => false,
                     ]);
 
                     foreach ($test['answers'] as $index => $answer) {
@@ -136,7 +136,7 @@ class StoreController extends Controller
             }
         });
 
-        return redirect()->route('admin.course.show', $courseId)
+        return redirect()->route('admin.course.show', $course)
             ->with('success', 'Урок успішно створено!');
     }
 }

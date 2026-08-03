@@ -17,7 +17,7 @@ class UpdateRequest extends FormRequest
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'language_id' => 'required|exists:languages,id',
-            'price' => 'nullable|numeric|min:0',
+            'price' => 'required|numeric|min:0',
             'is_published' => 'boolean',
         ];
     }

@@ -122,6 +122,51 @@ class CalendarWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_group_attendance_preserves_history_without_inflating_pay_when_membership_changes(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser([
+            'group_lesson_price' => 900,
+        ]);
+        $group = Group::factory()->group()->create(['teacher_id' => $teacher->id]);
+        $students = Student::factory()->count(3)->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+        ]);
+        $lesson = PlannedLesson::factory()->group()->create([
+            'teacher_id' => $teacher->id,
+            'group_id' => $group->id,
+            'start_date' => '2026-06-30 23:30:00',
+            'end_date' => '2026-07-01 00:30:00',
+            'status' => LessonStatus::Planned,
+        ]);
+        $payload = [
+            'group_id' => $group->id,
+            'lesson_id' => $lesson->id,
+            'date' => '2026-06-30',
+            'time' => '23:30',
+            'present_students' => $students->pluck('id')->all(),
+        ];
+
+        $this->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-attendance'), $payload)
+            ->assertOk();
+
+        $students[2]->update(['group_id' => null]);
+        $payload['present_students'] = [$students[0]->id, $students[1]->id];
+
+        $this->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.group-attendance'), $payload)
+            ->assertOk();
+
+        $logs = LessonLog::where('lesson_id', $lesson->id)->get();
+
+        $this->assertCount(3, $logs);
+        $this->assertTrue($logs->pluck('student_id')->contains($students[2]->id));
+        $this->assertEquals(900.0, (float) $logs->sum('teacher_payout_amount'));
+        $this->assertEquals(900.0, $teacher->getMonthSalary(2026, 6));
+        $this->assertEquals(0.0, $teacher->getMonthSalary(2026, 7));
+    }
+
     public function test_group_attendance_uses_lesson_datetime_instead_of_submitted_datetime(): void
     {
         [$teacherUser, $teacher] = $this->createTeacherUser();
@@ -655,6 +700,29 @@ class CalendarWorkflowTest extends TestCase
         $this->assertSame('2026-06-10 13:00:00', $lessonToMove->start_date->format('Y-m-d H:i:s'));
     }
 
+    public function test_teacher_cannot_use_24_hour_as_a_lesson_time(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser();
+        $student = Student::factory()->create(['teacher_id' => $teacher->id]);
+        $lesson = PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => $student->id,
+            'start_date' => '2026-06-30 22:00:00',
+            'end_date' => '2026-06-30 23:00:00',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->putJson(route('admin.calendar.events.update', ['id' => $lesson->id]), [
+                'date' => '2026-06-30',
+                'time' => '24:00',
+                'duration' => 60,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['time']);
+
+        $this->assertSame('2026-06-30 22:00:00', $lesson->fresh()->start_date->format('Y-m-d H:i:s'));
+    }
+
     public function test_completing_individual_lesson_marks_lesson_and_creates_single_log(): void
     {
         [$teacherUser, $teacher] = $this->createTeacherUser([
@@ -694,6 +762,67 @@ class CalendarWorkflowTest extends TestCase
             'status' => LessonLogStatus::Completed->value,
             'duration' => 60,
         ]);
+    }
+
+    public function test_editing_completed_lesson_time_keeps_financial_log_in_sync_across_months(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser(['lesson_price' => 700]);
+        $student = Student::factory()->create(['teacher_id' => $teacher->id]);
+        $lesson = PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => $student->id,
+            'start_date' => '2026-06-30 23:00:00',
+            'end_date' => '2026-07-01 00:00:00',
+            'status' => LessonStatus::Planned,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.events.complete', ['id' => $lesson->id]))
+            ->assertOk();
+
+        $this->actingAs($teacherUser)
+            ->putJson(route('admin.calendar.events.update', ['id' => $lesson->id]), [
+                'date' => '2026-07-01',
+                'time' => '00:00',
+                'duration' => 60,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('lesson_logs', [
+            'lesson_id' => $lesson->id,
+            'date' => '2026-07-01',
+            'time' => '00:00:00',
+            'teacher_payout_amount' => 700,
+        ]);
+        $this->assertEquals(0.0, $teacher->getMonthSalary(2026, 6));
+        $this->assertEquals(700.0, $teacher->getMonthSalary(2026, 7));
+    }
+
+    public function test_cancelling_completed_lesson_removes_teacher_payment(): void
+    {
+        [$teacherUser, $teacher] = $this->createTeacherUser(['lesson_price' => 700]);
+        $student = Student::factory()->create(['teacher_id' => $teacher->id]);
+        $lesson = PlannedLesson::factory()->individual()->create([
+            'teacher_id' => $teacher->id,
+            'student_id' => $student->id,
+            'start_date' => '2026-06-30 23:30:00',
+            'end_date' => '2026-07-01 00:30:00',
+            'status' => LessonStatus::Planned,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.events.complete', ['id' => $lesson->id]))
+            ->assertOk();
+
+        $this->assertEquals(700.0, $teacher->getMonthSalary(2026, 6));
+
+        $this->actingAs($teacherUser)
+            ->postJson(route('admin.calendar.events.cancel', ['id' => $lesson->id]))
+            ->assertOk();
+
+        $this->assertDatabaseMissing('lesson_logs', ['lesson_id' => $lesson->id]);
+        $this->assertEquals(0.0, $teacher->getMonthSalary(2026, 6));
+        $this->assertEquals(0.0, $teacher->getMonthSalary(2026, 7));
     }
 
     public function test_cancelling_individual_lesson_soft_deletes_lesson_and_removes_logs(): void

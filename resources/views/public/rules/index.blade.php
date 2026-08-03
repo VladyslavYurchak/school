@@ -1,5 +1,8 @@
 @extends('public.layouts.main')
 
+@section('title', 'Правила навчання | Корпорація Мов')
+@section('description', 'Правила навчання, оплати, перенесення та скасування занять у школі англійської Корпорація Мов.')
+
 @section('content')
     <div class="rules-page py-5">
         <div class="container">

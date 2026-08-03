@@ -1,5 +1,11 @@
 @extends('public.layouts.main')
 
+@section('title', 'Онлайн-курси та уроки англійської | Корпорація Мов')
+@section('description', 'Онлайн-курси й окремі уроки англійської мови з відео, матеріалами, вправами, тестами та словником.')
+@if($courses->isEmpty())
+    @section('robots', 'noindex, follow')
+@endif
+
 @section('content')
     <div class="catalog-page">
         <div class="container">

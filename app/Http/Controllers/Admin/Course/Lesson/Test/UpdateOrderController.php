@@ -16,18 +16,19 @@ class UpdateOrderController extends Controller
             'order.*.position' => 'required|integer|min:1',
         ]);
 
-        $testIds = collect($data['order'])->pluck('id');
+        $testIds = collect($data['order'])->pluck('id')->map(fn ($id) => (int) $id);
+        $currentTestIds = $lesson->tests()->pluck('id')->map(fn ($id) => (int) $id);
 
         abort_unless(
             $testIds->unique()->count() === $testIds->count()
-            && $lesson->tests()->whereIn('id', $testIds)->count() === $testIds->count(),
+            && $testIds->sort()->values()->all() === $currentTestIds->sort()->values()->all(),
             422,
-            'The test order contains invalid records.'
+            'The test order must contain every test from this lesson.'
         );
 
-        foreach ($data['order'] as $item) {
+        foreach ($data['order'] as $index => $item) {
             $lesson->tests()->whereKey($item['id'])->update([
-                'position' => $item['position'],
+                'position' => $index + 1,
             ]);
         }
 

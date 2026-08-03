@@ -1,5 +1,8 @@
 @extends('public.layouts.main')
 
+@section('title', 'Викладачі англійської мови у Броварах | Корпорація Мов')
+@section('description', 'Познайомтеся з викладачами школи Корпорація Мов у Броварах. Освіта, практичний досвід, сучасні матеріали та підготовка до міжнародних іспитів.')
+
 @section('content')
     <div class="teachers-page py-5">
         <div class="container">

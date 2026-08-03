@@ -14,7 +14,7 @@ class UpdateController extends Controller
             'lesson_type' => ['required', 'in:Reading,Listening,Grammar,Speaking,Test'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'position' => ['nullable', 'integer', 'min:0'],
+            'position' => ['nullable', 'integer', 'min:1'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'is_published' => ['nullable', 'boolean'],
         ]);
@@ -23,7 +23,7 @@ class UpdateController extends Controller
             'lesson_type' => $validated['lesson_type'],
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
-            'position' => $validated['position'] ?? 0,
+            'position' => $validated['position'] ?? $lesson->position,
             'price' => $request->input('price') !== '' ? ($validated['price'] ?? null) : null,
             'is_published' => $request->boolean('is_published'),
         ]);

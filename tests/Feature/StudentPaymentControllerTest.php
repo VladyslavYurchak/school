@@ -518,6 +518,53 @@ class StudentPaymentControllerTest extends TestCase
         $this->assertSame('Оплата за навчання за період серпень 2026 - Ivan Petrenko', $newPayment->description);
     }
 
+    public function test_student_replaces_pending_subscription_payment_when_price_changed(): void
+    {
+        Carbon::setTestNow('2026-08-15 12:00:00');
+
+        $user = User::factory()->create(['role' => 'student']);
+        $template = SubscriptionTemplate::factory()->create([
+            'price' => 3200,
+            'type' => 'individual',
+        ]);
+        $student = Student::factory()->create([
+            'user_id' => $user->id,
+            'subscription_id' => $template->id,
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrenko',
+        ]);
+        $oldPayment = Payment::create([
+            'student_id' => $student->id,
+            'amount' => 2800,
+            'currency' => 'UAH',
+            'status' => 'pending',
+            'type' => 'subscription',
+            'provider' => 'monopay',
+            'provider_order_id' => 'old-price-order',
+            'description' => 'Оплата за навчання за період серпень 2026 - Ivan Petrenko',
+            'payload' => [
+                'subscription_template_id' => $template->id,
+                'subscription_month' => '2026-08',
+            ],
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->post(route('student.payments.store'), [
+                'subscription_month' => '2026-08',
+            ]);
+
+        $newPayment = Payment::query()
+            ->whereKeyNot($oldPayment->id)
+            ->firstOrFail();
+
+        $response->assertRedirect(route('student.payments.checkout', $newPayment));
+        $this->assertSame('failed', $oldPayment->fresh()->status);
+        $this->assertTrue($oldPayment->fresh()->payload['amount_changed_locally']);
+        $this->assertSame('pending', $newPayment->status);
+        $this->assertEquals(3200, (float) $newPayment->amount);
+    }
+
     public function test_student_reuses_pending_subscription_payment_without_invoice_yet(): void
     {
         $user = User::factory()->create(['role' => 'student']);
@@ -635,7 +682,11 @@ class StudentPaymentControllerTest extends TestCase
         $this->actingAs($user)
             ->get(route('student.payments.result', ['payment' => $payment->id]))
             ->assertRedirect(route('student.dashboard'))
-            ->assertSessionHas('success', 'Оплату успішно зараховано.');
+            ->assertSessionHas('success', 'Оплату успішно зараховано.')
+            ->assertSessionHas('analytics_event.name', 'purchase')
+            ->assertSessionHas('analytics_event.parameters.transaction_id', 'payment-'.$payment->id)
+            ->assertSessionHas('analytics_event.parameters.value', 2800.0)
+            ->assertSessionHas('analytics_event.parameters.currency', 'UAH');
 
         $this->assertSame('paid', $payment->fresh()->status);
         $this->assertDatabaseHas('student_subscriptions', [

@@ -3,24 +3,20 @@
 namespace App\Http\Controllers\Admin\Course\Lesson\Test;
 
 use App\Http\Controllers\Controller;
+use App\Models\Lesson;
+use App\Models\LessonTest;
 use App\Models\LessonTestOption;
 use Illuminate\Http\JsonResponse;
 
 class TestOptionController extends Controller
 {
-    public function __invoke($optionId): JsonResponse
-    {
-        $option = LessonTestOption::find($optionId);
-
-        if (!$option) {
-            return response()->json(['success' => false, 'message' => 'Варіант відповіді не знайдено.'], 404);
-        }
-
-        $test = $option->test;
-
-        if (!$test) {
-            return response()->json(['success' => false, 'message' => 'Тест не знайдено.'], 404);
-        }
+    public function __invoke(
+        Lesson $lesson,
+        LessonTest $test,
+        LessonTestOption $option
+    ): JsonResponse {
+        abort_unless($test->lesson_id === $lesson->id, 404);
+        abort_unless($option->lesson_test_id === $test->id, 404);
 
         if ($test->options()->count() <= 3) {
             return response()->json(['success' => false, 'message' => 'У тесті має бути щонайменше 3 відповіді.'], 400);

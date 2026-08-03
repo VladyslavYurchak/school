@@ -18,7 +18,7 @@ class CoursePaymentController extends Controller
 
         abort_unless($user?->isStudent(), 403);
 
-        if (!$course->is_published) {
+        if (! $course->is_published) {
             return redirect()
                 ->route('courses.index')
                 ->with('error', 'Цей курс недоступний.');
@@ -51,6 +51,7 @@ class CoursePaymentController extends Controller
             $lockedStudent = Student::query()
                 ->lockForUpdate()
                 ->findOrFail($student->id);
+            $paymentDescription = 'Оплата за "'.$course->title.'"';
 
             if ($course->isAvailableFor($user)) {
                 return ['available' => true];
@@ -66,11 +67,24 @@ class CoursePaymentController extends Controller
                 ->first();
 
             if ($existingPayment) {
-                if ($existingPayment->hasReusableMonoPayInvoice()) {
+                $offerIsCurrent = (float) $existingPayment->amount === (float) $course->price
+                    && $existingPayment->description === $paymentDescription;
+
+                if ($offerIsCurrent && $existingPayment->hasReusableMonoPayInvoice()) {
                     return ['payment' => $existingPayment];
                 }
 
-                $existingPayment->failExpiredMonoPayInvoice();
+                if ($offerIsCurrent) {
+                    $existingPayment->failExpiredMonoPayInvoice();
+                } else {
+                    $existingPayment->update([
+                        'status' => 'failed',
+                        'payload' => array_merge($existingPayment->payload ?? [], [
+                            'offer_changed_locally' => true,
+                            'offer_changed_locally_at' => now()->toISOString(),
+                        ]),
+                    ]);
+                }
             }
 
             return [
@@ -82,7 +96,7 @@ class CoursePaymentController extends Controller
                     'type' => 'single',
                     'provider' => 'monopay',
                     'provider_order_id' => (string) Str::uuid(),
-                    'description' => 'Оплата за "' . $course->title . '"',
+                    'description' => $paymentDescription,
                     'payload' => [
                         'course_id' => $course->id,
                         'user_id' => $user->id,

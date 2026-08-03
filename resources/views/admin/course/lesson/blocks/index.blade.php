@@ -97,13 +97,15 @@
 
                                 <div class="admin-row-actions lesson-block-actions">
                                     <a href="{{ route('admin.course.lesson.blocks.edit', [$lesson, $block]) }}"
-                                       class="admin-btn-warning" title="Редагувати">
+                                       class="admin-btn-warning" title="Редагувати" aria-label="Редагувати блок">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <form action="{{ route('admin.course.lesson.blocks.toggle', [$lesson, $block]) }}" method="POST">
                                         @csrf
                                         @method('PATCH')
-                                        <button type="submit" class="admin-btn-soft" title="{{ $block->is_active ? 'Приховати' : 'Показати' }}">
+                                        <button type="submit" class="admin-btn-soft"
+                                                title="{{ $block->is_active ? 'Приховати' : 'Показати' }}"
+                                                aria-label="{{ $block->is_active ? 'Приховати блок' : 'Показати блок' }}">
                                             <i class="bi {{ $block->is_active ? 'bi-eye-slash' : 'bi-eye' }}"></i>
                                         </button>
                                     </form>
@@ -111,7 +113,7 @@
                                           method="POST" onsubmit="return confirm('Видалити цей блок?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="admin-btn-danger" title="Видалити">
+                                        <button type="submit" class="admin-btn-danger" title="Видалити" aria-label="Видалити блок">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>

@@ -17,8 +17,8 @@ class UpdateEventRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date' => ['required', 'date'],
-            'time' => ['required'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'time' => ['required', 'date_format:H:i'],
             'duration' => ['nullable', 'integer', 'min:15', 'max:180'],
         ];
     }
@@ -47,7 +47,7 @@ class UpdateEventRequest extends FormRequest
         $validator->after(function ($v) {
             $teacherId = optional($this->user()?->teacher)->id;
 
-            if (!$teacherId) {
+            if (! $teacherId) {
                 return;
             }
 
@@ -64,7 +64,7 @@ class UpdateEventRequest extends FormRequest
             $lessonId = (int) $this->route('id');
             $access = app(CalendarAccessService::class);
 
-            if (!$access->lessonBelongsToTeacher($lessonId, $teacherId)) {
+            if (! $access->lessonBelongsToTeacher($lessonId, $teacherId)) {
                 return;
             }
 

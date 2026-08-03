@@ -193,6 +193,14 @@
                     </li>
 
                     <li class="nav-item">
+                        <a href="{{ route('admin.social-publishing.index') }}"
+                           class="nav-link {{ request()->routeIs('admin.social-publishing.*') ? 'active' : '' }}">
+                            <i class="nav-icon bi bi-share"></i>
+                            <p>Соцмережі</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
                         <a href="{{ route('admin.photos.index') }}"
                            class="nav-link {{ request()->routeIs('admin.photos.*') ? 'active' : '' }}">
                             <i class="nav-icon bi bi-images"></i>

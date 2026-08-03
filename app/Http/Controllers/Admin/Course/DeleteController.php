@@ -24,6 +24,13 @@ class DeleteController extends Controller
             ->get();
 
         $lessons
+            ->flatMap(fn ($lesson) => collect([$lesson->audio_file])
+                ->merge($lesson->media_files ?? [])
+                ->merge($lesson->homework_files ?? []))
+            ->filter()
+            ->each(fn (string $path) => Storage::disk('public')->delete($path));
+
+        $lessons
             ->flatMap->contentBlocks
             ->pluck('media_path')
             ->filter()
@@ -37,6 +44,7 @@ class DeleteController extends Controller
             ->each(fn (string $path) => Storage::disk('public')->delete($path));
 
         $course->delete();
+
         return redirect()->route('admin.course.index')->with('success', 'Курс видалено!');
     }
 }

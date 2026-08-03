@@ -98,13 +98,13 @@
                                             <div class="admin-row-actions">
                                                 <a href="{{ route('admin.course.lesson.show', $lesson->id) }}" class="btn btn-sm btn-outline-secondary">Перегляд</a>
                                                 <a href="{{ route('admin.course.lesson.edit', $lesson->id) }}" class="btn btn-sm btn-outline-primary">Редагувати</a>
-                                                <a href="{{ route('admin.course.lesson.main.create', $lesson->id) }}"
+                                                <a href="{{ route('admin.course.lesson.blocks.index', $lesson->id) }}"
                                                    class="btn btn-sm {{ $lesson->content_blocks_count > 0 ? 'btn-outline-secondary' : 'btn-outline-success' }}">
                                                     {{ $lesson->content_blocks_count > 0 ? 'Конструктор (' . $lesson->content_blocks_count . ')' : 'Додати матеріали' }}
                                                 </a>
                                                 <a href="{{ route('admin.course.lesson.test.create', $lesson->id) }}"
-                                                   class="btn btn-sm {{ $lesson->tests()->exists() ? 'btn-outline-secondary' : 'btn-outline-success' }}">
-                                                    {{ $lesson->tests()->exists() ? 'Тест' : 'Додати тест' }}
+                                                   class="btn btn-sm {{ $lesson->tests_count > 0 ? 'btn-outline-secondary' : 'btn-outline-success' }}">
+                                                    {{ $lesson->tests_count > 0 ? 'Тест' : 'Додати тест' }}
                                                 </a>
                                                 <a href="{{ route('admin.course.lesson.vocabulary.index', $lesson->id) }}"
                                                    class="btn btn-sm {{ $lesson->vocabulary_items_count > 0 ? 'btn-outline-secondary' : 'btn-outline-success' }}">

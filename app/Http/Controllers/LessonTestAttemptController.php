@@ -19,8 +19,9 @@ class LessonTestAttemptController extends Controller
         abort_unless($user, 403);
         abort_unless($course->is_published || $user->isAdmin(), 404);
         abort_unless($lesson->course_id === $course->id, 404);
+        abort_unless($lesson->is_published || $user->isAdmin(), 404);
 
-        if (!$lesson->isAvailableFor($user)) {
+        if (! $lesson->isAvailableFor($user)) {
             return redirect()
                 ->route('courses.show', $course)
                 ->with('error', 'Спочатку відкрийте доступ до уроку.');

@@ -136,7 +136,11 @@
         document.addEventListener('DOMContentLoaded', function () {
             const optionsList = document.getElementById('options-list');
             const addOptionButton = document.getElementById('add-option');
-            const deleteUrlTemplate = "{{ route('admin.course.lesson.test.option.destroy', ['option' => '__ID__']) }}";
+            const deleteUrlTemplate = "{{ route('admin.course.lesson.test.option.destroy', [
+                'lesson' => $lesson,
+                'test' => $test,
+                'option' => '__ID__',
+            ]) }}";
 
             function optionItems() {
                 return Array.from(optionsList.querySelectorAll('.option-item'));

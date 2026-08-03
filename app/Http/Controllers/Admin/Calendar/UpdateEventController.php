@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Calendar;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Calendar\UpdateEventRequest;
+use App\Models\LessonLog;
 use App\Models\PlannedLesson;
 use App\Models\Teacher;
 use App\Services\Calendar\CalendarAvailabilityService;
@@ -17,17 +18,15 @@ class UpdateEventController extends Controller
         $id,
         UpdateEventRequest $request,
         CalendarAvailabilityService $availability
-    )
-    {
+    ) {
         $data = $request->validated();
 
         $teacher = auth()->user()->teacher;
-        if (!$teacher) {
+        if (! $teacher) {
             abort(403, 'Доступ заборонено: ви не викладач');
         }
-        $start = Carbon::parse($data['date'] . ' ' . $data['time']);
+        $start = Carbon::parse($data['date'].' '.$data['time']);
         $end = (clone $start)->addMinutes($data['duration'] ?? 60);
-
 
         DB::transaction(function () use ($availability, $end, $id, $start, $teacher): void {
             Teacher::query()->lockForUpdate()->findOrFail($teacher->id);
@@ -48,6 +47,14 @@ class UpdateEventController extends Controller
                 'start_date' => $start,
                 'end_date' => $end,
             ]);
+
+            LessonLog::query()
+                ->where('lesson_id', $lesson->id)
+                ->update([
+                    'date' => $start->toDateString(),
+                    'time' => $start->format('H:i:s'),
+                    'duration' => $start->diffInMinutes($end),
+                ]);
         });
 
         return response()->json(['success' => true]);

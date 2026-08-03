@@ -173,7 +173,11 @@ class LessonTestAdminTest extends TestCase
             ['option_text' => 'D', 'is_correct' => false],
         ]);
 
-        $this->deleteJson(route('admin.course.lesson.test.option.destroy', $correctOption))
+        $this->deleteJson(route('admin.course.lesson.test.option.destroy', [
+            $lesson,
+            $test,
+            $correctOption,
+        ]))
             ->assertStatus(400)
             ->assertJson(['success' => false]);
 
@@ -238,7 +242,11 @@ class LessonTestAdminTest extends TestCase
         $test->options()->create(['option_text' => 'C', 'is_correct' => false]);
         $test->options()->create(['option_text' => 'D', 'is_correct' => false]);
 
-        $this->deleteJson(route('admin.course.lesson.test.option.destroy', $correctOptionToDelete))
+        $this->deleteJson(route('admin.course.lesson.test.option.destroy', [
+            $lesson,
+            $test,
+            $correctOptionToDelete,
+        ]))
             ->assertOk()
             ->assertJson(['success' => true]);
 
@@ -246,6 +254,39 @@ class LessonTestAdminTest extends TestCase
         $this->assertDatabaseMissing('lesson_test_options', [
             'id' => $correctOptionToDelete->id,
         ]);
+    }
+
+    public function test_answer_option_cannot_be_deleted_through_another_test_or_lesson(): void
+    {
+        $lesson = $this->createLesson();
+        $otherLesson = Lesson::create([
+            'course_id' => $lesson->course_id,
+            'title' => 'Other lesson',
+            'description' => 'Other lesson description',
+            'position' => 2,
+        ]);
+        $test = $lesson->tests()->create([
+            'question' => 'Original test',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+        $otherTest = $otherLesson->tests()->create([
+            'question' => 'Other test',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+        $option = $test->options()->create([
+            'option_text' => 'Protected answer',
+            'is_correct' => false,
+        ]);
+
+        $this->deleteJson(route('admin.course.lesson.test.option.destroy', [
+            $otherLesson,
+            $otherTest,
+            $option,
+        ]))->assertNotFound();
+
+        $this->assertDatabaseHas('lesson_test_options', ['id' => $option->id]);
     }
 
     public function test_test_cannot_be_deleted_through_another_lesson(): void
@@ -269,6 +310,25 @@ class LessonTestAdminTest extends TestCase
         $this->assertDatabaseHas('lesson_tests', ['id' => $test->id]);
     }
 
+    public function test_test_cannot_be_edited_through_another_lesson(): void
+    {
+        $lesson = $this->createLesson();
+        $otherLesson = Lesson::create([
+            'course_id' => $lesson->course_id,
+            'title' => 'Other lesson',
+            'description' => 'Other lesson description',
+            'position' => 2,
+        ]);
+        $test = $lesson->tests()->create([
+            'question' => 'Protected test',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+
+        $this->get(route('admin.course.lesson.test.edit', [$otherLesson, $test]))
+            ->assertNotFound();
+    }
+
     public function test_test_order_rejects_tests_from_another_lesson(): void
     {
         $lesson = $this->createLesson();
@@ -289,6 +349,53 @@ class LessonTestAdminTest extends TestCase
         ])->assertUnprocessable();
 
         $this->assertSame(7, $foreignTest->fresh()->position);
+    }
+
+    public function test_test_order_requires_every_test_from_the_lesson(): void
+    {
+        $lesson = $this->createLesson();
+        $first = $lesson->tests()->create([
+            'question' => 'First test',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+        $second = $lesson->tests()->create([
+            'question' => 'Second test',
+            'position' => 2,
+            'is_multiple_choice' => false,
+        ]);
+
+        $this->postJson(route('admin.course.lesson.test.updateOrder', $lesson), [
+            'order' => [['id' => $second->id, 'position' => 1]],
+        ])->assertUnprocessable();
+
+        $this->assertSame(1, $first->fresh()->position);
+        $this->assertSame(2, $second->fresh()->position);
+    }
+
+    public function test_test_order_is_normalized_from_array_order(): void
+    {
+        $lesson = $this->createLesson();
+        $first = $lesson->tests()->create([
+            'question' => 'First test',
+            'position' => 1,
+            'is_multiple_choice' => false,
+        ]);
+        $second = $lesson->tests()->create([
+            'question' => 'Second test',
+            'position' => 2,
+            'is_multiple_choice' => false,
+        ]);
+
+        $this->postJson(route('admin.course.lesson.test.updateOrder', $lesson), [
+            'order' => [
+                ['id' => $second->id, 'position' => 99],
+                ['id' => $first->id, 'position' => 99],
+            ],
+        ])->assertOk();
+
+        $this->assertSame(2, $first->fresh()->position);
+        $this->assertSame(1, $second->fresh()->position);
     }
 
     public function test_update_rejects_answer_options_from_another_test(): void

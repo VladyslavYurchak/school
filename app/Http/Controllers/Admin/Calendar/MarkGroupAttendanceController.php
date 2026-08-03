@@ -101,17 +101,28 @@ class MarkGroupAttendanceController extends Controller
                 );
 
                 // --- РОЗПОДІЛ СТАВКИ МІЖ УСІМА СТУДЕНТАМИ, НЕЗАЛЕЖНО ВІД ПРИСУТНОСТІ ---
-                $totalStudents = max(1, $group->students->count());
-                $totalCents = (int) round($baseRate * 100);
-                $shareCents = intdiv($totalCents, $totalStudents);
-                $remainder = $totalCents % $totalStudents; // перші $remainder студентів отримають +0.01 грн
-
-                $idx = 0;
-
                 $existingLogs = LessonLog::query()
                     ->where('lesson_id', $lesson->id)
                     ->get()
                     ->keyBy('student_id');
+
+                // Historical logs remain valid if a student leaves the group later.
+                $participantIds = collect($groupStudentIds)
+                    ->merge($existingLogs->keys()->filter())
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->sort()
+                    ->values();
+                $totalStudents = max(1, $participantIds->count());
+                $totalCents = (int) round($baseRate * 100);
+                $shareCents = intdiv($totalCents, $totalStudents);
+                $remainder = $totalCents % $totalStudents; // перші $remainder студентів отримають +0.01 грн
+
+                $payoutByStudent = $participantIds->mapWithKeys(
+                    fn (int $studentId, int $index) => [
+                        $studentId => ($shareCents + ($index < $remainder ? 1 : 0)) / 100,
+                    ]
+                );
 
                 foreach ($group->students as $student) {
                     $studentId = (int) $student->id;
@@ -122,8 +133,7 @@ class MarkGroupAttendanceController extends Controller
                         : LessonLogStatus::Charged;
 
                     // рівна частка кожному, з урахуванням копійок
-                    $payoutCents = $shareCents + ($idx < $remainder ? 1 : 0);
-                    $payout = $payoutCents / 100;
+                    $payout = (float) $payoutByStudent->get($studentId, 0);
 
                     $existing = $existingLogs->get($studentId);
 
@@ -146,9 +156,17 @@ class MarkGroupAttendanceController extends Controller
                     ];
 
                     $existing ? $existing->update($payload) : LessonLog::create($payload);
-
-                    $idx++;
                 }
+
+                $existingLogs
+                    ->reject(fn (LessonLog $log) => in_array((int) $log->student_id, $groupStudentIds, true))
+                    ->each(function (LessonLog $log) use ($baseRate, $basis, $payoutByStudent): void {
+                        $log->update([
+                            'teacher_rate_amount_at_charge' => $baseRate,
+                            'teacher_payout_basis' => $basis,
+                            'teacher_payout_amount' => (float) $payoutByStudent->get((int) $log->student_id, 0),
+                        ]);
+                    });
             });
 
             return response()->json(['success' => true, 'message' => 'Відвідуваність збережена']);

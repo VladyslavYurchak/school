@@ -8,5 +8,5 @@ require __DIR__.'/testing.php';
 require __DIR__.'/webhooks.php';
 
 if (app()->environment('local')) {
-    require __DIR__.'/dev.php';
+    require_once __DIR__.'/dev.php';
 }

@@ -52,11 +52,16 @@ class StudentDashboardController extends Controller
             'lessonLogs' => $student->lessonLogs,
             'upcomingLessons' => $upcomingLessons,
             'telegramAccount' => $user->telegramAccount()->first(),
-            'courses' => $user->courses()->with('language')->wherePivot('status', 'paid')->get(),
+            'courses' => $user->courses()
+                ->with('language')
+                ->wherePivot('status', 'paid')
+                ->where('courses.is_published', true)
+                ->get(),
             'lessons' => $user->lessons()
                 ->with('course.language')
                 ->wherePivot('status', 'paid')
                 ->where('lessons.is_published', true)
+                ->whereHas('course', fn ($query) => $query->where('is_published', true))
                 ->get(),
         ]);
     }

@@ -53,7 +53,7 @@
                         <div class="col-md-6">
                             <div class="admin-form-section">
                                 <label for="position" class="admin-form-label">Номер уроку</label>
-                                <input type="number" name="position" id="position" class="form-control" min="0" value="{{ old('position', 0) }}">
+                                <input type="number" name="position" id="position" class="form-control" min="1" value="{{ old('position', $nextPosition) }}">
                             </div>
                         </div>
 

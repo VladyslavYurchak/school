@@ -1,5 +1,9 @@
 @extends('public.layouts.main')
 
+@section('title', $lesson->title . ' | ' . $course->title)
+@section('description', \Illuminate\Support\Str::limit(strip_tags($lesson->description ?: $course->description), 155))
+@section('robots', 'noindex, nofollow, noarchive')
+
 @section('content')
     <div class="lesson-page">
         <header class="lesson-header">

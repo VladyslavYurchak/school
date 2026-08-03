@@ -16,12 +16,17 @@ class LessonContentBlockRequest extends FormRequest
     public function rules(): array
     {
         $type = $this->input('type');
-        $creating = !$this->route('block');
-        $mediaRequired = $creating && in_array($type, [
+        $block = $this->route('block');
+        $isMediaType = in_array($type, [
             LessonContentBlock::TYPE_AUDIO,
             LessonContentBlock::TYPE_IMAGE,
             LessonContentBlock::TYPE_PDF,
         ], true);
+        $mediaRequired = $isMediaType && (
+            ! $block
+            || $block->type !== $type
+            || ! $block->media_path
+        );
 
         $mediaRules = [Rule::requiredIf($mediaRequired), 'nullable', 'file'];
 
@@ -43,7 +48,7 @@ class LessonContentBlockRequest extends FormRequest
                 'string',
                 'max:2048',
                 function (string $attribute, mixed $value, \Closure $fail): void {
-                    if ($value && !$this->isYoutubeUrl((string) $value)) {
+                    if ($value && ! $this->isYoutubeUrl((string) $value)) {
                         $fail('Вкажіть коректне посилання на YouTube.');
                     }
                 },
@@ -57,8 +62,8 @@ class LessonContentBlockRequest extends FormRequest
     {
         $url = trim((string) $this->input('video_url'));
 
-        if ($url !== '' && !str_contains($url, '://')) {
-            $url = 'https://' . $url;
+        if ($url !== '' && ! str_contains($url, '://')) {
+            $url = 'https://'.$url;
         }
 
         $this->merge([
