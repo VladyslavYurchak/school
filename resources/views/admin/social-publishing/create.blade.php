@@ -1,5 +1,9 @@
 @extends('admin.layouts.layout')
 
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('css/social-publishing.css') }}">
+@endpush
+
 @section('content')
     <div class="admin-page">
         <div class="admin-page-shell">
