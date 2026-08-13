@@ -9,7 +9,7 @@ class SettingsController extends Controller
 {
     public function __invoke(Request $request)
     {
-        abort_unless($request->user()?->isTeacher() && $request->user()?->teacher, 403);
+        abort_unless($request->user()?->hasActiveTeacherProfile(), 403);
 
         return view('admin.teacher-settings.edit', [
             'teacher' => $request->user()->teacher,

@@ -54,7 +54,7 @@
                     </a>
                 </li>
 
-                @if($user?->isTeacher())
+                @if($user?->hasActiveTeacherProfile())
                     <li class="nav-item">
                         <a href="{{ route('teacher.settings.edit') }}"
                            class="nav-link {{ request()->routeIs('teacher.settings.*') ? 'active' : '' }}">

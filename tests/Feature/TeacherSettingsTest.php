@@ -67,7 +67,7 @@ class TeacherSettingsTest extends TestCase
         $this->assertNull($teacher->fresh()->meeting_url);
     }
 
-    public function test_student_and_admin_cannot_open_or_update_teacher_settings(): void
+    public function test_student_and_admin_without_teacher_profile_cannot_open_or_update_teacher_settings(): void
     {
         $student = User::factory()->create(['role' => 'student']);
         $admin = User::factory()->create(['role' => 'admin']);
@@ -85,6 +85,35 @@ class TeacherSettingsTest extends TestCase
         $this->actingAs($admin)
             ->patch(route('teacher.settings.update'), ['meeting_url' => 'https://zoom.us/j/1'])
             ->assertForbidden();
+    }
+
+    public function test_admin_with_active_teacher_profile_can_manage_teacher_settings(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email_verified_at' => now(),
+        ]);
+        $teacher = Teacher::factory()->create([
+            'user_id' => $admin->id,
+            'is_active' => true,
+        ]);
+
+        $this
+            ->actingAs($admin)
+            ->get(route('teacher.settings.edit'))
+            ->assertOk()
+            ->assertSee('Ваше постійне посилання на Zoom')
+            ->assertSee('Налаштування');
+
+        $this
+            ->actingAs($admin)
+            ->patch(route('teacher.settings.update'), [
+                'meeting_url' => 'https://zoom.us/j/admin-teacher',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertSame('https://zoom.us/j/admin-teacher', $teacher->fresh()->meeting_url);
     }
 
     public function test_connected_telegram_account_is_shown_on_settings_page(): void

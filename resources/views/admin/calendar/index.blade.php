@@ -21,10 +21,12 @@
                             <i class="bi bi-plus-lg"></i>
                             Додати заняття
                         </button>
-                        <a href="{{ route('teacher.settings.edit') }}" class="admin-btn-soft">
-                            <i class="bi bi-camera-video"></i>
-                            Zoom і Telegram
-                        </a>
+                        @if(auth()->user()?->hasActiveTeacherProfile())
+                            <a href="{{ route('teacher.settings.edit') }}" class="admin-btn-soft">
+                                <i class="bi bi-camera-video"></i>
+                                Zoom і Telegram
+                            </a>
+                        @endif
                     </div>
                 </div>
             </section>

@@ -64,7 +64,7 @@ class TelegramBotService
 
         $account->update(['last_interaction_at' => now()]);
 
-        if ($account->user->isTeacher() && $this->handlePendingReschedule($account, $text)) {
+        if ($account->user->hasActiveTeacherProfile() && $this->handlePendingReschedule($account, $text)) {
             return;
         }
 
@@ -128,7 +128,7 @@ class TelegramBotService
     private function sendMenu(TelegramAccount $account, string $prefix = ''): void
     {
         $text = trim($prefix."\n\nОберіть потрібну дію:");
-        $keyboard = $account->user?->isTeacher()
+        $keyboard = $account->user?->hasActiveTeacherProfile()
             ? [
                 [['text' => 'Мій розклад']],
                 [
@@ -173,7 +173,7 @@ class TelegramBotService
             return;
         }
 
-        if ($account->user->isTeacher()) {
+        if ($account->user->hasActiveTeacherProfile()) {
             $this->sendTeacherLessons($account, $lessons);
 
             return;
@@ -346,7 +346,7 @@ class TelegramBotService
             return;
         }
 
-        if (! $account->user?->isTeacher() || ! $account->user->teacher) {
+        if (! $account->user?->hasActiveTeacherProfile()) {
             $this->client->answerCallbackQuery($callbackId, 'Дія доступна лише викладачеві.');
 
             return;
@@ -755,7 +755,7 @@ class TelegramBotService
 
     private function sendHelp(TelegramAccount $account): void
     {
-        $commands = $account->user?->isTeacher()
+        $commands = $account->user?->hasActiveTeacherProfile()
             ? [
                 '/lessons — найближчі заняття та керування ними',
                 '/settings — налаштування сповіщень',
@@ -790,7 +790,7 @@ class TelegramBotService
             ->with(['teacher', 'student', 'group'])
             ->where('status', LessonStatus::Planned->value);
 
-        if ($account->user->isTeacher()) {
+        if ($account->user->hasActiveTeacherProfile()) {
             $query->where('teacher_id', $account->user->teacher->id);
 
             $recentUnresolved = (clone $query)
@@ -862,7 +862,7 @@ class TelegramBotService
     private function hasSupportedProfile(TelegramAccount $account): bool
     {
         return ($account->user?->isStudent() && $account->user->student)
-            || ($account->user?->isTeacher() && $account->user->teacher);
+            || $account->user?->hasActiveTeacherProfile();
     }
 
     private function escape(string $value): string

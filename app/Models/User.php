@@ -65,6 +65,11 @@ class User extends Authenticatable implements MustVerifyEmail // ⬅️ дода
         return $this->role === 'teacher';
     }
 
+    public function hasActiveTeacherProfile(): bool
+    {
+        return (bool) $this->teacher?->is_active;
+    }
+
     public function isStudent(): bool
     {
         return $this->role === 'student';

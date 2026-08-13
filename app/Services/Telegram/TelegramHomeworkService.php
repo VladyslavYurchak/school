@@ -66,7 +66,7 @@ class TelegramHomeworkService
 
     public function handlePendingMessage(TelegramAccount $account, array $message): bool
     {
-        if ($account->user?->isTeacher() && Cache::has($this->teacherCacheKey($account))) {
+        if ($account->user?->hasActiveTeacherProfile() && Cache::has($this->teacherCacheKey($account))) {
             return $this->storeAssignment($account, $message);
         }
 

@@ -10,7 +10,7 @@ class DisconnectTelegramController extends Controller
     public function __invoke(Request $request)
     {
         abort_unless(
-            $request->user()?->isStudent() || $request->user()?->isTeacher(),
+            $request->user()?->isStudent() || $request->user()?->hasActiveTeacherProfile(),
             403,
         );
 

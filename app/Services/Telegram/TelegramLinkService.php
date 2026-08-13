@@ -12,7 +12,7 @@ class TelegramLinkService
 {
     public function issue(User $user): string
     {
-        abort_unless($user->isStudent() || $user->isTeacher(), 403);
+        abort_unless($user->isStudent() || $user->hasActiveTeacherProfile(), 403);
 
         $plainToken = Str::random(48);
 
@@ -54,7 +54,7 @@ class TelegramLinkService
                 || $linkToken->used_at
                 || $linkToken->expires_at->isPast()
                 || ! $linkToken->user
-                || (! $linkToken->user->isStudent() && ! $linkToken->user->isTeacher())
+                || (! $linkToken->user->isStudent() && ! $linkToken->user->hasActiveTeacherProfile())
             ) {
                 return 'invalid';
             }

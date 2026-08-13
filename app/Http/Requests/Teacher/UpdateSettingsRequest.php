@@ -8,8 +8,7 @@ class UpdateSettingsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isTeacher() === true
-            && (bool) $this->user()?->teacher?->is_active;
+        return $this->user()?->hasActiveTeacherProfile() === true;
     }
 
     public function rules(): array

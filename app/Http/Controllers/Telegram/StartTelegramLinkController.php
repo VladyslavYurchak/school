@@ -11,7 +11,7 @@ class StartTelegramLinkController extends Controller
     public function __invoke(Request $request, TelegramLinkService $linkService)
     {
         abort_unless(
-            $request->user()?->isStudent() || $request->user()?->isTeacher(),
+            $request->user()?->isStudent() || $request->user()?->hasActiveTeacherProfile(),
             403,
         );
 
