@@ -92,6 +92,21 @@ class AdminTeacherLifecycleTest extends TestCase
         $this->assertSame('student', $studentUser->fresh()->role);
     }
 
+    public function test_admin_promotes_unassigned_registered_account_to_teacher(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $registeredUser = User::factory()->create(['role' => 'student']);
+
+        $this
+            ->actingAs($admin)
+            ->post(route('admin.teachers.store'), $this->teacherPayload($registeredUser))
+            ->assertRedirect(route('admin.teachers.index'));
+
+        $this->assertSame('teacher', $registeredUser->fresh()->role);
+        $this->assertDatabaseHas('teachers', ['user_id' => $registeredUser->id]);
+        $this->assertDatabaseMissing('students', ['user_id' => $registeredUser->id]);
+    }
+
     public function test_admin_cannot_create_second_teacher_for_same_account(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -137,6 +152,23 @@ class AdminTeacherLifecycleTest extends TestCase
             ->assertSessionHasErrors(['user_id']);
 
         $this->assertSame($teacher->user_id, $teacher->fresh()->user_id);
+    }
+
+    public function test_updating_teacher_profile_repairs_legacy_student_role(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['role' => 'student']);
+        $teacher = Teacher::factory()->create(['user_id' => $user->id]);
+
+        $this
+            ->actingAs($admin)
+            ->put(route('admin.teachers.update', $teacher), array_merge(
+                $this->teacherPayload($user),
+                ['first_name' => $teacher->first_name, 'last_name' => $teacher->last_name]
+            ))
+            ->assertRedirect(route('admin.teachers.index'));
+
+        $this->assertSame('teacher', $user->fresh()->role);
     }
 
     private function teacherPayload(User $user): array

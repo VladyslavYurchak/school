@@ -11,9 +11,9 @@ use App\Models\PlannedLesson;
 use App\Models\Teacher;
 use App\Services\Calendar\CalendarAvailabilityService;
 use App\Services\LessonActionLogger;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class MarkAsRescheduledController extends Controller
@@ -22,8 +22,7 @@ class MarkAsRescheduledController extends Controller
         $id,
         MarkAsRescheduledRequest $request,
         CalendarAvailabilityService $availability
-    )
-    {
+    ) {
         $data = $request->validated();
 
         try {
@@ -36,7 +35,7 @@ class MarkAsRescheduledController extends Controller
                 if ($user->role === 'teacher') {
                     $teacherId = optional($user->teacher)->id;
 
-                    if (!$teacherId) {
+                    if (! $teacherId) {
                         abort(403);
                     }
 
@@ -47,17 +46,17 @@ class MarkAsRescheduledController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (!$lesson) {
+                if (! $lesson) {
                     return [
-                        'status'  => Response::HTTP_NOT_FOUND,
+                        'status' => Response::HTTP_NOT_FOUND,
                         'success' => false,
                         'message' => 'Заняття з таким ID не знайдено.',
                     ];
                 }
 
-                if (!is_null($lesson->group_id)) {
+                if (! is_null($lesson->group_id)) {
                     return [
-                        'status'  => Response::HTTP_UNPROCESSABLE_ENTITY,
+                        'status' => Response::HTTP_UNPROCESSABLE_ENTITY,
                         'success' => false,
                         'message' => 'Цей ендпойнт призначений для індивідуальних/пробних. Для груп/пар — використай груповий контролер перенесення.',
                     ];
@@ -84,7 +83,7 @@ class MarkAsRescheduledController extends Controller
 
                     if ($reschedulesThisMonth >= 2) {
                         return [
-                            'status'  => Response::HTTP_FORBIDDEN,
+                            'status' => Response::HTTP_FORBIDDEN,
                             'success' => false,
                             'message' => 'Учень вже використав ліміт на 2 переноси цього місяця.',
                         ];
@@ -129,7 +128,7 @@ class MarkAsRescheduledController extends Controller
                 }
 
                 $lesson->update([
-                    'status'    => LessonStatus::Rescheduled,
+                    'status' => LessonStatus::Rescheduled,
                     'initiator' => $initiator,
                 ]);
 
@@ -138,16 +137,17 @@ class MarkAsRescheduledController extends Controller
                     ->delete();
 
                 PlannedLesson::create([
-                    'title'       => $lesson->title,
-                    'student_id'  => $lesson->student_id,
-                    'teacher_id'  => $lesson->teacher_id,
-                    'group_id'    => $lesson->group_id,
-                    'start_date'  => $newDateTime,
-                    'end_date'    => $newEnd,
-                    'status'      => LessonStatus::Planned,
-                    'initiator'   => null,
+                    'title' => $lesson->title,
+                    'student_id' => $lesson->student_id,
+                    'teacher_id' => $lesson->teacher_id,
+                    'group_id' => $lesson->group_id,
+                    'start_date' => $newDateTime,
+                    'end_date' => $newEnd,
+                    'status' => LessonStatus::Planned,
+                    'initiator' => null,
                     'lesson_type' => $lesson->lesson_type ?? LessonType::Individual,
-                    'notes'       => $lesson->notes,
+                    'notes' => $lesson->notes,
+                    'meeting_url' => $lesson->meeting_url,
                 ]);
 
                 LessonActionLogger::log(
@@ -163,12 +163,12 @@ class MarkAsRescheduledController extends Controller
                 $lesson->delete();
 
                 return [
-                    'status'  => Response::HTTP_OK,
+                    'status' => Response::HTTP_OK,
                     'success' => true,
                     'message' => 'Заняття перенесено на нову дату.',
-                    'meta'    => [
+                    'meta' => [
                         'old_lesson_id' => $lesson->id,
-                        'deleted_logs'  => $deletedLogs,
+                        'deleted_logs' => $deletedLogs,
                     ],
                 ];
             });
@@ -176,7 +176,7 @@ class MarkAsRescheduledController extends Controller
             return response()->json([
                 'success' => $result['success'],
                 'message' => $result['message'],
-                'meta'    => $result['meta'] ?? null,
+                'meta' => $result['meta'] ?? null,
             ], $result['status']);
 
         } catch (\Throwable $e) {
@@ -190,7 +190,7 @@ class MarkAsRescheduledController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Помилка при перенесенні заняття.',
-                'error'   => config('app.debug') ? $e->getMessage() : null,
+                'error' => config('app.debug') ? $e->getMessage() : null,
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use App\Services\MonoPayPaymentProcessor;
 use App\Services\MonoPayService;
+use App\Services\Telegram\TelegramPaymentConfirmationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -14,14 +15,14 @@ class MonoPayWebhookController extends Controller
     public function __invoke(
         Request $request,
         MonoPayService $monoPay,
-        MonoPayPaymentProcessor $processor
-    ): Response
-    {
+        MonoPayPaymentProcessor $processor,
+        TelegramPaymentConfirmationService $paymentConfirmation,
+    ): Response {
         $rawBody = $request->getContent();
 
         $monoPayload = json_decode($rawBody, true);
 
-        if (!is_array($monoPayload)) {
+        if (! is_array($monoPayload)) {
             Log::warning('MONOPAY: invalid payload');
 
             return response('invalid payload', 400);
@@ -37,7 +38,7 @@ class MonoPayWebhookController extends Controller
             'status' => $status,
         ]);
 
-        if (!$invoiceId && !$reference) {
+        if (! $invoiceId && ! $reference) {
             Log::warning('MONOPAY: missing invoiceId and reference');
 
             return response('bad request', 400);
@@ -56,7 +57,7 @@ class MonoPayWebhookController extends Controller
             })
             ->first();
 
-        if (!$payment) {
+        if (! $payment) {
             Log::warning('MONOPAY: payment not found', [
                 'invoiceId' => $invoiceId,
                 'reference' => $reference,
@@ -65,7 +66,7 @@ class MonoPayWebhookController extends Controller
             return response('payment not found', 404);
         }
 
-        if (!$this->isValidSignature($request, $rawBody, $monoPay)) {
+        if (! $this->isValidSignature($request, $rawBody, $monoPay)) {
             Log::warning('MONOPAY: invalid signature, trying invoice status fallback', [
                 'payment_id' => $payment->id,
                 'invoiceId' => $invoiceId,
@@ -79,7 +80,7 @@ class MonoPayWebhookController extends Controller
                 $invoiceId
             );
 
-            if (!$verifiedPayload) {
+            if (! $verifiedPayload) {
                 Log::warning('MONOPAY: invoice status fallback failed', [
                     'payment_id' => $payment->id,
                     'invoiceId' => $invoiceId,
@@ -98,7 +99,7 @@ class MonoPayWebhookController extends Controller
             $status = $monoPayload['status'] ?? $status;
         }
 
-        if (!$processor->invoiceMatchesPayment($payment, $monoPayload)) {
+        if (! $processor->invoiceMatchesPayment($payment, $monoPayload)) {
             Log::warning('MONOPAY: invoice does not match payment', [
                 'payment_id' => $payment->id,
                 'invoiceId' => $invoiceId,
@@ -120,7 +121,18 @@ class MonoPayWebhookController extends Controller
             return response('payment fulfillment failed', 409);
         }
 
-        if (!in_array($status, ['success', 'failure', 'expired', 'reversed'], true)) {
+        if ($status === 'success') {
+            try {
+                $paymentConfirmation->sendForPayment($payment->fresh());
+            } catch (\Throwable $e) {
+                Log::warning('MONOPAY: Telegram payment confirmation failed', [
+                    'payment_id' => $payment->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if (! in_array($status, ['success', 'failure', 'expired', 'reversed'], true)) {
             Log::info('MONOPAY: unhandled status', [
                 'status' => $status,
                 'payment_id' => $payment->id,
@@ -134,7 +146,7 @@ class MonoPayWebhookController extends Controller
     {
         $signature = $request->header('X-Sign') ?: $request->header('x-sign');
 
-        if (!$signature) {
+        if (! $signature) {
             return false;
         }
 
@@ -143,18 +155,18 @@ class MonoPayWebhookController extends Controller
 
             $publicKeyResource = openssl_pkey_get_public($publicKeyPem);
 
-            if (!$publicKeyResource) {
+            if (! $publicKeyResource) {
                 Log::warning('MONOPAY: cannot parse public key');
 
                 return false;
             }
 
             return openssl_verify(
-                    $rawBody,
-                    base64_decode($signature),
-                    $publicKeyResource,
-                    OPENSSL_ALGO_SHA256
-                ) === 1;
+                $rawBody,
+                base64_decode($signature),
+                $publicKeyResource,
+                OPENSSL_ALGO_SHA256
+            ) === 1;
         } catch (\Throwable $e) {
             Log::error('MONOPAY SIGNATURE VERIFY ERROR', [
                 'message' => $e->getMessage(),
@@ -175,8 +187,8 @@ class MonoPayWebhookController extends Controller
         $publicKey = preg_replace('/\s+/', '', $publicKey);
 
         return "-----BEGIN PUBLIC KEY-----\n"
-            . chunk_split($publicKey, 64, "\n")
-            . "-----END PUBLIC KEY-----\n";
+            .chunk_split($publicKey, 64, "\n")
+            ."-----END PUBLIC KEY-----\n";
     }
 
     private function verifiedPayloadFromInvoiceStatus(
@@ -185,7 +197,7 @@ class MonoPayWebhookController extends Controller
         Payment $payment,
         ?string $invoiceId
     ): ?array {
-        if (!$invoiceId) {
+        if (! $invoiceId) {
             return null;
         }
 

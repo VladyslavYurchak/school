@@ -54,6 +54,16 @@
                     </a>
                 </li>
 
+                @if($user?->isTeacher())
+                    <li class="nav-item">
+                        <a href="{{ route('teacher.settings.edit') }}"
+                           class="nav-link {{ request()->routeIs('teacher.settings.*') ? 'active' : '' }}">
+                            <i class="nav-icon bi bi-gear"></i>
+                            <p>Налаштування</p>
+                        </a>
+                    </li>
+                @endif
+
                 @if($isAdmin)
                     <li class="nav-header sidebar-section-title">CRM</li>
 

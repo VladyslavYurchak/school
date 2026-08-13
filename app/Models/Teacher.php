@@ -18,6 +18,7 @@ class Teacher extends Model
         'last_name',
         'phone',
         'email',
+        'meeting_url',
         'lesson_price',
         'group_lesson_price',
         'trial_lesson_price',

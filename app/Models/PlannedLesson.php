@@ -22,6 +22,7 @@ class PlannedLesson extends Model
         'end_date',
         'status',
         'notes',
+        'meeting_url',
         'initiator',
         'lesson_type',
     ];
@@ -40,6 +41,11 @@ class PlannedLesson extends Model
         }
 
         return $this->start_date->diffInMinutes($this->end_date);
+    }
+
+    public function getEffectiveMeetingUrlAttribute(): ?string
+    {
+        return $this->meeting_url ?: $this->teacher?->meeting_url;
     }
 
     public function teacher()
@@ -65,6 +71,11 @@ class PlannedLesson extends Model
     public function telegramNotifications()
     {
         return $this->hasMany(TelegramNotification::class);
+    }
+
+    public function telegramHomeworkAssignment()
+    {
+        return $this->hasOne(TelegramHomeworkAssignment::class);
     }
 
     public function scopeIntersects($query, CarbonInterface $start, CarbonInterface $end)

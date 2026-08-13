@@ -44,6 +44,22 @@ class TelegramBotClient
         return $this->post('answerCallbackQuery', $payload);
     }
 
+    public function sendDocument(
+        string $chatId,
+        string $fileId,
+        ?string $caption = null,
+    ): bool {
+        return $this->sendTelegramFile('sendDocument', 'document', $chatId, $fileId, $caption);
+    }
+
+    public function sendPhoto(
+        string $chatId,
+        string $fileId,
+        ?string $caption = null,
+    ): bool {
+        return $this->sendTelegramFile('sendPhoto', 'photo', $chatId, $fileId, $caption);
+    }
+
     public function removeInlineKeyboard(string $chatId, int $messageId): bool
     {
         return $this->post('editMessageReplyMarkup', [
@@ -72,5 +88,25 @@ class TelegramBotClient
         }
 
         return $response->successful() && $response->json('ok') === true;
+    }
+
+    private function sendTelegramFile(
+        string $method,
+        string $field,
+        string $chatId,
+        string $fileId,
+        ?string $caption,
+    ): bool {
+        $payload = [
+            'chat_id' => $chatId,
+            $field => $fileId,
+            'parse_mode' => 'HTML',
+        ];
+
+        if ($caption !== null && $caption !== '') {
+            $payload['caption'] = $caption;
+        }
+
+        return $this->post($method, $payload);
     }
 }

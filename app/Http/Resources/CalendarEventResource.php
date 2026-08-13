@@ -53,6 +53,7 @@ final class CalendarEventResource extends JsonResource
                 'status' => $lesson->status?->value,
                 'student_id' => $lesson->student_id,
                 'group_id' => $lesson->group_id,
+                'meeting_url' => $lesson->meeting_url,
                 'members' => $group?->relationLoaded('students')
                     ? $group->students->map(fn ($s) => [
                         'id' => $s->id,

@@ -28,7 +28,7 @@ class UpdateEventController extends Controller
         $start = Carbon::parse($data['date'].' '.$data['time']);
         $end = (clone $start)->addMinutes($data['duration'] ?? 60);
 
-        DB::transaction(function () use ($availability, $end, $id, $start, $teacher): void {
+        DB::transaction(function () use ($availability, $data, $end, $id, $start, $teacher): void {
             Teacher::query()->lockForUpdate()->findOrFail($teacher->id);
 
             $lesson = PlannedLesson::query()
@@ -46,6 +46,9 @@ class UpdateEventController extends Controller
             $lesson->update([
                 'start_date' => $start,
                 'end_date' => $end,
+                'meeting_url' => array_key_exists('meeting_url', $data)
+                    ? $data['meeting_url']
+                    : $lesson->meeting_url,
             ]);
 
             LessonLog::query()

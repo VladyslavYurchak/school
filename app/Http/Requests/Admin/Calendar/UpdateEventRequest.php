@@ -20,6 +20,7 @@ class UpdateEventRequest extends FormRequest
             'date' => ['required', 'date_format:Y-m-d'],
             'time' => ['required', 'date_format:H:i'],
             'duration' => ['nullable', 'integer', 'min:15', 'max:180'],
+            'meeting_url' => ['nullable', 'url', 'max:2048'],
         ];
     }
 

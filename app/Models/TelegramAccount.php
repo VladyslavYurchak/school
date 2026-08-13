@@ -13,6 +13,10 @@ class TelegramAccount extends Model
         'username',
         'first_name',
         'notifications_enabled',
+        'lesson_reminders_enabled',
+        'payment_notifications_enabled',
+        'homework_notifications_enabled',
+        'lesson_reminder_minutes',
         'connected_at',
         'last_interaction_at',
     ];
@@ -21,6 +25,10 @@ class TelegramAccount extends Model
     {
         return [
             'notifications_enabled' => 'boolean',
+            'lesson_reminders_enabled' => 'boolean',
+            'payment_notifications_enabled' => 'boolean',
+            'homework_notifications_enabled' => 'boolean',
+            'lesson_reminder_minutes' => 'integer',
             'connected_at' => 'datetime',
             'last_interaction_at' => 'datetime',
         ];

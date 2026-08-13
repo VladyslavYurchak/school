@@ -26,7 +26,6 @@ final class RescheduleGroupLessonService
      *   new_date:string, // Y-m-d
      *   new_time:string, // H:i
      * } $data
-     *
      * @return array{
      *   status:int,
      *   success:bool,
@@ -56,7 +55,7 @@ final class RescheduleGroupLessonService
             if ($user->role === 'teacher') {
                 $teacherId = optional($user->teacher)->id;
 
-                if (!$teacherId) {
+                if (! $teacherId) {
                     abort(403);
                 }
 
@@ -66,7 +65,7 @@ final class RescheduleGroupLessonService
 
             $group = $groupQuery->first();
 
-            if (!$group) {
+            if (! $group) {
                 return $this->fail(Response::HTTP_UNPROCESSABLE_ENTITY, 'Групу не знайдено або недоступна.');
             }
 
@@ -76,7 +75,7 @@ final class RescheduleGroupLessonService
                 ->lockForUpdate()
                 ->first();
 
-            if (!$lesson) {
+            if (! $lesson) {
                 return $this->fail(Response::HTTP_NOT_FOUND, 'Урок із таким ID не знайдено або недоступний.');
             }
             // 2) Нова дата/час
@@ -91,10 +90,10 @@ final class RescheduleGroupLessonService
             }
 
             // 4) Тривалість
-            $duration = (int)($lesson->duration
+            $duration = (int) ($lesson->duration
                 ?? CarbonImmutable::parse($lesson->start_date)->diffInMinutes($lesson->end_date));
             $duration = max(15, $duration);
-            $newEnd   = $newStart->addMinutes($duration);
+            $newEnd = $newStart->addMinutes($duration);
 
             // 5) Перевірка конфліктів
             $hasConflict = $this->availability->groupHasOverlap(
@@ -126,23 +125,24 @@ final class RescheduleGroupLessonService
             }
 
             // 6) Позначаємо старий як перенесений + soft-delete
-            $lesson->status    = LessonStatus::Rescheduled->value;
+            $lesson->status = LessonStatus::Rescheduled->value;
             $lesson->initiator = $lesson->initiator ?? null;
             $lesson->save();
             $lesson->delete();
 
             // 7) Створюємо новий урок
             $newLesson = PlannedLesson::create([
-                'title'       => $lesson->title ?? ($group->name ?? 'Групове заняття'),
-                'teacher_id'  => $lesson->teacher_id,
-                'group_id'    => $group->id,
-                'student_id'  => null,
-                'start_date'  => $newStart,
-                'end_date'    => $newEnd,
-                'status'      => LessonStatus::Planned->value,
-                'initiator'   => null,
-                'duration'    => $lesson->duration ?? $duration,
-                'notes'       => $lesson->notes,
+                'title' => $lesson->title ?? ($group->name ?? 'Групове заняття'),
+                'teacher_id' => $lesson->teacher_id,
+                'group_id' => $group->id,
+                'student_id' => null,
+                'start_date' => $newStart,
+                'end_date' => $newEnd,
+                'status' => LessonStatus::Planned->value,
+                'initiator' => null,
+                'duration' => $lesson->duration ?? $duration,
+                'notes' => $lesson->notes,
+                'meeting_url' => $lesson->meeting_url,
                 'lesson_type' => $lesson->lesson_type ?? LessonType::Group->value,
             ]);
 
@@ -158,23 +158,23 @@ final class RescheduleGroupLessonService
                 lessonDatetime: $oldStart->toDateTimeString(),           // з якої дати
                 newLessonDatetime: $newStart->toDateTimeString(),        // на яку дату
                 meta: [
-                    'group_id'      => $group->id,
-                    'old_lesson_id' => (int)$lesson->id,
-                    'new_lesson_id' => (int)$newLesson->id,
-                    'deleted_logs'  => (int)$deletedLogs,
+                    'group_id' => $group->id,
+                    'old_lesson_id' => (int) $lesson->id,
+                    'new_lesson_id' => (int) $newLesson->id,
+                    'deleted_logs' => (int) $deletedLogs,
                 ]
             );
 
             return [
-                'status'  => Response::HTTP_OK,
+                'status' => Response::HTTP_OK,
                 'success' => true,
                 'message' => 'Групове заняття перенесено на нову дату.',
-                'meta'    => [
-                    'old_lesson_id' => (int)$lesson->id,
-                    'new_lesson_id' => (int)$newLesson->id,
-                    'deleted_logs'  => (int)$deletedLogs,
-                    'new_start'     => $newStart->toDateTimeString(),
-                    'new_end'       => $newEnd->toDateTimeString(),
+                'meta' => [
+                    'old_lesson_id' => (int) $lesson->id,
+                    'new_lesson_id' => (int) $newLesson->id,
+                    'deleted_logs' => (int) $deletedLogs,
+                    'new_start' => $newStart->toDateTimeString(),
+                    'new_end' => $newEnd->toDateTimeString(),
                 ],
             ];
         });

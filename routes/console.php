@@ -11,3 +11,11 @@ Artisan::command('inspire', function () {
 Schedule::command('telegram:lessons:remind')
     ->everyFiveMinutes()
     ->withoutOverlapping(10);
+
+Schedule::command('telegram:payments:remind')
+    ->dailyAt('09:00')
+    ->withoutOverlapping(10);
+
+Schedule::command('telegram:payments:confirm')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10);

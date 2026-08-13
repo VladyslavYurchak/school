@@ -21,8 +21,7 @@ class StoreEventController extends Controller
     public function __invoke(
         StoreEventRequest $request,
         CalendarAvailabilityService $availability
-    )
-    {
+    ) {
         $validated = $request->validated();
 
         $teacher = auth()->user()->teacher;
@@ -100,6 +99,7 @@ class StoreEventController extends Controller
                         'student_id' => $validated['student_id'] ?? null,
                         'group_id' => $validated['group_id'] ?? null,
                         'notes' => $validated['notes'] ?? null,
+                        'meeting_url' => $validated['meeting_url'] ?? null,
                         'status' => LessonStatus::Planned,
                         'lesson_type' => $type,
                     ]);
@@ -173,6 +173,7 @@ class StoreEventController extends Controller
                 'student_id' => $validated['student_id'] ?? null,
                 'group_id' => $validated['group_id'] ?? null,
                 'notes' => $validated['notes'] ?? null,
+                'meeting_url' => $validated['meeting_url'] ?? null,
                 'status' => LessonStatus::Planned,
                 'lesson_type' => $type,
             ]);

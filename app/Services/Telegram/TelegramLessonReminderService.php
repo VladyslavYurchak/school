@@ -31,9 +31,15 @@ class TelegramLessonReminderService
 
         $this->dueLessonsQuery()->chunkById(100, function ($lessons) use (&$result) {
             foreach ($lessons as $lesson) {
+                $accounts = $this->telegramAccountsFor($lesson);
+
+                if ($accounts->isEmpty() && $lesson->start_date->gt(now()->addHour())) {
+                    continue;
+                }
+
                 $result['lessons']++;
 
-                foreach ($this->telegramAccountsFor($lesson) as $account) {
+                foreach ($accounts as $account) {
                     $status = $this->sendToAccount($lesson, $account);
                     $result[$status]++;
                 }
@@ -47,7 +53,7 @@ class TelegramLessonReminderService
     {
         return PlannedLesson::query()
             ->with([
-                'teacher:id,user_id,first_name,last_name',
+                'teacher:id,user_id,first_name,last_name,meeting_url',
                 'teacher.user.telegramAccount',
                 'student.user.telegramAccount',
                 'group:id,name',
@@ -55,7 +61,7 @@ class TelegramLessonReminderService
             ])
             ->where('status', LessonStatus::Planned->value)
             ->where('start_date', '>', now())
-            ->where('start_date', '<=', now()->addHour())
+            ->where('start_date', '<=', now()->addDay())
             ->orderBy('id');
     }
 
@@ -81,7 +87,11 @@ class TelegramLessonReminderService
 
         return $accounts
             ->merge($studentAccounts)
-            ->filter(fn (?TelegramAccount $account) => $account?->notifications_enabled === true)
+            ->filter(fn (?TelegramAccount $account) => $account?->notifications_enabled === true
+                && $account->lesson_reminders_enabled === true
+                && $lesson->start_date->lte(
+                    now()->addMinutes((int) $account->lesson_reminder_minutes),
+                ))
             ->unique('id')
             ->values();
     }
@@ -104,9 +114,14 @@ class TelegramLessonReminderService
         }
 
         try {
+            $keyboard = $this->keyboardFor($lesson, $account);
+            $options = $keyboard === [] ? [] : [
+                'reply_markup' => ['inline_keyboard' => $keyboard],
+            ];
             $sent = $this->bot->sendMessage(
                 $account->chat_id,
                 $this->messageFor($lesson, $account),
+                $options,
             );
         } catch (Throwable $exception) {
             Log::warning('Telegram lesson reminder raised an exception.', [
@@ -166,8 +181,8 @@ class TelegramLessonReminderService
             '<b>Нагадування про заняття</b>',
             '',
             $isTeacher
-                ? 'Ваше заняття почнеться менш ніж за годину.'
-                : 'До початку заняття залишилося менше години.',
+                ? 'Ваше заняття заплановано найближчим часом.'
+                : 'Нагадуємо про ваше заплановане заняття.',
             '<b>Заняття:</b> '.$this->escape($lesson->title),
             '<b>Дата і час:</b> '.$lesson->start_date->format('d.m.Y H:i'),
             '<b>Формат:</b> '.$this->lessonTypeLabel($lesson->lesson_type),
@@ -196,6 +211,29 @@ class TelegramLessonReminderService
         }
 
         return implode("\n", $lines);
+    }
+
+    private function keyboardFor(PlannedLesson $lesson, TelegramAccount $account): array
+    {
+        $row = [];
+
+        if ($lesson->effective_meeting_url) {
+            $row[] = [
+                'text' => 'Приєднатися',
+                'url' => $lesson->effective_meeting_url,
+            ];
+        }
+
+        $isTeacher = $lesson->teacher?->user_id === $account->user_id;
+
+        if (! $isTeacher) {
+            $row[] = [
+                'text' => 'Не зможу бути',
+                'callback_data' => "student:absence:{$lesson->id}",
+            ];
+        }
+
+        return $row === [] ? [] : [$row];
     }
 
     private function lessonTypeLabel(LessonType $type): string

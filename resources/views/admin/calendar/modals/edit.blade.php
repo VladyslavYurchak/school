@@ -18,6 +18,10 @@
                     <label for="editEventDuration" class="form-label">Тривалість (хвилин)</label>
                     <input type="number" class="form-control" id="editEventDuration" name="duration" min="15" max="180" required>
                 </div>
+                <div class="mb-3">
+                    <label for="editEventMeetingUrl" class="form-label">Посилання на онлайн-заняття</label>
+                    <input type="url" class="form-control" id="editEventMeetingUrl" name="meeting_url" placeholder="https://meet.google.com/...">
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="submit" class="btn btn-primary">Зберегти</button>

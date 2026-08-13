@@ -28,6 +28,7 @@ class StoreEventRequest extends FormRequest
             'teacher_id' => ['nullable', 'exists:teachers,id'], // ← можна явно задати
             'duration' => ['nullable', 'integer', 'min:15', 'max:180'],
             'notes' => ['nullable', 'string'],
+            'meeting_url' => ['nullable', 'url', 'max:2048'],
             'repeat_weekly' => ['nullable', 'boolean'],
             'repeat_period' => ['nullable', Rule::in(['none', 'month', 'year'])],
             'lesson_type' => ['required', Rule::in(['individual', 'group', 'pair', 'trial'])],
@@ -65,6 +66,7 @@ class StoreEventRequest extends FormRequest
             'teacher_id' => 'викладач',
             'duration' => 'тривалість',
             'notes' => 'нотатки',
+            'meeting_url' => 'посилання на заняття',
             'repeat_weekly' => 'щотижневе повторення',
             'repeat_period' => 'період повторення',
             'lesson_type' => 'тип заняття',

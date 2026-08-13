@@ -141,6 +141,7 @@ class TelegramTeacherLessonService
                 'initiator' => null,
                 'lesson_type' => $lesson->lesson_type ?? LessonType::Individual,
                 'notes' => $lesson->notes,
+                'meeting_url' => $lesson->meeting_url,
             ]);
 
             LessonActionLogger::log(

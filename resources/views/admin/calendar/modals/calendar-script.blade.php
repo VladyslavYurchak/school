@@ -148,6 +148,7 @@
                 time: document.getElementById('eventTime').value,
                 duration: document.getElementById('eventDuration').value,
                 notes: document.getElementById('eventNotes').value,
+                meeting_url: document.getElementById('eventMeetingUrl').value,
                 student_id: document.getElementById('eventStudent').value || null,
                 group_id: document.getElementById('eventGroup').value || null,
                 repeat_period: document.getElementById('repeatPeriod').value,
@@ -176,6 +177,7 @@
                 end: formatDateTimeLocal(end),
                 duration: data.duration,
                 notes: data.notes,
+                meeting_url: data.meeting_url || null,
                 repeat_period: data.repeat_period,
                 lesson_type: data.lesson_type, // додаємо тут
                 student_id: null,
@@ -280,6 +282,8 @@
             document.getElementById('editEventDate').value = formatDateInput(selectedEventStart);
             document.getElementById('editEventTime').value = formatTimeInput(selectedEventStart);
             document.getElementById('editEventDuration').value = minutesBetween(selectedEventStart, selectedEventEnd);
+            document.getElementById('editEventMeetingUrl').value = window.calendar
+                .getEventById(selectedEventId)?.extendedProps?.meeting_url || '';
 
             manageEventModal.hide();
             editEventModal.show();
@@ -298,7 +302,8 @@
                 body: JSON.stringify({
                     date: document.getElementById('editEventDate').value,
                     time: document.getElementById('editEventTime').value,
-                    duration: document.getElementById('editEventDuration').value
+                    duration: document.getElementById('editEventDuration').value,
+                    meeting_url: document.getElementById('editEventMeetingUrl').value || null
                 })
             }).then(res => res.json()).then(data => {
                 if (data.success) {

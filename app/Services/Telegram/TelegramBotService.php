@@ -15,6 +15,8 @@ class TelegramBotService
         private readonly TelegramBotClient $client,
         private readonly TelegramLinkService $linkService,
         private readonly TelegramTeacherLessonService $teacherLessons,
+        private readonly TelegramLessonAbsenceService $absenceRequests,
+        private readonly TelegramHomeworkService $homework,
     ) {}
 
     public function handle(array $update): void
@@ -66,12 +68,23 @@ class TelegramBotService
             return;
         }
 
+        if ($this->homework->handlePendingMessage($account, $message)) {
+            return;
+        }
+
         match ($text) {
             '/lessons', 'Мої заняття', 'Мій розклад' => $this->sendUpcomingLessons($account),
             '/subscription', 'Мій абонемент' => $account->user->isStudent()
                 ? $this->sendSubscription($account)
                 : $this->sendMenu($account),
-            '/help', '/settings', 'Допомога' => $this->sendMenu($account),
+            '/payments', 'Мої платежі' => $account->user->isStudent()
+                ? $this->sendPayments($account)
+                : $this->sendMenu($account),
+            '/homework', 'Домашні завдання' => $account->user->isStudent()
+                ? $this->homework->sendAssignments($account)
+                : $this->sendMenu($account),
+            '/settings', 'Налаштування' => $this->sendSettings($account),
+            '/help', 'Допомога' => $this->sendHelp($account),
             default => $this->sendMenu($account),
         };
     }
@@ -118,14 +131,24 @@ class TelegramBotService
         $keyboard = $account->user?->isTeacher()
             ? [
                 [['text' => 'Мій розклад']],
-                [['text' => 'Допомога']],
+                [
+                    ['text' => 'Налаштування'],
+                    ['text' => 'Допомога'],
+                ],
             ]
             : [
                 [
                     ['text' => 'Мої заняття'],
                     ['text' => 'Мій абонемент'],
                 ],
-                [['text' => 'Допомога']],
+                [
+                    ['text' => 'Мої платежі'],
+                    ['text' => 'Домашні завдання'],
+                ],
+                [
+                    ['text' => 'Налаштування'],
+                    ['text' => 'Допомога'],
+                ],
             ];
 
         $this->client->sendMessage($account->chat_id, $text, [
@@ -169,7 +192,28 @@ class TelegramBotService
             );
         }
 
-        $this->client->sendMessage($account->chat_id, implode("\n", $lines));
+        $keyboard = [];
+
+        foreach ($lessons as $lesson) {
+            $row = [];
+
+            if ($lesson->effective_meeting_url) {
+                $row[] = [
+                    'text' => 'Приєднатися '.$lesson->start_date->format('d.m H:i'),
+                    'url' => $lesson->effective_meeting_url,
+                ];
+            }
+
+            $row[] = [
+                'text' => 'Не зможу бути '.$lesson->start_date->format('d.m H:i'),
+                'callback_data' => "student:absence:{$lesson->id}",
+            ];
+            $keyboard[] = $row;
+        }
+
+        $this->client->sendMessage($account->chat_id, implode("\n", $lines), [
+            'reply_markup' => ['inline_keyboard' => $keyboard],
+        ]);
     }
 
     private function sendTeacherLessons(TelegramAccount $account, $lessons): void
@@ -199,7 +243,11 @@ class TelegramBotService
                 implode("\n", $details),
                 [
                     'reply_markup' => [
-                        'inline_keyboard' => [
+                        'inline_keyboard' => array_values(array_filter([
+                            $lesson->effective_meeting_url ? [[
+                                'text' => 'Приєднатися',
+                                'url' => $lesson->effective_meeting_url,
+                            ]] : null,
                             [
                                 [
                                     'text' => 'Проведено',
@@ -215,8 +263,12 @@ class TelegramBotService
                                     'text' => 'Скасувати',
                                     'callback_data' => "lesson:cancel:{$lesson->id}",
                                 ],
+                                [
+                                    'text' => 'Домашнє завдання',
+                                    'callback_data' => "homework:create:{$lesson->id}",
+                                ],
                             ],
-                        ],
+                        ])),
                     ],
                 ],
             );
@@ -232,16 +284,70 @@ class TelegramBotService
         $telegramUserId = (string) ($callback['from']['id'] ?? '');
 
         $account = TelegramAccount::query()
-            ->with(['user.teacher'])
+            ->with(['user.student', 'user.teacher'])
             ->where('chat_id', $chatId)
             ->where('telegram_user_id', $telegramUserId)
             ->first();
 
-        if (! $account || ! $account->user?->isTeacher() || ! $account->user->teacher) {
+        if (! $account || ! $this->hasSupportedProfile($account)) {
             $this->client->answerCallbackQuery(
                 $callbackId,
-                'Дія доступна лише підключеному викладачеві.',
+                'Спочатку підключіть Telegram у своєму кабінеті.',
             );
+
+            return;
+        }
+
+        $account->update(['last_interaction_at' => now()]);
+
+        if (preg_match('/^student:absence:(\d+)$/', $data, $matches)) {
+            $message = $account->user->isStudent()
+                ? $this->absenceRequests->request($account, (int) $matches[1])
+                : 'Ця дія доступна лише учням.';
+            $this->client->answerCallbackQuery($callbackId, $message);
+            $this->client->sendMessage($account->chat_id, $message);
+
+            return;
+        }
+
+        if (preg_match('/^settings:(lesson|payment|homework)$/', $data, $matches)) {
+            $this->toggleSetting($account, $matches[1], $callbackId);
+
+            return;
+        }
+
+        if (preg_match('/^settings:lead:(30|120|1440)$/', $data, $matches)) {
+            $account->update(['lesson_reminder_minutes' => (int) $matches[1]]);
+            $this->client->answerCallbackQuery($callbackId, 'Час нагадування оновлено.');
+            $this->sendSettings($account->fresh());
+
+            return;
+        }
+
+        if (preg_match('/^homework:(create|submit|review):(\d+)$/', $data, $matches)) {
+            match ($matches[1]) {
+                'create' => $this->homework->beginAssignment(
+                    $account,
+                    (int) $matches[2],
+                    $callbackId,
+                ),
+                'submit' => $this->homework->beginSubmission(
+                    $account,
+                    (int) $matches[2],
+                    $callbackId,
+                ),
+                'review' => $this->homework->reviewSubmission(
+                    $account,
+                    (int) $matches[2],
+                    $callbackId,
+                ),
+            };
+
+            return;
+        }
+
+        if (! $account->user?->isTeacher() || ! $account->user->teacher) {
+            $this->client->answerCallbackQuery($callbackId, 'Дія доступна лише викладачеві.');
 
             return;
         }
@@ -269,8 +375,6 @@ class TelegramBotService
 
             return;
         }
-
-        $account->update(['last_interaction_at' => now()]);
 
         try {
             match ($action) {
@@ -523,6 +627,161 @@ class TelegramBotService
                 $subscription->end_date->format('d.m.Y'),
             ),
         );
+    }
+
+    private function sendPayments(TelegramAccount $account): void
+    {
+        $student = $account->user->student;
+        $currentMonth = now()->startOfMonth();
+        $nextMonth = $currentMonth->copy()->addMonth();
+        $subscriptions = $student->subscriptions()
+            ->where('type', 'subscription')
+            ->whereIn('status', ['active', 'expired'])
+            ->whereBetween('start_date', [
+                $currentMonth->toDateString(),
+                $nextMonth->copy()->endOfMonth()->toDateString(),
+            ])
+            ->get();
+        $lastPayment = $student->payments()
+            ->where('status', 'paid')
+            ->latest('paid_at')
+            ->first();
+
+        $paidCurrent = $subscriptions->contains(
+            fn ($subscription) => $subscription->start_date->isSameMonth($currentMonth),
+        );
+        $paidNext = $subscriptions->contains(
+            fn ($subscription) => $subscription->start_date->isSameMonth($nextMonth),
+        );
+        $lines = [
+            '<b>Статус оплат</b>',
+            '',
+            '<b>'.$currentMonth->copy()->locale('uk')->translatedFormat('F Y').':</b> '
+                .($paidCurrent ? 'оплачено' : 'не оплачено'),
+            '<b>'.$nextMonth->copy()->locale('uk')->translatedFormat('F Y').':</b> '
+                .($paidNext ? 'оплачено' : 'не оплачено'),
+        ];
+
+        if ($lastPayment) {
+            $lines[] = '';
+            $lines[] = '<b>Остання оплата:</b> '
+                .number_format((float) $lastPayment->amount, 2, '.', ' ').' '
+                .$this->escape($lastPayment->currency)
+                .' · '.($lastPayment->paid_at?->format('d.m.Y') ?? '—');
+        }
+
+        $this->client->sendMessage($account->chat_id, implode("\n", $lines), [
+            'reply_markup' => [
+                'inline_keyboard' => [[
+                    [
+                        'text' => $paidCurrent && $paidNext ? 'Відкрити платежі' : 'Перейти до оплати',
+                        'url' => route('student.payments.index'),
+                    ],
+                ]],
+            ],
+        ]);
+    }
+
+    private function sendSettings(TelegramAccount $account): void
+    {
+        $leadLabel = match ((int) $account->lesson_reminder_minutes) {
+            1440 => 'за 24 години',
+            120 => 'за 2 години',
+            30 => 'за 30 хвилин',
+            default => 'за 60 хвилин',
+        };
+        $masterWarning = $account->notifications_enabled
+            ? ''
+            : "\n\nЗагальні сповіщення вимкнено у вебкабінеті.";
+
+        $this->client->sendMessage(
+            $account->chat_id,
+            '<b>Налаштування Telegram</b>'
+                ."\n\nНагадування про заняття: ".$this->enabledLabel($account->lesson_reminders_enabled)
+                ."\nЧас нагадування: ".$leadLabel
+                ."\nОплати: ".$this->enabledLabel($account->payment_notifications_enabled)
+                ."\nДомашні завдання: ".$this->enabledLabel($account->homework_notifications_enabled)
+                .$masterWarning,
+            [
+                'reply_markup' => [
+                    'inline_keyboard' => [
+                        [[
+                            'text' => 'Заняття: '.$this->toggleLabel($account->lesson_reminders_enabled),
+                            'callback_data' => 'settings:lesson',
+                        ]],
+                        [
+                            [
+                                'text' => '30 хв',
+                                'callback_data' => 'settings:lead:30',
+                            ],
+                            [
+                                'text' => '2 год',
+                                'callback_data' => 'settings:lead:120',
+                            ],
+                            [
+                                'text' => '24 год',
+                                'callback_data' => 'settings:lead:1440',
+                            ],
+                        ],
+                        [[
+                            'text' => 'Оплати: '.$this->toggleLabel($account->payment_notifications_enabled),
+                            'callback_data' => 'settings:payment',
+                        ]],
+                        [[
+                            'text' => 'Домашнє: '.$this->toggleLabel($account->homework_notifications_enabled),
+                            'callback_data' => 'settings:homework',
+                        ]],
+                    ],
+                ],
+            ],
+        );
+    }
+
+    private function toggleSetting(
+        TelegramAccount $account,
+        string $setting,
+        string $callbackId,
+    ): void {
+        $column = match ($setting) {
+            'lesson' => 'lesson_reminders_enabled',
+            'payment' => 'payment_notifications_enabled',
+            'homework' => 'homework_notifications_enabled',
+        };
+
+        $account->update([$column => ! (bool) $account->{$column}]);
+        $this->client->answerCallbackQuery($callbackId, 'Налаштування оновлено.');
+        $this->sendSettings($account->fresh());
+    }
+
+    private function sendHelp(TelegramAccount $account): void
+    {
+        $commands = $account->user?->isTeacher()
+            ? [
+                '/lessons — найближчі заняття та керування ними',
+                '/settings — налаштування сповіщень',
+            ]
+            : [
+                '/lessons — найближчі заняття',
+                '/subscription — активний абонемент',
+                '/payments — статус оплат і кнопка оплати',
+                '/homework — домашні завдання',
+                '/settings — налаштування сповіщень',
+            ];
+
+        $this->client->sendMessage(
+            $account->chat_id,
+            "<b>Допомога</b>\n\n".implode("\n", $commands),
+        );
+    }
+
+    private function enabledLabel(bool $enabled): string
+    {
+        return $enabled ? 'увімкнено' : 'вимкнено';
+    }
+
+    private function toggleLabel(bool $enabled): string
+    {
+        return $enabled ? 'вимкнути' : 'увімкнути';
     }
 
     private function upcomingLessons(TelegramAccount $account)

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Teachers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Teachers\UpdateRequest;
 use App\Models\Teacher;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class UpdateController extends Controller
@@ -25,8 +26,20 @@ class UpdateController extends Controller
         $data['is_public'] = (bool) ($data['is_public'] ?? false);
         $data['is_active'] = (bool) ($data['is_active'] ?? false);
 
-        $teacher->update($data);
+        DB::transaction(function () use ($teacher, $data): void {
+            $lockedTeacher = Teacher::query()
+                ->lockForUpdate()
+                ->findOrFail($teacher->id);
+            $user = $lockedTeacher->user()
+                ->lockForUpdate()
+                ->firstOrFail();
 
+            if (! $user->isAdmin()) {
+                $user->update(['role' => 'teacher']);
+            }
+
+            $lockedTeacher->update($data);
+        });
 
         return redirect()
             ->route('admin.teachers.index')

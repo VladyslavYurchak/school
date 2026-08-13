@@ -80,6 +80,11 @@
                         <textarea class="form-control" id="eventNotes" name="notes" rows="2"></textarea>
                     </div>
 
+                    <div class="mb-3">
+                        <label for="eventMeetingUrl" class="form-label">Посилання на онлайн-заняття</label>
+                        <input type="url" class="form-control" id="eventMeetingUrl" name="meeting_url" placeholder="https://meet.google.com/...">
+                    </div>
+
                     <div class="mt-2">
                         <label class="form-label" for="repeatPeriod">Повторення</label>
                         <select class="form-select" id="repeatPeriod" name="repeat_period">
