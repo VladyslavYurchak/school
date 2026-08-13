@@ -23,6 +23,8 @@ class TeacherSettingsTest extends TestCase
             ->assertSee('Налаштування')
             ->assertSee('Ваше постійне посилання на Zoom')
             ->assertSee('Підключити Telegram')
+            ->assertSee('admin-panel admin-form teacher-settings-panel', false)
+            ->assertSee('admin-panel teacher-settings-panel', false)
             ->assertSee(route('teacher.telegram.connect'), false);
     }
 

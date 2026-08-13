@@ -66,6 +66,13 @@
     flex-wrap: wrap !important;
 }
 
+.teacher-settings-panel {
+    width: 100%;
+    max-width: 1120px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
 .admin-filter-grid.admin-filter-grid-three {
     grid-template-columns: minmax(170px, 1fr) minmax(130px, 0.6fr) auto;
 }

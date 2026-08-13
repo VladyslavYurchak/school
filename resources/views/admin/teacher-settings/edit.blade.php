@@ -28,13 +28,13 @@
                 <div class="alert alert-danger" role="alert">{{ session('telegram_error') }}</div>
             @endif
 
-            <form method="POST" action="{{ route('teacher.settings.update') }}" class="admin-panel admin-form admin-form-card">
+            <form method="POST" action="{{ route('teacher.settings.update') }}" class="admin-panel admin-form teacher-settings-panel">
                 @csrf
                 @method('PATCH')
 
                 <div class="admin-panel-header">
                     <h2 class="admin-panel-title">
-                        <i class="bi bi-camera-video"></i>
+                        <i class="bi bi-link-45deg"></i>
                         Zoom для занять
                     </h2>
                 </div>
@@ -69,7 +69,7 @@
                 </div>
             </form>
 
-            <section class="admin-panel">
+            <section class="admin-panel teacher-settings-panel">
                 <div class="admin-panel-header">
                     <h2 class="admin-panel-title">
                         <i class="bi bi-telegram"></i>
