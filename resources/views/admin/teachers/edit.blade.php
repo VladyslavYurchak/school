@@ -14,6 +14,10 @@
                     </div>
 
                     <div class="admin-actions">
+                        <a href="{{ route('teachers.index') }}#teacher-{{ $teacher->id }}" class="admin-btn-soft" target="_blank" rel="noopener">
+                            <i class="bi bi-eye"></i>
+                            Переглянути на сайті
+                        </a>
                         <a href="{{ route('admin.teachers.index') }}" class="admin-btn-soft">
                             <i class="bi bi-arrow-left"></i>
                             До викладачів

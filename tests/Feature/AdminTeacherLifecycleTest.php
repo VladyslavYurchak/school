@@ -166,7 +166,7 @@ class AdminTeacherLifecycleTest extends TestCase
                 $this->teacherPayload($user),
                 ['first_name' => $teacher->first_name, 'last_name' => $teacher->last_name]
             ))
-            ->assertRedirect(route('admin.teachers.index'));
+            ->assertRedirect(route('admin.teachers.edit', $teacher));
 
         $this->assertSame('teacher', $user->fresh()->role);
     }

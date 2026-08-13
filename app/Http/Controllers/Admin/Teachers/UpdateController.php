@@ -42,8 +42,8 @@ class UpdateController extends Controller
         });
 
         return redirect()
-            ->route('admin.teachers.index')
-            ->with('success', 'Викладача оновлено');
+            ->route('admin.teachers.edit', $teacher)
+            ->with('success', 'Дані викладача збережено');
     }
 
     private function cleanPublicBio(?string $html): ?string

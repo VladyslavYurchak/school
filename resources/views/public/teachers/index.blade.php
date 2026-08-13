@@ -33,7 +33,7 @@
 
             <div class="teachers-list">
                 @foreach($teachers as $teacher)
-                    <article class="teacher-card">
+                    <article class="teacher-card" id="teacher-{{ $teacher->id }}">
                         <div class="row align-items-center g-4">
 
                             <div class="col-md-4 col-lg-3">

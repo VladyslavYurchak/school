@@ -1,7 +1,7 @@
 <form action="{{ isset($teacher) ? route('admin.teachers.update', $teacher->id) : route('admin.teachers.store') }}"
       method="POST"
       enctype="multipart/form-data"
-      class="admin-panel admin-form admin-form-card">
+      class="admin-panel admin-form admin-form-card teacher-profile-form">
     @csrf
     @if(isset($teacher))
         @method('PUT')
@@ -12,6 +12,24 @@
     </div>
 
     <div class="admin-panel-body">
+        @if(session('success'))
+            <div class="alert alert-success d-flex align-items-center gap-2" role="status">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="alert alert-danger" role="alert">
+                <strong>Не вдалося зберегти:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label">Ім'я</label>
@@ -84,16 +102,25 @@
 
             <div class="col-md-4">
                 <label class="form-label">Фото для сайту</label>
-                <input type="file" name="public_photo" class="form-control" accept="image/*">
+                <input type="file"
+                       name="public_photo"
+                       id="teacher-public-photo"
+                       class="form-control @error('public_photo') is-invalid @enderror"
+                       accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                       aria-describedby="teacher-photo-help teacher-photo-error">
+                <div id="teacher-photo-help" class="form-text">JPG, PNG або WebP, до 4 МБ. Нове фото замінить поточне.</div>
+                <div id="teacher-photo-error" class="invalid-feedback @unless($errors->has('public_photo')) d-none @endunless">
+                    @error('public_photo'){{ $message }}@enderror
+                </div>
             </div>
 
-            @if(!empty($teacher?->public_photo))
-                <div class="col-md-2 d-flex align-items-end">
-                    <img src="{{ asset('storage/' . $teacher->public_photo) }}"
-                         alt="{{ trim(($teacher->first_name ?? '') . ' ' . ($teacher->last_name ?? '')) }}"
-                         class="admin-avatar-preview">
+            <div class="col-md-2 d-flex align-items-end">
+                <div id="teacher-photo-preview-wrap" class="teacher-photo-edit-preview @if(empty($teacher?->public_photo)) d-none @endif">
+                    <img id="teacher-photo-preview"
+                         @if(!empty($teacher?->public_photo)) src="{{ asset('storage/' . $teacher->public_photo) }}" @endif
+                         alt="Попередній перегляд фото">
                 </div>
-            @endif
+            </div>
 
             <div class="col-md-6">
                 <label class="form-label">Порядок відображення</label>
@@ -136,9 +163,10 @@
             </div>
 
             <div class="col-12">
-                <div class="admin-form-actions">
+                <div class="admin-form-actions teacher-profile-actions">
                     <a href="{{ route('admin.teachers.index') }}" class="admin-btn-soft">Скасувати</a>
-                    <button type="submit" class="admin-btn-primary">
+                    <button type="submit" class="admin-btn-primary" id="teacher-profile-submit">
+                        <i class="bi bi-check-lg"></i>
                         {{ isset($teacher) ? 'Оновити' : 'Зберегти' }}
                     </button>
                 </div>
@@ -153,6 +181,43 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const bioEditor = document.querySelector('#teacher-public-bio-editor');
+            const form = document.querySelector('.teacher-profile-form');
+            const photoInput = document.querySelector('#teacher-public-photo');
+            const photoPreview = document.querySelector('#teacher-photo-preview');
+            const photoPreviewWrap = document.querySelector('#teacher-photo-preview-wrap');
+            const photoError = document.querySelector('#teacher-photo-error');
+            const submitButton = document.querySelector('#teacher-profile-submit');
+
+            photoInput?.addEventListener('change', function () {
+                const file = this.files?.[0];
+
+                photoError?.classList.add('d-none');
+                this.classList.remove('is-invalid');
+
+                if (!file) {
+                    return;
+                }
+
+                if (file.size > 4 * 1024 * 1024) {
+                    this.value = '';
+                    this.classList.add('is-invalid');
+                    photoError.textContent = 'Фото завелике. Оберіть файл до 4 МБ.';
+                    photoError.classList.remove('d-none');
+                    return;
+                }
+
+                photoPreview.src = URL.createObjectURL(file);
+                photoPreviewWrap.classList.remove('d-none');
+            });
+
+            form?.addEventListener('submit', function () {
+                if (!submitButton) {
+                    return;
+                }
+
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Зберігаємо...';
+            });
 
             if (bioEditor) {
                 ClassicEditor
