@@ -226,7 +226,7 @@
 
         // --- Маркування як проведене ---
         document.getElementById('markAsCompleted').addEventListener('click', function () {
-            updateStatus('complete', 'Заняття відмічене як проведене');
+            updateStatus('complete', 'Заняття відмічене як проведене', {}, this);
         });
 
         // --- Маркування як перенесене ---
@@ -252,7 +252,7 @@
 
         // --- Маркування як скасоване ---
         document.getElementById('markAsCancelled').addEventListener('click', function () {
-            updateStatus('cancel', 'Заняття скасоване');
+            updateStatus('cancel', 'Заняття скасоване', {}, this);
         });
 
         document.getElementById('cancelStudentFutureLessons').addEventListener('click', function () {
@@ -267,7 +267,8 @@
             updateStatus(
                 'cancel',
                 'Це та всі наступні заняття учня скасовані',
-                { scope: 'student_future' }
+                { scope: 'student_future' },
+                this
             );
         });
 
@@ -348,24 +349,41 @@
         });
 
         // --- Функція оновлення статусу ---
-        function updateStatus(action, message, extraData = {}) {
-            fetch(`/admin/calendar-events/${selectedEventId}/${action}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(extraData)
-            }).then(res => res.json()).then(data => {
-                if (data.success) {
-                    calendar.refetchEvents();
-                    manageEventModal.hide();
-                    alert(message);
-                } else {
-                    alert(data.message || 'Помилка виконання дії');
+        async function updateStatus(action, message, extraData = {}, triggerButton = null) {
+            const originalButtonHtml = triggerButton?.innerHTML;
+
+            if (triggerButton) {
+                triggerButton.disabled = true;
+                triggerButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Зберігаємо...';
+            }
+
+            try {
+                const response = await fetch(`/admin/calendar-events/${selectedEventId}/${action}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(extraData)
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Помилка виконання дії');
                 }
-            });
+
+                calendar.refetchEvents();
+                manageEventModal.hide();
+                alert(message);
+            } catch (error) {
+                alert(error.message || 'Не вдалося зберегти зміни. Перевірте інтернет і спробуйте ще раз.');
+            } finally {
+                if (triggerButton) {
+                    triggerButton.disabled = false;
+                    triggerButton.innerHTML = originalButtonHtml;
+                }
+            }
         }
 
         // --- Перемикання типу заняття у формі ---

@@ -1,5 +1,5 @@
 <div class="modal fade" id="manageEventModal" tabindex="-1" aria-labelledby="manageEventLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header bg-info text-white">
                 <h5 class="modal-title" id="manageEventLabel">Управління заняттям</h5>
@@ -10,14 +10,14 @@
                 <p><strong>Дата:</strong> <span id="manageEventDate"></span></p>
                 <p><strong>Час:</strong> <span id="manageEventTime"></span></p>
             </div>
-            <div class="modal-footer d-flex justify-content-between flex-wrap gap-2">
-                <button class="btn btn-success" id="markAsCompleted">Проведене</button>
-                <button class="btn btn-warning" id="markAsRescheduled">Перенесене</button>
-                <button class="btn btn-danger" id="markAsCancelled">Скасоване</button>
-                <button class="btn btn-outline-danger d-none" id="cancelStudentFutureLessons">
+            <div class="modal-footer calendar-action-grid">
+                <button type="button" class="btn btn-success calendar-action-primary" id="markAsCompleted">Проведене</button>
+                <button type="button" class="btn btn-warning" id="markAsRescheduled">Перенесене</button>
+                <button type="button" class="btn btn-danger" id="markAsCancelled">Скасоване</button>
+                <button type="button" class="btn btn-outline-danger d-none calendar-action-wide" id="cancelStudentFutureLessons">
                     Скасувати це та всі майбутні заняття учня
                 </button>
-                <button class="btn btn-outline-primary" id="editEvent">Редагувати</button>
+                <button type="button" class="btn btn-outline-primary" id="editEvent">Редагувати</button>
             </div>
         </div>
     </div>

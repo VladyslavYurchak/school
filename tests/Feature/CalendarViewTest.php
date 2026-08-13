@@ -146,6 +146,23 @@ class CalendarViewTest extends TestCase
             ->assertSee('window.calendar.refetchEvents()', false);
     }
 
+    public function test_teacher_calendar_actions_are_phone_friendly(): void
+    {
+        [$teacherUser] = $this->createTeacherUser();
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->get(route('admin.calendar.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('modal-dialog-scrollable modal-fullscreen-sm-down', false)
+            ->assertSee('modal-footer calendar-action-grid', false)
+            ->assertSee('calendar-attendance-submit', false)
+            ->assertSee('type="button" class="btn btn-success calendar-action-primary" id="markAsCompleted"', false)
+            ->assertSee('type="button" id="markCompletedBtn" class="btn btn-success calendar-action-primary"', false);
+    }
+
     public function test_teacher_calendar_includes_group_reschedule_controls(): void
     {
         [$teacherUser] = $this->createTeacherUser();

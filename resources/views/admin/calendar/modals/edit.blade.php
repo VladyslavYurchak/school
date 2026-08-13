@@ -1,5 +1,5 @@
 <div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <form id="editEventForm" class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="editEventLabel">Редагувати час заняття</h5>

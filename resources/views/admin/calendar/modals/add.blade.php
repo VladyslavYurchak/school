@@ -1,5 +1,5 @@
 <div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <form id="addEventForm">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">

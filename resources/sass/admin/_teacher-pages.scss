@@ -101,6 +101,23 @@
     padding: 0.1rem 0.25rem;
 }
 
+.calendar-action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.calendar-action-grid .btn,
+.calendar-attendance-submit {
+    min-height: 44px;
+    white-space: normal;
+}
+
+.calendar-action-wide {
+    grid-column: 1 / -1;
+}
+
 .admin-note-truncate {
     max-width: 240px;
     white-space: nowrap;
@@ -180,5 +197,27 @@
         display: block;
         width: 100%;
         margin: 0.35rem 0 0;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .calendar-action-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .calendar-action-grid .calendar-action-primary,
+    .calendar-action-grid .calendar-action-wide,
+    .calendar-attendance-submit {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .calendar-action-grid .btn,
+    .calendar-attendance-submit {
+        min-height: 48px;
+    }
+
+    .modal-fullscreen-sm-down .modal-footer {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
     }
 }

@@ -1,5 +1,5 @@
 <div class="modal fade" id="rescheduleModal" tabindex="-1" aria-labelledby="rescheduleLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <form id="rescheduleForm" class="modal-content">
             <div class="modal-header bg-warning text-dark">
                 <h5 class="modal-title" id="rescheduleLabel">Перенесення заняття</h5>

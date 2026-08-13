@@ -1,6 +1,6 @@
 <!-- Модальне вікно -->
 <div class="modal fade" id="groupMembersModal" tabindex="-1" aria-labelledby="groupMembersModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg"> <!-- зробив трохи ширше -->
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="groupMembersModalLabel">Склад групи</h5>
@@ -10,10 +10,10 @@
                 <ul id="groupMembersList" class="list-group mb-3" data-group-id=""></ul>
 
                 <!-- Кнопки дій -->
-                <div class="d-flex gap-2 justify-content-end">
-                    <button id="markCompletedBtn" class="btn btn-success">Проведено</button>
-                    <button id="markGroupRescheduledBtn" class="btn btn-warning">Перенесено</button>
-                    <button id="markCancelledBtn" class="btn btn-danger">Скасовано</button>
+                <div class="calendar-action-grid">
+                    <button type="button" id="markCompletedBtn" class="btn btn-success calendar-action-primary">Проведено</button>
+                    <button type="button" id="markGroupRescheduledBtn" class="btn btn-warning">Перенесено</button>
+                    <button type="button" id="markCancelledBtn" class="btn btn-danger">Скасовано</button>
                 </div>
 
                 <!-- Форма відмітки присутності -->
@@ -25,7 +25,7 @@
                         <input type="hidden" id="lessonTime" value="">
 
                         <div id="attendanceCheckboxes" class="list-group"></div>
-                        <button type="submit" class="btn btn-primary mt-3">Зберегти присутність</button>
+                        <button type="submit" class="btn btn-primary mt-3 calendar-attendance-submit">Зберегти присутність</button>
                     </form>
                 </div>
 
@@ -36,7 +36,7 @@
 <!-- Modal для переносу -->
 
 <div class="modal fade" id="groupRescheduleModal" tabindex="-1" aria-labelledby="groupRescheduleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <form id="groupRescheduleForm" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="groupRescheduleModalLabel">Перенести групове заняття</h5>
@@ -60,5 +60,4 @@
         </form>
     </div>
 </div>
-
 
