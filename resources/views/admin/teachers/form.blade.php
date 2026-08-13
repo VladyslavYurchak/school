@@ -47,6 +47,21 @@
             </div>
 
             <div class="col-md-6">
+                <label for="teacher-meeting-url" class="form-label">Постійне посилання на Zoom</label>
+                <input
+                    type="url"
+                    name="meeting_url"
+                    id="teacher-meeting-url"
+                    class="form-control @error('meeting_url') is-invalid @enderror"
+                    value="{{ old('meeting_url', $teacher->meeting_url ?? '') }}"
+                    placeholder="https://zoom.us/j/...">
+                <div class="form-text">Використовується для всіх онлайн-занять викладача, якщо в самому занятті не вказано інше посилання.</div>
+                @error('meeting_url')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-6">
                 <label class="form-label">Користувач</label>
                 <select name="user_id" class="form-select" required @if(isset($teacher)) disabled @endif>
                     <option value="">Оберіть користувача</option>

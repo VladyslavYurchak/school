@@ -15,6 +15,17 @@
                         <h1 class="admin-title">Мій розклад</h1>
                         <p class="admin-subtitle">Особистий календар занять, перенесень, скасувань і відміток відвідування.</p>
                     </div>
+
+                    <div class="admin-actions calendar-page-actions">
+                        <button type="button" class="admin-btn-primary" id="openAddLessonButton">
+                            <i class="bi bi-plus-lg"></i>
+                            Додати заняття
+                        </button>
+                        <a href="{{ route('teacher.settings.edit') }}" class="admin-btn-soft">
+                            <i class="bi bi-camera-video"></i>
+                            Zoom і Telegram
+                        </a>
+                    </div>
                 </div>
             </section>
 

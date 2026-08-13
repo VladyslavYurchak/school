@@ -33,6 +33,7 @@ class StoreController extends Controller
                 'last_name' => $data['last_name'],
                 'phone' => $data['phone'] ?? null,
                 'email' => $user->email,
+                'meeting_url' => $data['meeting_url'] ?? null,
                 'lesson_price' => $data['lesson_price'] ?? null,
                 'note' => $data['note'] ?? null,
                 'is_active' => (bool) ($data['is_active'] ?? true),

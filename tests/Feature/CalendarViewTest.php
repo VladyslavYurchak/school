@@ -163,6 +163,20 @@ class CalendarViewTest extends TestCase
             ->assertSee('type="button" id="markCompletedBtn" class="btn btn-success calendar-action-primary"', false);
     }
 
+    public function test_teacher_calendar_has_mobile_list_view_and_quick_actions(): void
+    {
+        [$teacherUser] = $this->createTeacherUser();
+
+        $this
+            ->actingAs($teacherUser)
+            ->get(route('admin.calendar.index'))
+            ->assertOk()
+            ->assertSee('id="openAddLessonButton"', false)
+            ->assertSee(route('teacher.settings.edit'), false)
+            ->assertSee("compactCalendar ? 'listWeek' : 'dayGridMonth'", false)
+            ->assertSee("document.getElementById('openAddLessonButton')?.addEventListener", false);
+    }
+
     public function test_teacher_calendar_includes_group_reschedule_controls(): void
     {
         [$teacherUser] = $this->createTeacherUser();

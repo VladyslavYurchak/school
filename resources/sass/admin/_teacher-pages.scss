@@ -125,6 +125,11 @@
     padding: 0.1rem 0.25rem;
 }
 
+.calendar-page-actions .admin-btn-primary,
+.calendar-page-actions .admin-btn-soft {
+    min-height: 44px;
+}
+
 .calendar-action-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
@@ -217,6 +222,27 @@
         font-size: 1.05rem;
     }
 
+    .admin-calendar-shell .fc-list-event {
+        cursor: pointer;
+    }
+
+    .admin-calendar-shell .fc-list-event-time,
+    .admin-calendar-shell .fc-list-event-title {
+        padding-top: 0.85rem;
+        padding-bottom: 0.85rem;
+    }
+
+    .calendar-page-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+
+    .calendar-page-actions > * {
+        width: 100%;
+        min-width: 0;
+    }
+
     .dataTables_wrapper .dataTables_filter input {
         display: block;
         width: 100%;
@@ -225,6 +251,10 @@
 }
 
 @media (max-width: 575.98px) {
+    .calendar-page-actions {
+        grid-template-columns: 1fr;
+    }
+
     .teacher-photo-edit-preview {
         width: min(100%, 220px);
     }

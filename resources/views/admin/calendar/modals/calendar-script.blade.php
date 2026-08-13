@@ -39,10 +39,26 @@
             return Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000));
         }
 
+        function openAddLesson(date = new Date()) {
+            document.getElementById('eventDate').value = formatDateInput(date);
+            document.getElementById('eventTime').value = '09:00';
+            addEventModal.show();
+        }
+
+        const compactCalendar = window.matchMedia('(max-width: 767.98px)').matches;
+
+        document.getElementById('openAddLessonButton')?.addEventListener('click', function () {
+            openAddLesson();
+        });
+
         window.calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
+            initialView: compactCalendar ? 'listWeek' : 'dayGridMonth',
             locale: 'uk',
-            headerToolbar: {
+            headerToolbar: compactCalendar ? {
+                left: 'prev,next',
+                center: 'title',
+                right: 'today'
+            } : {
                 left: 'prev,next today',
                 center: 'title',
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
@@ -52,14 +68,7 @@
 
             dateClick: function(info) {
                 const clickedDate = new Date(info.dateStr);
-
-                // Витягуємо дату у форматі yyyy-mm-dd
-                const formattedDate = clickedDate.toISOString().slice(0, 10);
-                document.getElementById('eventDate').value = formattedDate;
-
-                document.getElementById('eventTime').value = '09:00';
-
-                addEventModal.show();
+                openAddLesson(clickedDate);
             },
 
 

@@ -24,6 +24,7 @@ class StoreRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
+            'meeting_url' => ['nullable', 'url:http,https', 'max:2048'],
 
             'lesson_price' => ['nullable', 'numeric', 'min:0'],
             'group_lesson_price' => ['nullable', 'numeric', 'min:0'],

@@ -171,6 +171,48 @@ class AdminTeacherLifecycleTest extends TestCase
         $this->assertSame('teacher', $user->fresh()->role);
     }
 
+    public function test_admin_can_save_teachers_permanent_zoom_link(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['role' => 'teacher']);
+        $teacher = Teacher::factory()->create(['user_id' => $user->id]);
+
+        $this
+            ->actingAs($admin)
+            ->put(route('admin.teachers.update', $teacher), array_merge(
+                $this->teacherPayload($user),
+                [
+                    'first_name' => $teacher->first_name,
+                    'last_name' => $teacher->last_name,
+                    'meeting_url' => 'https://zoom.us/j/123456789',
+                ]
+            ))
+            ->assertRedirect(route('admin.teachers.edit', $teacher));
+
+        $this->assertSame('https://zoom.us/j/123456789', $teacher->fresh()->meeting_url);
+    }
+
+    public function test_teacher_zoom_link_must_be_a_web_url(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['role' => 'teacher']);
+        $teacher = Teacher::factory()->create(['user_id' => $user->id]);
+
+        $this
+            ->actingAs($admin)
+            ->put(route('admin.teachers.update', $teacher), array_merge(
+                $this->teacherPayload($user),
+                [
+                    'first_name' => $teacher->first_name,
+                    'last_name' => $teacher->last_name,
+                    'meeting_url' => 'zoom-room-without-url',
+                ]
+            ))
+            ->assertSessionHasErrors(['meeting_url']);
+
+        $this->assertNotSame('zoom-room-without-url', $teacher->fresh()->meeting_url);
+    }
+
     private function teacherPayload(User $user): array
     {
         return [
