@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # Keep one canonical host so links and ranking signals are not split.
+    RewriteCond %{HTTP_HOST} ^www\.korporatsiia-mov\.com$ [NC]
+    RewriteRule ^ https://korporatsiia-mov.com%{REQUEST_URI} [R=301,L,NE]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
