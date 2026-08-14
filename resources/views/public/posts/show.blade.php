@@ -47,8 +47,49 @@
             @endif
 
             <div class="post-show-content">
-                {!! nl2br(e($post->content)) !!}
+                @foreach(preg_split('/\R{2,}/u', trim($post->content)) as $block)
+                    @php
+                        $lines = preg_split('/\R/u', trim($block));
+                        $isList = count($lines) > 1 && collect($lines)->every(
+                            fn (string $line) => str_starts_with(trim($line), '•')
+                        );
+                        $isHeading = preg_match('/^\d+\.\s+/u', trim($block))
+                            || str_starts_with(trim($block), 'Що запитати');
+                    @endphp
+
+                    @if($isHeading)
+                        <h2>{{ $block }}</h2>
+                    @elseif($isList)
+                        <ul>
+                            @foreach($lines as $line)
+                                <li>{{ ltrim(trim($line), '• ') }}</li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <p>{!! nl2br(e($block)) !!}</p>
+                    @endif
+                @endforeach
             </div>
+
+            <aside class="post-show-cta" aria-label="Запис на заняття">
+                <div>
+                    <strong>Хочете підібрати формат навчання?</strong>
+                    <p>Познайомтеся зі школою або запишіться на безкоштовне пробне заняття.</p>
+                </div>
+                <div class="post-show-cta-actions">
+                    <a href="{{ route('seo.show', ['slug' => 'shkola-angliiskoi-brovary']) }}" class="btn btn-outline-primary">
+                        Школа у Броварах
+                    </a>
+                    <button type="button"
+                            class="btn btn-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#trialLessonRequestModal"
+                            data-analytics-event="view_trial_lesson_form"
+                            data-analytics-label="article">
+                        Записатися
+                    </button>
+                </div>
+            </aside>
         </article>
     </div>
 @endsection
